@@ -5,12 +5,18 @@ const path = require('path');
 const env = require('./config/env');
 const routes = require('./src/routes/index.routes');
 const errorHandler = require('./src/middlewares/errorHandler');
+const authMiddleware = require('./src/middlewares/auth');
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+app.get('/home', authMiddleware, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'home.html'));
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', routes);
