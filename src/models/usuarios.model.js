@@ -1,61 +1,93 @@
 const { randomUUID } = require('crypto');
+const { initDatabase } = require('../database/sqlite');
 
 class UsuarioModel {
-  constructor() {
-    this.usuarios = [];
-  }
-
-  static get collection() {
-    if (!this._collection) {
-      this._collection = [];
-    }
-    return this._collection;
-  }
-
   static async create({ nome, email, senhaHash, role = 'user' }) {
-    const now = new Date().toISOString();
+    const db = await initDatabase();
+    const agora = new Date().toISOString();
     const usuario = {
       id: randomUUID(),
       nome,
       email: email.toLowerCase(),
       senhaHash,
       role,
-      criadoEm: now,
-      atualizadoEm: now,
+      criadoEm: agora,
+      atualizadoEm: agora,
     };
 
-    this.collection.push(usuario);
+    await db.run(
+      `INSERT INTO usuarios (id, nome, email, senhaHash, role, criadoEm, atualizadoEm)
+      VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        usuario.id,
+        usuario.nome,
+        usuario.email,
+        usuario.senhaHash,
+        usuario.role,
+        usuario.criadoEm,
+        usuario.atualizadoEm,
+      ]
+    );
+
     return { ...usuario };
   }
 
   static async findAll() {
-    return this.collection.map((usuario) => ({ ...usuario }));
+    const db = await initDatabase();
+    const usuarios = await db.all('SELECT * FROM usuarios');
+    return usuarios.map((usuario) => ({ ...usuario }));
   }
 
   static async findByEmail(email) {
-    return this.collection.find(
-      (usuario) => usuario.email === (email || '').toLowerCase()
-    );
+    if (!email) return null;
+    const db = await initDatabase();
+    return db.get('SELECT * FROM usuarios WHERE email = ?', [email.toLowerCase()]);
   }
 
   static async findById(id) {
-    return this.collection.find((usuario) => usuario.id === id);
+    const db = await initDatabase();
+    return db.get('SELECT * FROM usuarios WHERE id = ?', [id]);
   }
 
   static async update(id, updates) {
-    const usuario = await this.findById(id);
-    if (!usuario) return null;
+    const db = await initDatabase();
+    const campos = [];
+    const valores = [];
 
-    Object.assign(usuario, updates, { atualizadoEm: new Date().toISOString() });
-    return { ...usuario };
+    if (updates.nome !== undefined) {
+      campos.push('nome = ?');
+      valores.push(updates.nome);
+    }
+    if (updates.email !== undefined) {
+      campos.push('email = ?');
+      valores.push(updates.email.toLowerCase());
+    }
+    if (updates.senhaHash !== undefined) {
+      campos.push('senhaHash = ?');
+      valores.push(updates.senhaHash);
+    }
+    if (updates.role !== undefined) {
+      campos.push('role = ?');
+      valores.push(updates.role);
+    }
+
+    campos.push('atualizadoEm = ?');
+    valores.push(new Date().toISOString());
+    valores.push(id);
+
+    const result = await db.run(
+      `UPDATE usuarios SET ${campos.join(', ')} WHERE id = ?`,
+      valores
+    );
+
+    if (!result.changes) return null;
+    return this.findById(id);
   }
 
   static async delete(id) {
-    const index = this.collection.findIndex((usuario) => usuario.id === id);
-    if (index === -1) return false;
-
-    this.collection.splice(index, 1);
-    return true;
+    const db = await initDatabase();
+    const result = await db.run('DELETE FROM usuarios WHERE id = ?', [id]);
+    return result.changes > 0;
   }
 }
 
