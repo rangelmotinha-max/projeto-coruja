@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bem-vindo | Projeto Coruja</title>
+    <link rel="stylesheet" href="/css/main.css" />
+    <style>
+      .dashboard__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+      }
+
+      .dashboard__title {
+        margin: 0;
+        font-size: 1.6rem;
+      }
+
+      .dashboard__eyebrow {
+        color: var(--primary);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin: 0 0 0.35rem;
+        font-weight: 700;
+        font-size: 0.85rem;
+      }
+
+      .dashboard__actions {
+        display: flex;
+        gap: 0.5rem;
+      }
+
+      .button {
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text);
+        padding: 0.7rem 1rem;
+        border-radius: 12px;
+        cursor: pointer;
+        font-weight: 700;
+        transition: border-color 0.2s ease, background 0.2s ease, transform 0.1s ease;
+      }
+
+      .button:hover {
+        background: rgba(255, 255, 255, 0.07);
+        border-color: rgba(124, 58, 237, 0.4);
+        transform: translateY(-1px);
+      }
+
+      .button--primary {
+        border: none;
+        background: linear-gradient(90deg, var(--primary), var(--primary-hover));
+        color: #fff;
+        box-shadow: 0 10px 30px rgba(124, 58, 237, 0.25);
+      }
+
+      .dashboard__grid {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      }
+
+      .stat {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 1rem;
+      }
+
+      .stat__label {
+        display: block;
+        color: var(--muted);
+        font-size: 0.9rem;
+        margin-bottom: 0.35rem;
+      }
+
+      .stat__value {
+        margin: 0;
+        font-size: 1.2rem;
+        font-weight: 700;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="pagina" data-page="welcome">
+      <section class="card" style="max-width: 760px; width: 100%">
+        <header class="dashboard__header">
+          <div>
+            <p class="dashboard__eyebrow">Projeto Coruja</p>
+            <h1 class="dashboard__title">Bem-vindo de volta</h1>
+            <p class="card__subtitle">Confira seus dados e continue sua jornada.</p>
+          </div>
+          <div class="dashboard__actions">
+            <button id="logout-button" class="button" type="button">Sair</button>
+          </div>
+        </header>
+
+        <div id="welcome-message" class="message" role="status" aria-live="polite"></div>
+
+        <div class="dashboard__grid">
+          <div class="stat">
+            <span class="stat__label">Nome</span>
+            <p class="stat__value" id="user-name">—</p>
+          </div>
+          <div class="stat">
+            <span class="stat__label">E-mail</span>
+            <p class="stat__value" id="user-email">—</p>
+          </div>
+          <div class="stat">
+            <span class="stat__label">Perfil</span>
+            <p class="stat__value" id="user-role">—</p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="/js/main.js"></script>
+  </body>
+</html>

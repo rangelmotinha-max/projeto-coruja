@@ -13,8 +13,12 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+app.get('/welcome', authMiddleware, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'welcome.html'));
+});
+
 app.get('/home', authMiddleware, (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'home.html'));
+  res.redirect('/welcome');
 });
 
 app.use(express.static(path.join(__dirname, 'public')));

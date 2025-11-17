@@ -6,8 +6,12 @@
   const messageEl = document.getElementById('message');
   const submitButton = form?.querySelector('button[type="submit"]');
 
-  const homePage = document.querySelector('[data-page="home"]');
-  const homeMessageEl = document.getElementById('home-message');
+  const profilePage =
+    document.querySelector('[data-page="welcome"]') ||
+    document.querySelector('[data-page="home"]');
+  const profileMessageEl =
+    document.getElementById('welcome-message') ||
+    document.getElementById('home-message');
   const userNameEl = document.getElementById('user-name');
   const userEmailEl = document.getElementById('user-email');
   const userRoleEl = document.getElementById('user-role');
@@ -147,7 +151,7 @@
 
       setMessage(messageEl, 'Login realizado com sucesso! Redirecionando...', 'success');
       setTimeout(() => {
-        window.location.href = '/home';
+        window.location.href = '/welcome';
       }, 800);
     } catch (error) {
       setMessage(
@@ -161,7 +165,7 @@
   };
 
   const renderUserCard = (user) => {
-    if (!homePage) return;
+    if (!profilePage) return;
 
     if (userNameEl) userNameEl.textContent = user?.nome || 'Usuário';
     if (userEmailEl) userEmailEl.textContent = user?.email || '—';
@@ -169,7 +173,7 @@
   };
 
   const carregarPerfil = async () => {
-    if (!homePage) return;
+    if (!profilePage) return;
 
     const token = getToken();
     if (!token) {
@@ -191,7 +195,7 @@
       return;
     }
 
-    setMessage(homeMessageEl, 'Carregando informações do perfil...', 'info');
+    setMessage(profileMessageEl, 'Carregando informações do perfil...', 'info');
 
     try {
       const response = await authorizedFetch(`/usuarios/${userId}`);
@@ -210,10 +214,10 @@
 
       persistUser(data);
       renderUserCard(data);
-      setMessage(homeMessageEl, 'Perfil atualizado com sucesso.', 'success');
+      setMessage(profileMessageEl, 'Perfil atualizado com sucesso.', 'success');
     } catch (error) {
       setMessage(
-        homeMessageEl,
+        profileMessageEl,
         error?.message || 'Erro ao carregar as informações do usuário.',
         'error'
       );
@@ -228,7 +232,7 @@
   form?.addEventListener('submit', handleLogin);
   logoutButton?.addEventListener('click', handleLogout);
 
-  if (homePage) {
+  if (profilePage) {
     carregarPerfil();
   }
 })();
