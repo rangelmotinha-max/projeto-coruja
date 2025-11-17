@@ -14,11 +14,15 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.get('/welcome', authMiddleware, (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'welcome.html'));
+  res.redirect('/home');
 });
 
 app.get('/home', authMiddleware, (req, res) => {
-  res.redirect('/welcome');
+  res.sendFile(path.join(__dirname, 'public', 'home.html'));
+});
+
+app.get('/perfil', authMiddleware, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'perfil.html'));
 });
 
 app.use(express.static(path.join(__dirname, 'public')));

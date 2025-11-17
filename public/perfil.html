@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Home | Projeto Coruja</title>
+    <title>Perfil de Usuário | Projeto Coruja</title>
     <link rel="stylesheet" href="/css/main.css" />
   </head>
   <body>
@@ -11,39 +11,39 @@
       <aside class="sidebar">
         <div class="sidebar__brand">Projeto Coruja</div>
         <nav class="sidebar__nav" aria-label="Menu principal">
-          <a class="sidebar__link sidebar__link--active" href="/home">Home</a>
-          <a class="sidebar__link" href="/perfil">Perfil de Usuário</a>
+          <a class="sidebar__link" href="/home">Home</a>
+          <a class="sidebar__link sidebar__link--active" href="/perfil">Perfil de Usuário</a>
         </nav>
         <div class="sidebar__footer">
           <button id="logout-button" class="sidebar__logout" type="button">Sair</button>
         </div>
       </aside>
 
-      <main class="content" data-page="home">
+      <main class="content" data-page="perfil">
         <header class="content__header">
-          <p class="content__eyebrow">Home</p>
-          <h1 class="content__title">Bem-vindo(a) de volta</h1>
+          <p class="content__eyebrow">Perfil de Usuário</p>
+          <h1 class="content__title">Seus dados pessoais</h1>
           <p class="content__subtitle">
-            Acompanhe rapidamente suas informações e navegue pelas áreas principais.
+            Consulte as informações vinculadas à sua conta e mantenha seus dados atualizados.
           </p>
         </header>
 
         <div class="page-actions">
-          <span class="pill">Acesso autenticado</span>
-          <span class="pill">Menu lateral disponível</span>
+          <span class="pill">Informações do login</span>
+          <span class="pill">Edição rápida em breve</span>
         </div>
 
         <div id="page-message" class="message" role="status" aria-live="polite"></div>
 
-        <section class="grid" aria-label="Destaques da página">
+        <section class="grid" aria-label="Informações do usuário">
           <article class="panel">
             <div class="panel__header">
-              <h2 class="panel__title">Seu resumo</h2>
-              <p class="panel__meta">Dados carregados após o login</p>
+              <h2 class="panel__title">Detalhes do usuário</h2>
+              <p class="panel__meta">Visualize nome, e-mail e perfil</p>
             </div>
             <div class="info-grid">
               <div class="info-item">
-                <p class="info-label">Nome</p>
+                <p class="info-label">Nome completo</p>
                 <p class="info-value" id="user-name">—</p>
               </div>
               <div class="info-item">
@@ -51,7 +51,7 @@
                 <p class="info-value" id="user-email">—</p>
               </div>
               <div class="info-item">
-                <p class="info-label">Perfil</p>
+                <p class="info-label">Perfil de acesso</p>
                 <p class="info-value" id="user-role">—</p>
               </div>
             </div>
@@ -59,26 +59,26 @@
 
           <article class="panel">
             <div class="panel__header">
-              <h2 class="panel__title">Próximos passos</h2>
-              <p class="panel__meta">Sugestões rápidas</p>
+              <h2 class="panel__title">Orientações</h2>
+              <p class="panel__meta">Cuide da segurança da conta</p>
             </div>
             <ul class="list">
               <li class="list__item">
-                <p class="list__title">Revise seus dados</p>
+                <p class="list__title">Confirme seus dados</p>
                 <p class="list__description">
-                  Acesse o menu Perfil de Usuário para confirmar nome, e-mail e permissões.
+                  Caso identifique qualquer divergência, procure o administrador responsável para ajustar as informações.
                 </p>
               </li>
               <li class="list__item">
-                <p class="list__title">Saiba o status do acesso</p>
+                <p class="list__title">Proteja sua sessão</p>
                 <p class="list__description">
-                  Use o botão Sair para encerrar a sessão com segurança quando terminar.
+                  Utilize o botão Sair para encerrar o acesso em dispositivos compartilhados e manter sua conta segura.
                 </p>
               </li>
               <li class="list__item">
-                <p class="list__title">Continue navegando</p>
+                <p class="list__title">Navegue facilmente</p>
                 <p class="list__description">
-                  Utilize o menu lateral para voltar para esta página inicial sempre que quiser.
+                  Volte para a Home pelo menu lateral para acompanhar outras áreas do Projeto Coruja.
                 </p>
               </li>
             </ul>
