@@ -7,9 +7,11 @@
   const submitButton = form?.querySelector('button[type="submit"]');
 
   const profilePage =
-    document.querySelector('[data-page="welcome"]') ||
-    document.querySelector('[data-page="home"]');
+    document.querySelector('[data-page="home"]') ||
+    document.querySelector('[data-page="perfil"]') ||
+    document.querySelector('[data-page="welcome"]');
   const profileMessageEl =
+    document.getElementById('page-message') ||
     document.getElementById('welcome-message') ||
     document.getElementById('home-message');
   const userNameEl = document.getElementById('user-name');
@@ -151,7 +153,7 @@
 
       setMessage(messageEl, 'Login realizado com sucesso! Redirecionando...', 'success');
       setTimeout(() => {
-        window.location.href = '/welcome';
+        window.location.href = '/home';
       }, 800);
     } catch (error) {
       setMessage(
