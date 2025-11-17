@@ -216,7 +216,6 @@
 
       persistUser(data);
       renderUserCard(data);
-      setMessage(profileMessageEl, 'Perfil atualizado com sucesso.', 'success');
     } catch (error) {
       setMessage(
         profileMessageEl,
