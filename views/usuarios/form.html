@@ -1,0 +1,39 @@
+<section class="card">
+  <header class="card__header">
+    <p class="card__eyebrow">Projeto Coruja</p>
+    <h1 class="card__title">Acesse sua conta</h1>
+    <p class="card__subtitle">Informe suas credenciais para continuar.</p>
+  </header>
+
+  <div id="message" class="message" role="status" aria-live="polite"></div>
+
+  <form id="login-form" class="form" novalidate>
+    <div class="form__group">
+      <label class="form__label" for="email">E-mail</label>
+      <input
+        class="form__control"
+        type="email"
+        id="email"
+        name="email"
+        placeholder="seu@email.com"
+        required
+        autocomplete="email"
+      />
+    </div>
+
+    <div class="form__group">
+      <label class="form__label" for="senha">Senha</label>
+      <input
+        class="form__control"
+        type="password"
+        id="senha"
+        name="senha"
+        placeholder="••••••••"
+        required
+        autocomplete="current-password"
+      />
+    </div>
+
+    <button type="submit" class="form__submit">Entrar</button>
+  </form>
+</section>
