@@ -13,6 +13,15 @@
         <nav class="sidebar__nav" aria-label="Menu principal">
           <a class="sidebar__link sidebar__link--active" href="/home">Home</a>
           <a class="sidebar__link" href="/perfil">Perfil de Usuário</a>
+          <!-- Início do menu de nível superior: Cadastro -->
+          <details class="sidebar__section" open>
+            <summary class="sidebar__link sidebar__link--parent" aria-label="Abrir menu Cadastro">Cadastro</summary>
+            <div class="sidebar__subnav">
+              <a class="sidebar__link sidebar__link--child" href="/cadastro/pessoas">Pessoas</a>
+              <a class="sidebar__link sidebar__link--child" href="/cadastro/empresas">Empresas</a>
+            </div>
+          </details>
+          <!-- Fim do menu de nível superior: Cadastro -->
         </nav>
         <div class="sidebar__footer">
           <button id="logout-button" class="sidebar__logout" type="button">Sair</button>
