@@ -25,16 +25,6 @@ app.get('/perfil', authMiddleware, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'perfil.html'));
 });
 
-// Rota protegida para o cadastro de pessoas
-app.get('/cadastro/pessoas', authMiddleware, (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'cadastro', 'pessoas.html'));
-});
-
-// Rota protegida para o cadastro de empresas
-app.get('/cadastro/empresas', authMiddleware, (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'cadastro', 'empresas.html'));
-});
-
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', routes);
