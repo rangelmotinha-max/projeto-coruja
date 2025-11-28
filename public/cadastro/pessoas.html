@@ -31,6 +31,7 @@
 
       <!-- Conteúdo principal da página -->
       <main class="content" data-page="cadastro-pessoas">
+<<<<<<< HEAD
         <header class="content__header">
           <p class="content__eyebrow">Cadastro</p>
         </header>
@@ -39,16 +40,25 @@
         <section class="panel" aria-label="Formulário de dados de pessoas">
           <div class="panel__header panel__header--stacked">
             <div>
-              <h2 class="panel__title">Dados Pessoas</h2>
+              <h2 class="panel__title">Dados Pessoas</h2>              
             </div>
-            <!-- Cabeçalho do painel principal exibindo o título da seção de pessoas -->
-          </div>
+=======
+        <header class="content__header"></header>
+
+        <!-- Formulário principal de cadastro de pessoas -->
+        <section class="panel" aria-label="Formulário de dados de pessoas">
+          <div class="panel__header panel__header--stacked"></div>
+>>>>>>> b7b57205cb2b804c04e0e8ed7d52c2d8c38bbe30
 
           <!-- Bloco: dados pessoais principais -->
           <!-- Formulário controlado via JavaScript para criar ou editar pessoas -->
           <form class="form" id="pessoa-form" action="#" method="post">
             <div class="form__section">
+<<<<<<< HEAD
+              
+=======
               <div class="form__section-header"></div>
+>>>>>>> b7b57205cb2b804c04e0e8ed7d52c2d8c38bbe30
               <div class="form__grid form__grid--2">
                 <label class="form__field">
                   <span class="form__label">Nome Completo</span>
@@ -100,7 +110,7 @@
               <div class="form__grid form__grid--4">
                 <label class="form__field">
                   <span class="form__label">UF</span>
-                  <select class="form__input" name="ultimoUf"></select>
+                  <input class="form__input" type="text" name="ultimoUf" maxlength="2" />
                 </label>
                 <label class="form__field form__field--wide">
                   <span class="form__label">Logradouro/Nome</span>
@@ -123,7 +133,7 @@
               <div class="form__grid form__grid--4">
                 <label class="form__field">
                   <span class="form__label">UF</span>
-                  <select class="form__input" name="enderecoUf"></select>
+                  <input class="form__input" type="text" name="enderecoUf" maxlength="2" />
                 </label>
                 <label class="form__field form__field--wide">
                   <span class="form__label">Logradouro/Nome</span>
@@ -173,37 +183,6 @@
       const messageEl = document.getElementById('pessoas-message');
       let pessoaEmEdicao = null;
 
-      // Lista oficial de unidades federativas brasileiras usada para popular os selects
-      const UFS_BRASILEIRAS = [
-        { sigla: 'AC', nome: 'Acre' },
-        { sigla: 'AL', nome: 'Alagoas' },
-        { sigla: 'AP', nome: 'Amapá' },
-        { sigla: 'AM', nome: 'Amazonas' },
-        { sigla: 'BA', nome: 'Bahia' },
-        { sigla: 'CE', nome: 'Ceará' },
-        { sigla: 'DF', nome: 'Distrito Federal' },
-        { sigla: 'ES', nome: 'Espírito Santo' },
-        { sigla: 'GO', nome: 'Goiás' },
-        { sigla: 'MA', nome: 'Maranhão' },
-        { sigla: 'MT', nome: 'Mato Grosso' },
-        { sigla: 'MS', nome: 'Mato Grosso do Sul' },
-        { sigla: 'MG', nome: 'Minas Gerais' },
-        { sigla: 'PA', nome: 'Pará' },
-        { sigla: 'PB', nome: 'Paraíba' },
-        { sigla: 'PR', nome: 'Paraná' },
-        { sigla: 'PE', nome: 'Pernambuco' },
-        { sigla: 'PI', nome: 'Piauí' },
-        { sigla: 'RJ', nome: 'Rio de Janeiro' },
-        { sigla: 'RN', nome: 'Rio Grande do Norte' },
-        { sigla: 'RS', nome: 'Rio Grande do Sul' },
-        { sigla: 'RO', nome: 'Rondônia' },
-        { sigla: 'RR', nome: 'Roraima' },
-        { sigla: 'SC', nome: 'Santa Catarina' },
-        { sigla: 'SP', nome: 'São Paulo' },
-        { sigla: 'SE', nome: 'Sergipe' },
-        { sigla: 'TO', nome: 'Tocantins' },
-      ];
-
       // Recupera o token de autenticação armazenado pelo fluxo de login
       const obterToken = () => localStorage.getItem('authToken');
 
@@ -225,27 +204,6 @@
         messageEl.textContent = texto || '';
         messageEl.className = 'message';
         if (texto) messageEl.classList.add(`message--${tipo}`);
-      };
-
-      // Preenche os selects de UF com todas as unidades federativas
-      const popularSelectUf = (selectElement) => {
-        if (!selectElement) return;
-
-        // Limpa opções anteriores para permitir reutilização do helper
-        selectElement.innerHTML = '';
-
-        const opcaoPadrao = document.createElement('option');
-        opcaoPadrao.value = '';
-        opcaoPadrao.textContent = 'Selecione a UF';
-        opcaoPadrao.selected = true;
-        selectElement.appendChild(opcaoPadrao);
-
-        UFS_BRASILEIRAS.forEach(({ sigla, nome }) => {
-          const option = document.createElement('option');
-          option.value = sigla;
-          option.textContent = `${sigla} - ${nome}`;
-          selectElement.appendChild(option);
-        });
       };
 
       // Constrói um objeto de payload a partir do formulário
@@ -397,9 +355,6 @@
 
       // Inicializa os ouvintes de evento principais
       const inicializarCadastro = () => {
-        // Garante que os selects de UF sempre exibam a lista completa para escolha
-        popularSelectUf(pessoaForm.elements['ultimoUf']);
-        popularSelectUf(pessoaForm.elements['enderecoUf']);
         atualizarRotuloSubmit();
         pessoaForm.addEventListener('submit', salvarPessoa);
         listarButton.addEventListener('click', carregarPessoas);
