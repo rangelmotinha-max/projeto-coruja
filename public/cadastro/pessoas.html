@@ -8,13 +8,11 @@
   </head>
   <body>
     <div class="app">
-      <!-- Sidebar principal -->
       <aside class="sidebar">
         <div class="sidebar__brand">Projeto Coruja</div>
         <nav class="sidebar__nav" aria-label="Menu principal">
           <a class="sidebar__link" href="/home">Home</a>
           <a class="sidebar__link" href="/perfil">Perfil de Usuário</a>
-          <!-- Início do menu de nível superior: Cadastro -->
           <details class="sidebar__section sidebar__section--active" open>
             <summary class="sidebar__link sidebar__link--parent" aria-label="Abrir menu Cadastro">Cadastro</summary>
             <div class="sidebar__subnav">
@@ -22,39 +20,32 @@
               <a class="sidebar__link sidebar__link--child" href="/cadastro/empresas">Empresas</a>
             </div>
           </details>
-          <!-- Fim do menu de nível superior: Cadastro -->
         </nav>
         <div class="sidebar__footer">
           <button id="logout-button" class="sidebar__logout" type="button">Sair</button>
         </div>
       </aside>
 
-      <!-- Conteúdo principal da página -->
       <main class="content" data-page="cadastro-pessoas">
-        <!-- Cabeçalho contextual destacando a área de pessoas -->
         <header class="content__header">
           <p class="content__eyebrow">Cadastro</p>
-          <h1 class="content__title">Cadastre e acompanhe pessoas</h1>
-          <p class="content__subtitle">
-            Utilize este painel para registrar novos contatos, editar informações existentes e monitorar o histórico de
-            endereços.
-          </p>
+          <h1 class="content__title">Pessoas</h1>
+          <p class="content__subtitle">Preencha os dados e acompanhe os registros salvos.</p>
         </header>
 
-        <!-- Formulário principal de cadastro de pessoas -->
         <section class="panel" aria-label="Formulário de dados de pessoas">
           <div class="panel__header panel__header--stacked">
             <div>
-              <h2 class="panel__title">Dados de pessoas</h2>
-              <p class="panel__meta">Preencha os campos principais e de endereço antes de salvar</p>
+              <h2 class="panel__title">Dados principais</h2>
+              <p class="panel__meta">Somente as informações necessárias para o cadastro.</p>
             </div>
           </div>
 
-          <!-- Bloco: dados pessoais principais -->
-          <!-- Formulário controlado via JavaScript para criar ou editar pessoas -->
           <form class="form" id="pessoa-form" action="#" method="post">
             <div class="form__section">
-              <div class="form__section-header"></div>
+              <div class="form__section-header">
+                <h3 class="form__section-title">Identificação</h3>
+              </div>
               <div class="form__grid form__grid--2">
                 <label class="form__field">
                   <span class="form__label">Nome Completo</span>
@@ -81,9 +72,10 @@
               </div>
             </div>
 
-            <!-- Bloco: filiação e contato -->
             <div class="form__section">
-              <div class="form__section-header"></div>
+              <div class="form__section-header">
+                <h3 class="form__section-title">Contato e filiação</h3>
+              </div>
               <div class="form__grid form__grid--3">
                 <label class="form__field">
                   <span class="form__label">Nome da Mãe</span>
@@ -100,14 +92,14 @@
               </div>
             </div>
 
-            <!-- Bloco: último endereço -->
             <div class="form__section">
-              <div class="form__section-header"></div>
+              <div class="form__section-header">
+                <h3 class="form__section-title">Último endereço</h3>
+              </div>
               <div class="form__grid form__grid--4">
                 <label class="form__field">
                   <span class="form__label">UF</span>
                   <select class="form__input" name="ultimoUf">
-                    <!-- Lista completa das 27 unidades da federação -->
                     <option value="">Selecione</option>
                     <option value="AC">Acre (AC)</option>
                     <option value="AL">Alagoas (AL)</option>
@@ -153,14 +145,14 @@
               </div>
             </div>
 
-            <!-- Bloco: endereço atual -->
             <div class="form__section">
-              <div class="form__section-header"></div>
+              <div class="form__section-header">
+                <h3 class="form__section-title">Endereço atual</h3>
+              </div>
               <div class="form__grid form__grid--4">
                 <label class="form__field">
                   <span class="form__label">UF</span>
                   <select class="form__input" name="enderecoUf">
-                    <!-- Lista completa das 27 unidades da federação -->
                     <option value="">Selecione</option>
                     <option value="AC">Acre (AC)</option>
                     <option value="AL">Alagoas (AL)</option>
@@ -206,7 +198,6 @@
               </div>
             </div>
 
-            <!-- Bloco: ações do formulário -->
             <div class="form__actions">
               <button class="button button--secondary" type="reset">Limpar</button>
               <button class="button button--ghost" id="listar-pessoas" type="button">Listar</button>
@@ -215,7 +206,6 @@
           </form>
         </section>
 
-        <!-- Painel de listagem e ações de edição/exclusão -->
         <section class="panel" aria-label="Lista de pessoas cadastradas">
           <div class="panel__header panel__header--stacked">
             <div>
@@ -224,10 +214,8 @@
             </div>
           </div>
 
-          <!-- Feedback visual para operações de rede -->
           <div id="pessoas-message" class="message" role="status" aria-live="polite"></div>
 
-          <!-- Lista dinâmica de registros -->
           <ul id="pessoas-lista" class="list" aria-live="polite"></ul>
         </section>
       </main>
@@ -235,7 +223,6 @@
 
     <script src="/js/main.js"></script>
     <script>
-      // Configurações básicas e elementos reutilizados
       const API_PESSOAS_URL = '/api/pessoas';
       const pessoaForm = document.getElementById('pessoa-form');
       const submitButton = document.getElementById('submit-pessoa');
@@ -244,10 +231,8 @@
       const messageEl = document.getElementById('pessoas-message');
       let pessoaEmEdicao = null;
 
-      // Recupera o token de autenticação armazenado pelo fluxo de login
       const obterToken = () => localStorage.getItem('authToken');
 
-      // Executor de requisições com cabeçalho de autorização
       const fetchAutenticado = (url, options = {}) => {
         const token = obterToken();
         const headers = {
@@ -259,7 +244,6 @@
         return fetch(url, { ...options, headers });
       };
 
-      // Utilitário para exibir mensagens de status ao usuário
       const exibirMensagem = (texto, tipo = 'info') => {
         if (!messageEl) return;
         messageEl.textContent = texto || '';
@@ -267,13 +251,11 @@
         if (texto) messageEl.classList.add(`message--${tipo}`);
       };
 
-      // Constrói um objeto de payload a partir do formulário
       const obterDadosFormulario = () => {
         const formData = new FormData(pessoaForm);
         return Object.fromEntries(formData.entries());
       };
 
-      // Preenche o formulário com dados existentes para edição
       const preencherFormulario = (pessoa) => {
         Object.entries(pessoa).forEach(([chave, valor]) => {
           if (pessoaForm.elements[chave]) {
@@ -282,12 +264,10 @@
         });
       };
 
-      // Atualiza o rótulo do botão de submit conforme o modo atual
       const atualizarRotuloSubmit = () => {
         submitButton.textContent = pessoaEmEdicao ? 'Atualizar dados' : 'Salvar dados';
       };
 
-      // Renderiza a lista de pessoas carregada do backend
       const renderizarLista = (pessoas = []) => {
         listaPessoasEl.innerHTML = '';
 
@@ -300,13 +280,11 @@
           const item = document.createElement('li');
           item.className = 'list__item';
 
-          // Bloco de informações principais do registro
           const titulo = document.createElement('p');
           titulo.className = 'list__title';
           titulo.textContent = pessoa.nomeCompleto || 'Pessoa sem nome';
           item.appendChild(titulo);
 
-          // Bloco de ações de edição e exclusão
           const actions = document.createElement('div');
           actions.className = 'list__actions';
 
@@ -352,7 +330,6 @@
         });
       };
 
-      // Busca os registros no backend e atualiza a lista
       const carregarPessoas = async () => {
         try {
           exibirMensagem('Carregando pessoas cadastradas...', 'info');
@@ -371,7 +348,6 @@
         }
       };
 
-      // Envia dados para criar ou atualizar um registro
       const salvarPessoa = async (event) => {
         event.preventDefault();
 
@@ -414,7 +390,6 @@
         }
       };
 
-      // Inicializa os ouvintes de evento principais
       const inicializarCadastro = () => {
         atualizarRotuloSubmit();
         pessoaForm.addEventListener('submit', salvarPessoa);
@@ -427,7 +402,6 @@
         carregarPessoas();
       };
 
-      // Inicia a funcionalidade assim que a página for carregada
       document.addEventListener('DOMContentLoaded', inicializarCadastro);
     </script>
   </body>
