@@ -25,6 +25,16 @@ app.get('/perfil', authMiddleware, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'perfil.html'));
 });
 
+// Rota protegida garantindo acesso autenticado à página de Pessoas
+app.get('/cadastro/pessoas', authMiddleware, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'cadastro', 'pessoas.html'));
+});
+
+// Rota protegida garantindo acesso autenticado à página de Empresas
+app.get('/cadastro/empresas', authMiddleware, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'cadastro', 'empresas.html'));
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', routes);
