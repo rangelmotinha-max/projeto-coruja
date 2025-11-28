@@ -31,6 +31,7 @@
 
       <!-- Conteúdo principal da página -->
       <main class="content" data-page="cadastro-pessoas">
+<<<<<<< HEAD
         <header class="content__header">
           <p class="content__eyebrow">Cadastro</p>
         </header>
@@ -41,16 +42,27 @@
             <div>
               <h2 class="panel__title">Dados Pessoas</h2>              
             </div>
+=======
+        <header class="content__header"></header>
+
+        <!-- Formulário principal de cadastro de pessoas -->
+        <section class="panel" aria-label="Formulário de dados de pessoas">
+          <div class="panel__header panel__header--stacked"></div>
+>>>>>>> b7b57205cb2b804c04e0e8ed7d52c2d8c38bbe30
 
           <!-- Bloco: dados pessoais principais -->
           <!-- Formulário controlado via JavaScript para criar ou editar pessoas -->
           <form class="form" id="pessoa-form" action="#" method="post">
             <div class="form__section">
+<<<<<<< HEAD
               
+=======
+              <div class="form__section-header"></div>
+>>>>>>> b7b57205cb2b804c04e0e8ed7d52c2d8c38bbe30
               <div class="form__grid form__grid--2">
                 <label class="form__field">
                   <span class="form__label">Nome Completo</span>
-                  <input class="form__input" type="text" name="nomeCompleto" placeholder="Digite o nome completo" required />
+                  <input class="form__input" type="text" name="nomeCompleto" required />
                 </label>
                 <label class="form__field">
                   <span class="form__label">Data de Nascimento</span>
@@ -60,89 +72,80 @@
               <div class="form__grid form__grid--3">
                 <label class="form__field">
                   <span class="form__label">CPF</span>
-                  <input class="form__input" type="text" name="cpf" placeholder="000.000.000-00" inputmode="numeric" />
+                  <input class="form__input" type="text" name="cpf" inputmode="numeric" />
                 </label>
                 <label class="form__field">
                   <span class="form__label">RG</span>
-                  <input class="form__input" type="text" name="rg" placeholder="00.000.000-0" inputmode="numeric" />
+                  <input class="form__input" type="text" name="rg" inputmode="numeric" />
                 </label>
                 <label class="form__field">
                   <span class="form__label">CNH</span>
-                  <input class="form__input" type="text" name="cnh" placeholder="Número da CNH" inputmode="numeric" />
+                  <input class="form__input" type="text" name="cnh" inputmode="numeric" />
                 </label>
               </div>
             </div>
 
             <!-- Bloco: filiação e contato -->
             <div class="form__section">
-              <div class="form__section-header">
-                <h3 class="form__title">Filiação e Contato</h3>
-                <p class="form__description">Adicione os nomes dos responsáveis e um telefone de referência.</p>
-              </div>
+              <div class="form__section-header"></div>
               <div class="form__grid form__grid--3">
                 <label class="form__field">
                   <span class="form__label">Nome da Mãe</span>
-                  <input class="form__input" type="text" name="nomeMae" placeholder="Digite o nome da mãe" />
+                  <input class="form__input" type="text" name="nomeMae" />
                 </label>
                 <label class="form__field">
                   <span class="form__label">Nome do Pai</span>
-                  <input class="form__input" type="text" name="nomePai" placeholder="Digite o nome do pai" />
+                  <input class="form__input" type="text" name="nomePai" />
                 </label>
                 <label class="form__field">
                   <span class="form__label">Telefone</span>
-                  <input class="form__input" type="tel" name="telefone" placeholder="(00) 00000-0000" inputmode="tel" />
+                  <input class="form__input" type="tel" name="telefone" inputmode="tel" />
                 </label>
               </div>
             </div>
 
             <!-- Bloco: último endereço -->
             <div class="form__section">
-              <div class="form__section-header">
-                <h3 class="form__title">Último Endereço</h3>
-                <p class="form__description">Registre onde a pessoa residiu por último.</p>
-              </div>
+              <div class="form__section-header"></div>
               <div class="form__grid form__grid--4">
                 <label class="form__field">
                   <span class="form__label">UF</span>
-                  <input class="form__input" type="text" name="ultimoUf" placeholder="UF" maxlength="2" />
+                  <input class="form__input" type="text" name="ultimoUf" maxlength="2" />
                 </label>
                 <label class="form__field form__field--wide">
                   <span class="form__label">Logradouro/Nome</span>
-                  <input class="form__input" type="text" name="ultimoLogradouro" placeholder="Rua, avenida, etc." />
+                  <input class="form__input" type="text" name="ultimoLogradouro" />
                 </label>
                 <label class="form__field">
                   <span class="form__label">Bairro/Cidade</span>
-                  <input class="form__input" type="text" name="ultimoBairroCidade" placeholder="Bairro ou cidade" />
+                  <input class="form__input" type="text" name="ultimoBairroCidade" />
                 </label>
                 <label class="form__field">
                   <span class="form__label">CEP</span>
-                  <input class="form__input" type="text" name="ultimoCep" placeholder="00000-000" inputmode="numeric" />
+                  <input class="form__input" type="text" name="ultimoCep" inputmode="numeric" />
                 </label>
               </div>
             </div>
 
             <!-- Bloco: endereço atual -->
             <div class="form__section">
-              <div class="form__section-header">
-                <h3 class="form__title">Endereço Atual</h3>
-                <p class="form__description">Indique o endereço onde a pessoa reside atualmente.</p>
-              </div>
+              <div class="form__section-header"></div>
               <div class="form__grid form__grid--4">
                 <label class="form__field">
                   <span class="form__label">UF</span>
-                  <input class="form__input" type="text" name="enderecoUf" placeholder="UF" maxlength="2" />
+                  <input class="form__input" type="text" name="enderecoUf" maxlength="2" />
                 </label>
                 <label class="form__field form__field--wide">
                   <span class="form__label">Logradouro/Nome</span>
-                  <input class="form__input" type="text" name="enderecoLogradouro" placeholder="Rua, avenida, etc." />
+                  <input class="form__input" type="text" name="enderecoLogradouro" />
                 </label>
                 <label class="form__field">
                   <span class="form__label">Bairro/Cidade</span>
-                  <input class="form__input" type="text" name="enderecoBairroCidade" placeholder="Bairro ou cidade" />
+                  <input class="form__input" type="text" name="enderecoBairroCidade" />
                 </label>
                 <label class="form__field">
                   <span class="form__label">CEP</span>
-                  <input class="form__input" type="text" name="enderecoCep" placeholder="00000-000" inputmode="numeric" />
+                  <input class="form__input" type="text" name="enderecoCep" inputmode="numeric" />
                 </label>
               </div>
             </div>
@@ -158,13 +161,7 @@
 
         <!-- Painel de listagem e ações de edição/exclusão -->
         <section class="panel" aria-label="Lista de pessoas cadastradas">
-          <div class="panel__header panel__header--stacked">
-            <div>
-              <h2 class="panel__title">Pessoas cadastradas</h2>
-              <p class="panel__meta">Consulte, edite ou exclua registros enviados ao backend.</p>
-            </div>
-            <p class="panel__helper">A lista é preenchida via requisições com autenticação.</p>
-          </div>
+          <div class="panel__header panel__header--stacked"></div>
 
           <!-- Feedback visual para operações de rede -->
           <div id="pessoas-message" class="message" role="status" aria-live="polite"></div>
