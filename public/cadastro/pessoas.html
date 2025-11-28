@@ -39,41 +39,129 @@
           </p>
         </header>
 
-        <!-- Seção de painéis informativos -->
-        <section class="grid" aria-label="Ações e status do cadastro de pessoas">
-          <article class="panel">
-            <div class="panel__header">
-              <h2 class="panel__title">Status geral</h2>
-              <p class="panel__meta">Resumo dos registros</p>
+        <!-- Formulário principal de cadastro de pessoas -->
+        <section class="panel" aria-label="Formulário de dados de pessoas">
+          <div class="panel__header panel__header--stacked">
+            <div>
+              <h2 class="panel__title">Dados Pessoas</h2>
+              <p class="panel__meta">Preencha as informações essenciais para criar ou atualizar um cadastro.</p>
             </div>
-            <ul class="list">
-              <li class="list__item">
-                <p class="list__title">Base de pessoas</p>
-                <p class="list__description">Verifique rapidamente quantos perfis estão ativos.</p>
-              </li>
-              <li class="list__item">
-                <p class="list__title">Atualizações recentes</p>
-                <p class="list__description">Confira os últimos cadastros ou edições realizadas.</p>
-              </li>
-            </ul>
-          </article>
+            <p class="panel__helper">Campos organizados por etapa para facilitar o preenchimento.</p>
+          </div>
 
-          <article class="panel">
-            <div class="panel__header">
-              <h2 class="panel__title">Próximos passos</h2>
-              <p class="panel__meta">Atalhos úteis</p>
+          <!-- Bloco: dados pessoais principais -->
+          <form class="form" action="#" method="post">
+            <div class="form__section">
+              <div class="form__section-header">
+                <h3 class="form__title">Identificação</h3>
+                <p class="form__description">Informe dados oficiais e documentos.</p>
+              </div>
+              <div class="form__grid form__grid--2">
+                <label class="form__field">
+                  <span class="form__label">Nome Completo</span>
+                  <input class="form__input" type="text" name="nomeCompleto" placeholder="Digite o nome completo" required />
+                </label>
+                <label class="form__field">
+                  <span class="form__label">Data de Nascimento</span>
+                  <input class="form__input" type="date" name="dataNascimento" required />
+                </label>
+              </div>
+              <div class="form__grid form__grid--3">
+                <label class="form__field">
+                  <span class="form__label">CPF</span>
+                  <input class="form__input" type="text" name="cpf" placeholder="000.000.000-00" inputmode="numeric" />
+                </label>
+                <label class="form__field">
+                  <span class="form__label">RG</span>
+                  <input class="form__input" type="text" name="rg" placeholder="00.000.000-0" inputmode="numeric" />
+                </label>
+                <label class="form__field">
+                  <span class="form__label">CNH</span>
+                  <input class="form__input" type="text" name="cnh" placeholder="Número da CNH" inputmode="numeric" />
+                </label>
+              </div>
             </div>
-            <ul class="list">
-              <li class="list__item">
-                <p class="list__title">Adicionar pessoa</p>
-                <p class="list__description">Inicie um novo registro para manter a base sempre atualizada.</p>
-              </li>
-              <li class="list__item">
-                <p class="list__title">Revisar dados</p>
-                <p class="list__description">Valide informações sensíveis antes de concluir o processo de cadastro.</p>
-              </li>
-            </ul>
-          </article>
+
+            <!-- Bloco: filiação e contato -->
+            <div class="form__section">
+              <div class="form__section-header">
+                <h3 class="form__title">Filiação e Contato</h3>
+                <p class="form__description">Adicione os nomes dos responsáveis e um telefone de referência.</p>
+              </div>
+              <div class="form__grid form__grid--3">
+                <label class="form__field">
+                  <span class="form__label">Nome da Mãe</span>
+                  <input class="form__input" type="text" name="nomeMae" placeholder="Digite o nome da mãe" />
+                </label>
+                <label class="form__field">
+                  <span class="form__label">Nome do Pai</span>
+                  <input class="form__input" type="text" name="nomePai" placeholder="Digite o nome do pai" />
+                </label>
+                <label class="form__field">
+                  <span class="form__label">Telefone</span>
+                  <input class="form__input" type="tel" name="telefone" placeholder="(00) 00000-0000" inputmode="tel" />
+                </label>
+              </div>
+            </div>
+
+            <!-- Bloco: último endereço -->
+            <div class="form__section">
+              <div class="form__section-header">
+                <h3 class="form__title">Último Endereço</h3>
+                <p class="form__description">Registre onde a pessoa residiu por último.</p>
+              </div>
+              <div class="form__grid form__grid--4">
+                <label class="form__field">
+                  <span class="form__label">UF</span>
+                  <input class="form__input" type="text" name="ultimoUf" placeholder="UF" maxlength="2" />
+                </label>
+                <label class="form__field form__field--wide">
+                  <span class="form__label">Logradouro/Nome</span>
+                  <input class="form__input" type="text" name="ultimoLogradouro" placeholder="Rua, avenida, etc." />
+                </label>
+                <label class="form__field">
+                  <span class="form__label">Bairro/Cidade</span>
+                  <input class="form__input" type="text" name="ultimoBairroCidade" placeholder="Bairro ou cidade" />
+                </label>
+                <label class="form__field">
+                  <span class="form__label">CEP</span>
+                  <input class="form__input" type="text" name="ultimoCep" placeholder="00000-000" inputmode="numeric" />
+                </label>
+              </div>
+            </div>
+
+            <!-- Bloco: endereço atual -->
+            <div class="form__section">
+              <div class="form__section-header">
+                <h3 class="form__title">Endereço Atual</h3>
+                <p class="form__description">Indique o endereço onde a pessoa reside atualmente.</p>
+              </div>
+              <div class="form__grid form__grid--4">
+                <label class="form__field">
+                  <span class="form__label">UF</span>
+                  <input class="form__input" type="text" name="enderecoUf" placeholder="UF" maxlength="2" />
+                </label>
+                <label class="form__field form__field--wide">
+                  <span class="form__label">Logradouro/Nome</span>
+                  <input class="form__input" type="text" name="enderecoLogradouro" placeholder="Rua, avenida, etc." />
+                </label>
+                <label class="form__field">
+                  <span class="form__label">Bairro/Cidade</span>
+                  <input class="form__input" type="text" name="enderecoBairroCidade" placeholder="Bairro ou cidade" />
+                </label>
+                <label class="form__field">
+                  <span class="form__label">CEP</span>
+                  <input class="form__input" type="text" name="enderecoCep" placeholder="00000-000" inputmode="numeric" />
+                </label>
+              </div>
+            </div>
+
+            <!-- Bloco: ações do formulário -->
+            <div class="form__actions">
+              <button class="button button--secondary" type="reset">Limpar</button>
+              <button class="button button--primary" type="submit">Salvar dados</button>
+            </div>
+          </form>
         </section>
       </main>
     </div>
