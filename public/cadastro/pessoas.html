@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cadastro de Pessoas | Projeto Coruja</title>
+    <link rel="stylesheet" href="/css/main.css" />
+  </head>
+  <body>
+    <div class="app">
+      <!-- Sidebar principal -->
+      <aside class="sidebar">
+        <div class="sidebar__brand">Projeto Coruja</div>
+        <nav class="sidebar__nav" aria-label="Menu principal">
+          <a class="sidebar__link" href="/home">Home</a>
+          <a class="sidebar__link" href="/perfil">Perfil de Usuário</a>
+          <!-- Início do menu de nível superior: Cadastro -->
+          <details class="sidebar__section sidebar__section--active" open>
+            <summary class="sidebar__link sidebar__link--parent" aria-label="Abrir menu Cadastro">Cadastro</summary>
+            <div class="sidebar__subnav">
+              <a class="sidebar__link sidebar__link--child sidebar__link--active" href="/cadastro/pessoas">Pessoas</a>
+              <a class="sidebar__link sidebar__link--child" href="/cadastro/empresas">Empresas</a>
+            </div>
+          </details>
+          <!-- Fim do menu de nível superior: Cadastro -->
+        </nav>
+        <div class="sidebar__footer">
+          <button id="logout-button" class="sidebar__logout" type="button">Sair</button>
+        </div>
+      </aside>
+
+      <!-- Conteúdo principal da página -->
+      <main class="content" data-page="cadastro-pessoas">
+        <header class="content__header">
+          <p class="content__eyebrow">Cadastro</p>
+          <h1 class="content__title">Gerencie Pessoas</h1>
+          <p class="content__subtitle">
+            Visualize e organize os registros de pessoas vinculadas ao Projeto Coruja.
+          </p>
+        </header>
+
+        <!-- Seção de painéis informativos -->
+        <section class="grid" aria-label="Ações e status do cadastro de pessoas">
+          <article class="panel">
+            <div class="panel__header">
+              <h2 class="panel__title">Status geral</h2>
+              <p class="panel__meta">Resumo dos registros</p>
+            </div>
+            <ul class="list">
+              <li class="list__item">
+                <p class="list__title">Base de pessoas</p>
+                <p class="list__description">Verifique rapidamente quantos perfis estão ativos.</p>
+              </li>
+              <li class="list__item">
+                <p class="list__title">Atualizações recentes</p>
+                <p class="list__description">Confira os últimos cadastros ou edições realizadas.</p>
+              </li>
+            </ul>
+          </article>
+
+          <article class="panel">
+            <div class="panel__header">
+              <h2 class="panel__title">Próximos passos</h2>
+              <p class="panel__meta">Atalhos úteis</p>
+            </div>
+            <ul class="list">
+              <li class="list__item">
+                <p class="list__title">Adicionar pessoa</p>
+                <p class="list__description">Inicie um novo registro para manter a base sempre atualizada.</p>
+              </li>
+              <li class="list__item">
+                <p class="list__title">Revisar dados</p>
+                <p class="list__description">Valide informações sensíveis antes de concluir o processo de cadastro.</p>
+              </li>
+            </ul>
+          </article>
+        </section>
+      </main>
+    </div>
+
+    <script src="/js/main.js"></script>
+  </body>
+</html>
