@@ -46,6 +46,31 @@ async function runMigrations(db) {
       atualizadoEm TEXT NOT NULL
     )
   `);
+
+  // Tabela de pessoas centralizando dados civis e de contato.
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS pessoas (
+      id TEXT PRIMARY KEY,
+      nomeCompleto TEXT NOT NULL,
+      dataNascimento TEXT NOT NULL,
+      cpf TEXT,
+      rg TEXT,
+      cnh TEXT,
+      nomeMae TEXT,
+      nomePai TEXT,
+      telefone TEXT,
+      ultimoUf TEXT,
+      ultimoLogradouro TEXT,
+      ultimoBairroCidade TEXT,
+      ultimoCep TEXT,
+      enderecoUf TEXT,
+      enderecoLogradouro TEXT,
+      enderecoBairroCidade TEXT,
+      enderecoCep TEXT,
+      criadoEm TEXT NOT NULL,
+      atualizadoEm TEXT NOT NULL
+    )
+  `);
 }
 
 async function initDatabase() {
