@@ -262,6 +262,156 @@ body {
   font-size: 0.95rem;
 }
 
+/* ==========================
+   Formulários e botões
+   ----------------------
+   Estilos reutilizáveis para os formulários
+   da área de cadastro e suas ações.
+   ========================== */
+.panel__header--stacked {
+  /* Garante empilhamento vertical para legendas do formulário */
+  flex-direction: column;
+  gap: 0.35rem;
+  align-items: flex-start;
+}
+
+.panel__helper {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.form {
+  /* Layout principal do formulário */
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.form__section {
+  /* Blocos agrupados por tema */
+  padding: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.form__section-header {
+  /* Cabeçalho de cada bloco */
+  margin-bottom: 1rem;
+}
+
+.form__title {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+}
+
+.form__description {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.form__grid {
+  /* Grade flexível para campos */
+  display: grid;
+  gap: 1rem;
+}
+
+.form__grid--2 {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.form__grid--3 {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.form__grid--4 {
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.form__field {
+  /* Empilha rótulo e input */
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.form__field--wide {
+  /* Ocupa mais espaço em grids */
+  grid-column: span 2;
+}
+
+.form__label {
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.form__input {
+  /* Aparência consistente para inputs */
+  width: 100%;
+  padding: 0.75rem 0.9rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+  font-size: 1rem;
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form__input::placeholder {
+  color: rgba(148, 163, 184, 0.8);
+}
+
+.form__input:focus {
+  outline: none;
+  border-color: rgba(124, 58, 237, 0.6);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.form__actions {
+  /* Área para botões principais */
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
+}
+
+.button {
+  /* Estilo base para botões */
+  border: 1px solid transparent;
+  border-radius: 12px;
+  padding: 0.75rem 1.25rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.1s ease;
+}
+
+.button--primary {
+  background: linear-gradient(90deg, rgba(124, 58, 237, 0.9), rgba(124, 58, 237, 0.7));
+  border-color: rgba(124, 58, 237, 0.8);
+  color: var(--text);
+}
+
+.button--primary:hover {
+  background: linear-gradient(90deg, rgba(109, 40, 217, 0.95), rgba(124, 58, 237, 0.8));
+  transform: translateY(-1px);
+}
+
+.button--secondary {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.button--secondary:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(124, 58, 237, 0.4);
+  transform: translateY(-1px);
+}
+
 .page-actions {
   display: flex;
   flex-wrap: wrap;
