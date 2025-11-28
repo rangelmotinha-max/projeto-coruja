@@ -50,7 +50,8 @@
           </div>
 
           <!-- Bloco: dados pessoais principais -->
-          <form class="form" action="#" method="post">
+          <!-- Formulário controlado via JavaScript para criar ou editar pessoas -->
+          <form class="form" id="pessoa-form" action="#" method="post">
             <div class="form__section">
               <div class="form__section-header">
                 <h3 class="form__title">Identificação</h3>
@@ -159,13 +160,227 @@
             <!-- Bloco: ações do formulário -->
             <div class="form__actions">
               <button class="button button--secondary" type="reset">Limpar</button>
-              <button class="button button--primary" type="submit">Salvar dados</button>
+              <button class="button button--ghost" id="listar-pessoas" type="button">Listar</button>
+              <button class="button button--primary" id="submit-pessoa" type="submit">Salvar dados</button>
             </div>
           </form>
+        </section>
+
+        <!-- Painel de listagem e ações de edição/exclusão -->
+        <section class="panel" aria-label="Lista de pessoas cadastradas">
+          <div class="panel__header panel__header--stacked">
+            <div>
+              <h2 class="panel__title">Pessoas cadastradas</h2>
+              <p class="panel__meta">Consulte, edite ou exclua registros enviados ao backend.</p>
+            </div>
+            <p class="panel__helper">A lista é preenchida via requisições com autenticação.</p>
+          </div>
+
+          <!-- Feedback visual para operações de rede -->
+          <div id="pessoas-message" class="message" role="status" aria-live="polite"></div>
+
+          <!-- Lista dinâmica de registros -->
+          <ul id="pessoas-lista" class="list" aria-live="polite"></ul>
         </section>
       </main>
     </div>
 
     <script src="/js/main.js"></script>
+    <script>
+      // Configurações básicas e elementos reutilizados
+      const API_PESSOAS_URL = '/api/pessoas';
+      const pessoaForm = document.getElementById('pessoa-form');
+      const submitButton = document.getElementById('submit-pessoa');
+      const listarButton = document.getElementById('listar-pessoas');
+      const listaPessoasEl = document.getElementById('pessoas-lista');
+      const messageEl = document.getElementById('pessoas-message');
+      let pessoaEmEdicao = null;
+
+      // Recupera o token de autenticação armazenado pelo fluxo de login
+      const obterToken = () => localStorage.getItem('authToken');
+
+      // Executor de requisições com cabeçalho de autorização
+      const fetchAutenticado = (url, options = {}) => {
+        const token = obterToken();
+        const headers = {
+          'Content-Type': 'application/json',
+          ...(options.headers || {}),
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        };
+
+        return fetch(url, { ...options, headers });
+      };
+
+      // Utilitário para exibir mensagens de status ao usuário
+      const exibirMensagem = (texto, tipo = 'info') => {
+        if (!messageEl) return;
+        messageEl.textContent = texto || '';
+        messageEl.className = 'message';
+        if (texto) messageEl.classList.add(`message--${tipo}`);
+      };
+
+      // Constrói um objeto de payload a partir do formulário
+      const obterDadosFormulario = () => {
+        const formData = new FormData(pessoaForm);
+        return Object.fromEntries(formData.entries());
+      };
+
+      // Preenche o formulário com dados existentes para edição
+      const preencherFormulario = (pessoa) => {
+        Object.entries(pessoa).forEach(([chave, valor]) => {
+          if (pessoaForm.elements[chave]) {
+            pessoaForm.elements[chave].value = valor || '';
+          }
+        });
+      };
+
+      // Atualiza o rótulo do botão de submit conforme o modo atual
+      const atualizarRotuloSubmit = () => {
+        submitButton.textContent = pessoaEmEdicao ? 'Atualizar dados' : 'Salvar dados';
+      };
+
+      // Renderiza a lista de pessoas carregada do backend
+      const renderizarLista = (pessoas = []) => {
+        listaPessoasEl.innerHTML = '';
+
+        if (!pessoas.length) {
+          listaPessoasEl.innerHTML = '<li class="list__item">Nenhum registro encontrado.</li>';
+          return;
+        }
+
+        pessoas.forEach((pessoa) => {
+          const item = document.createElement('li');
+          item.className = 'list__item';
+
+          // Bloco de informações principais do registro
+          const titulo = document.createElement('p');
+          titulo.className = 'list__title';
+          titulo.textContent = pessoa.nomeCompleto || 'Pessoa sem nome';
+          item.appendChild(titulo);
+
+          // Bloco de ações de edição e exclusão
+          const actions = document.createElement('div');
+          actions.className = 'list__actions';
+
+          const editarBtn = document.createElement('button');
+          editarBtn.type = 'button';
+          editarBtn.className = 'button button--ghost';
+          editarBtn.textContent = 'Editar';
+          editarBtn.addEventListener('click', () => {
+            pessoaEmEdicao = pessoa.id || pessoa._id;
+            preencherFormulario(pessoa);
+            atualizarRotuloSubmit();
+            exibirMensagem('Editando registro selecionado.', 'info');
+          });
+
+          const excluirBtn = document.createElement('button');
+          excluirBtn.type = 'button';
+          excluirBtn.className = 'button button--danger';
+          excluirBtn.textContent = 'Excluir';
+          excluirBtn.addEventListener('click', async () => {
+            if (!confirm('Deseja realmente excluir este registro?')) return;
+            try {
+              exibirMensagem('Removendo registro...', 'info');
+              const response = await fetchAutenticado(`${API_PESSOAS_URL}/${pessoa.id || pessoa._id}`, {
+                method: 'DELETE',
+              });
+              if (!response.ok) {
+                const data = await response.json().catch(() => ({}));
+                const erro = data?.mensagem || data?.message || 'Erro ao excluir o registro.';
+                throw new Error(erro);
+              }
+              exibirMensagem('Registro excluído com sucesso.', 'success');
+              carregarPessoas();
+            } catch (error) {
+              exibirMensagem(error?.message || 'Não foi possível excluir o registro.', 'error');
+            }
+          });
+
+          actions.appendChild(editarBtn);
+          actions.appendChild(excluirBtn);
+          item.appendChild(actions);
+
+          listaPessoasEl.appendChild(item);
+        });
+      };
+
+      // Busca os registros no backend e atualiza a lista
+      const carregarPessoas = async () => {
+        try {
+          exibirMensagem('Carregando pessoas cadastradas...', 'info');
+          const response = await fetchAutenticado(API_PESSOAS_URL);
+          const data = await response.json().catch(() => []);
+
+          if (!response.ok) {
+            const erro = data?.mensagem || data?.message || 'Erro ao buscar registros.';
+            throw new Error(erro);
+          }
+
+          renderizarLista(Array.isArray(data) ? data : data?.data || []);
+          exibirMensagem('Lista atualizada.', 'success');
+        } catch (error) {
+          exibirMensagem(error?.message || 'Não foi possível carregar a lista.', 'error');
+        }
+      };
+
+      // Envia dados para criar ou atualizar um registro
+      const salvarPessoa = async (event) => {
+        event.preventDefault();
+
+        const payload = obterDadosFormulario();
+        if (!payload.nomeCompleto?.trim()) {
+          exibirMensagem('O campo Nome Completo é obrigatório.', 'error');
+          return;
+        }
+
+        const metodo = pessoaEmEdicao ? 'PUT' : 'POST';
+        const url = pessoaEmEdicao ? `${API_PESSOAS_URL}/${pessoaEmEdicao}` : API_PESSOAS_URL;
+
+        try {
+          exibirMensagem('Enviando dados...', 'info');
+          submitButton.disabled = true;
+
+          const response = await fetchAutenticado(url, {
+            method: metodo,
+            body: JSON.stringify(payload),
+          });
+
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            const erro = data?.mensagem || data?.message || 'Erro ao salvar os dados.';
+            throw new Error(erro);
+          }
+
+          exibirMensagem(
+            pessoaEmEdicao ? 'Dados atualizados com sucesso.' : 'Registro criado com sucesso.',
+            'success'
+          );
+          pessoaForm.reset();
+          pessoaEmEdicao = null;
+          atualizarRotuloSubmit();
+          carregarPessoas();
+        } catch (error) {
+          exibirMensagem(error?.message || 'Não foi possível salvar o registro.', 'error');
+        } finally {
+          submitButton.disabled = false;
+        }
+      };
+
+      // Inicializa os ouvintes de evento principais
+      const inicializarCadastro = () => {
+        atualizarRotuloSubmit();
+        pessoaForm.addEventListener('submit', salvarPessoa);
+        listarButton.addEventListener('click', carregarPessoas);
+        pessoaForm.addEventListener('reset', () => {
+          pessoaEmEdicao = null;
+          atualizarRotuloSubmit();
+          exibirMensagem('Formulário limpo. Pronto para novo cadastro.', 'info');
+        });
+        carregarPessoas();
+      };
+
+      // Inicia a funcionalidade assim que a página for carregada
+      document.addEventListener('DOMContentLoaded', inicializarCadastro);
+    </script>
   </body>
 </html>
