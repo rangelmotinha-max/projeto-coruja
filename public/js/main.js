@@ -1,6 +1,8 @@
 (function () {
   const TOKEN_KEY = 'authToken';
   const USER_KEY = 'authUser';
+  // Comentário: prefixo dedicado para a API de usuários
+  const USERS_API_BASE = '/api/usuarios';
 
   const form = document.getElementById('login-form');
   const messageEl = document.getElementById('message');
@@ -136,7 +138,7 @@
     setMessage(messageEl, 'Realizando login...', 'info');
 
     try {
-      const response = await fetch('/usuarios/login', {
+      const response = await fetch(`${USERS_API_BASE}/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -219,7 +221,7 @@
     setMessage(profileMessageEl, 'Carregando informações do perfil...', 'info');
 
     try {
-      const response = await authorizedFetch(`/usuarios/${userId}`);
+      const response = await authorizedFetch(`${USERS_API_BASE}/${userId}`);
       const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
@@ -278,7 +280,7 @@
       const payload = { nome, email, role };
       if (senha) payload.senha = senha;
 
-      const response = await authorizedFetch(`/usuarios/${userId}`, {
+      const response = await authorizedFetch(`${USERS_API_BASE}/${userId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -341,7 +343,7 @@
     setMessage(profileMessageEl, 'Removendo conta...', 'info');
 
     try {
-      const response = await authorizedFetch(`/usuarios/${userId}`, {
+      const response = await authorizedFetch(`${USERS_API_BASE}/${userId}`, {
         method: 'DELETE',
       });
 

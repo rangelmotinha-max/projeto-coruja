@@ -1,7 +1,8 @@
 (function () {
   // Constantes de armazenamento utilizadas em todo o fluxo de autenticação
   const TOKEN_KEY = 'authToken';
-  const API_URL = '/usuarios';
+  // Comentário: novo prefixo dedicado à API de usuários
+  const API_URL = '/api/usuarios';
 
   // Referências de elementos da interface
   const tabelaCorpo = document.getElementById('usuarios-tabela-corpo');

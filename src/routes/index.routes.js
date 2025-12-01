@@ -8,7 +8,8 @@ router.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-router.use('/usuarios', usuariosRoutes);
+// Comentário: prefixo dedicado para a API de usuários
+router.use('/api/usuarios', usuariosRoutes);
 router.use('/api/pessoas', pessoasRoutes);
 
 module.exports = router;
