@@ -42,20 +42,18 @@
 
       <main class="content" data-page="usuarios">
         <header class="content__header">
+          <!-- Cabeçalho simplificado mantendo apenas o título principal -->
           <div>
-            <p class="content__eyebrow">Administração</p>
             <h1 class="content__title">Usuários</h1>
-            <p class="content__subtitle">Visualize e cadastre usuários de forma objetiva.</p>
           </div>
         </header>
 
-        <!-- Listagem e filtros: mantém apenas a listagem e ações -->
+        <!-- Listagem e filtros: mantém apenas a listagem e ações essenciais -->
         <section class="panel" aria-label="Lista de usuários">
           <div class="panel__header">
+            <!-- Destaque apenas para o título principal da listagem -->
             <div>
-              <p class="panel__eyebrow">Listagem</p>
               <h2 class="panel__title">Usuários cadastrados</h2>
-              <p class="panel__meta">Resultados retornados diretamente da API /api/usuarios.</p>
             </div>
             <div class="panel__actions page-actions">
               <button class="button button--secondary" id="recarregar-usuarios" type="button">Recarregar</button>
@@ -66,7 +64,6 @@
           <div id="usuarios-feedback" class="message" role="status" aria-live="polite"></div>
           <div class="table-wrapper" role="region" aria-live="polite" aria-label="Tabela de usuários">
             <table class="table" aria-describedby="usuarios-feedback">
-              <caption class="sr-only">Usuários do sistema</caption>
               <thead>
                 <tr>
                   <th scope="col">Nome</th>
