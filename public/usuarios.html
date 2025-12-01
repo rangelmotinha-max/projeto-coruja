@@ -65,6 +65,13 @@
               <h2 class="panel__title">Usuários cadastrados</h2>
             </div>
             <div class="panel__actions page-actions">
+              <input 
+                type="text" 
+                id="campo-consulta" 
+                class="search-input" 
+                placeholder="Consultar por nome, e-mail ou perfil..." 
+                aria-label="Campo de busca de usuários"
+              />
               <button class="button button--primary" id="abrir-usuario-modal" type="button">Adicionar usuário</button>
             </div>
           </div>
@@ -84,6 +91,26 @@
                 </tr>
               </tbody>
             </table>
+          </div>
+
+          <!-- Controles de paginação -->
+          <div class="pagination-controls" aria-label="Controles de paginação">
+            <div class="pagination-info">
+              <label for="registros-por-pagina">Registros por página:</label>
+              <input 
+                type="number" 
+                id="registros-por-pagina" 
+                min="1" 
+                max="100" 
+                value="10"
+                aria-label="Número de registros por página"
+              />
+            </div>
+            <div class="pagination-buttons">
+              <button id="pagina-anterior" class="button button--secondary" type="button" aria-label="Página anterior">← Anterior</button>
+              <span id="info-paginacao" class="pagination-info-text" aria-live="polite">Página 1</span>
+              <button id="proxima-pagina" class="button button--secondary" type="button" aria-label="Próxima página">Próxima →</button>
+            </div>
           </div>
         </section>
       </main>

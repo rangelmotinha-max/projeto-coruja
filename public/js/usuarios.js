@@ -14,6 +14,22 @@
   const campoSenha = document.getElementById('usuario-senha');
   const campoRole = document.getElementById('usuario-role');
 
+  // Elementos de paginação
+  const registrosPorPaginaInput = document.getElementById('registros-por-pagina');
+  const paginaAnteriorBtn = document.getElementById('pagina-anterior');
+  const proximaPaginaBtn = document.getElementById('proxima-pagina');
+  const infoPaginacaoEl = document.getElementById('info-paginacao');
+
+  // Campo de busca
+  const campoConsulta = document.getElementById('campo-consulta');
+
+  // Estado da paginação
+  let todosUsuarios = [];
+  let usuariosFiltrados = [];
+  let paginaAtual = 1;
+  let registrosPorPagina = 10;
+  let termoBusca = '';
+
   let usuarioEmEdicao = null;
 
   // Modal (se presente na página)
@@ -162,6 +178,76 @@
     });
   };
 
+  // Calcula o intervalo de usuários para a página atual
+  const obterPaginaUsuarios = () => {
+    const inicio = (paginaAtual - 1) * registrosPorPagina;
+    const fim = inicio + registrosPorPagina;
+    return usuariosFiltrados.slice(inicio, fim);
+  };
+
+  // Filtra usuários por termo de busca
+  const filtrarUsuarios = (termo) => {
+    termoBusca = termo.toLowerCase().trim();
+
+    if (!termoBusca) {
+      usuariosFiltrados = [...todosUsuarios];
+    } else {
+      usuariosFiltrados = todosUsuarios.filter((usuario) => {
+        const nome = (usuario.nome || '').toLowerCase();
+        const email = (usuario.email || '').toLowerCase();
+        const role = (usuario.role || '').toLowerCase();
+
+        return nome.includes(termoBusca) || email.includes(termoBusca) || role.includes(termoBusca);
+      });
+    }
+
+    paginaAtual = 1;
+    renderizarPaginaAtual();
+  };
+
+  // Atualiza os controles de paginação
+  const atualizarControlesPaginacao = () => {
+    const totalPaginas = Math.ceil(usuariosFiltrados.length / registrosPorPagina);
+    const usuariosPagina = obterPaginaUsuarios();
+
+    infoPaginacaoEl.textContent = `Página ${paginaAtual} de ${totalPaginas || 1} (${usuariosPagina.length} de ${usuariosFiltrados.length} registros)`;
+    paginaAnteriorBtn.disabled = paginaAtual === 1;
+    proximaPaginaBtn.disabled = paginaAtual >= totalPaginas;
+  };
+
+  // Renderiza a página atual
+  const renderizarPaginaAtual = () => {
+    const usuariosPagina = obterPaginaUsuarios();
+    renderizarUsuarios(usuariosPagina);
+    atualizarControlesPaginacao();
+  };
+
+  // Navega para próxima página
+  const irProximaPagina = () => {
+    const totalPaginas = Math.ceil(usuariosFiltrados.length / registrosPorPagina);
+    if (paginaAtual < totalPaginas) {
+      paginaAtual++;
+      renderizarPaginaAtual();
+    }
+  };
+
+  // Navega para página anterior
+  const irPaginaAnterior = () => {
+    if (paginaAtual > 1) {
+      paginaAtual--;
+      renderizarPaginaAtual();
+    }
+  };
+
+  // Muda o limite de registros por página
+  const mudarRegistrosPorPagina = (novoLimite) => {
+    const limite = Math.max(1, Math.min(100, parseInt(novoLimite) || 10));
+    registrosPorPagina = limite;
+    registrosPorPaginaInput.value = limite;
+    paginaAtual = 1;
+    renderizarPaginaAtual();
+  };
+
   // Comentário: busca usuários sem filtros para manter a experiência direta
   const carregarUsuarios = async () => {
     try {
@@ -181,8 +267,12 @@
         throw new Error(erro);
       }
 
-      const listaUsuarios = Array.isArray(data) ? data : [];
-      renderizarUsuarios(listaUsuarios);
+      todosUsuarios = Array.isArray(data) ? data : [];
+      usuariosFiltrados = [...todosUsuarios];
+      campoConsulta.value = '';
+      termoBusca = '';
+      paginaAtual = 1;
+      renderizarPaginaAtual();
     } catch (error) {
       console.error('Erro ao carregar usuários:', error);
     }
@@ -261,6 +351,15 @@
     resetarFormulario();
 
     formulario?.addEventListener('submit', salvarUsuario);
+
+    // Event listeners de paginação
+    proximaPaginaBtn?.addEventListener('click', irProximaPagina);
+    paginaAnteriorBtn?.addEventListener('click', irPaginaAnterior);
+    registrosPorPaginaInput?.addEventListener('change', (e) => mudarRegistrosPorPagina(e.target.value));
+    registrosPorPaginaInput?.addEventListener('input', (e) => mudarRegistrosPorPagina(e.target.value));
+
+    // Event listener de busca
+    campoConsulta?.addEventListener('input', (e) => filtrarUsuarios(e.target.value));
   };
 
   inicializarPagina();

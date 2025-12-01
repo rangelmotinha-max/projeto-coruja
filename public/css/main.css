@@ -795,3 +795,81 @@ body {
   justify-content: flex-end;
 }
 
+/* Controles de paginação */
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  padding: 1.5rem;
+  background: var(--surface-muted);
+  border-top: 1px solid var(--border);
+  border-radius: 0 0 12px 12px;
+  flex-wrap: wrap;
+}
+
+.pagination-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.pagination-info label {
+  font-weight: 600;
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
+#registros-por-pagina {
+  width: 80px;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--input-bg);
+  color: var(--text);
+  font-size: 0.95rem;
+  text-align: center;
+}
+
+#registros-por-pagina:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--primary) 60%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 20%, transparent);
+}
+
+.pagination-buttons {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.pagination-info-text {
+  font-weight: 600;
+  color: var(--text);
+  min-width: 80px;
+  text-align: center;
+}
+
+/* Campo de busca/consulta */
+.search-input {
+  flex: 1;
+  min-width: 250px;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--input-bg);
+  color: var(--text);
+  font-size: 0.95rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.search-input::placeholder {
+  color: var(--muted);
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--primary) 60%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 20%, transparent);
+}
+
