@@ -6,8 +6,6 @@
 
   // Referências simplificadas da interface
   const tabelaCorpo = document.getElementById('usuarios-lista');
-  const feedbackLista = document.getElementById('usuarios-feedback');
-  const feedbackFormulario = document.getElementById('usuario-form-feedback');
   const botaoRecarregar = document.getElementById('recarregar-usuarios');
   const formulario = document.getElementById('usuario-form');
   const botaoSubmit = document.getElementById('usuario-submit');
@@ -62,16 +60,62 @@
     });
   };
 
-  // Exibe feedbacks visuais e auditivos acessíveis
-  const setMessage = (element, text, type = 'info') => {
-    if (!element) return;
+  let alertContainer = document.getElementById('alert-container');
 
-    element.textContent = text;
-    element.className = 'message';
+  // Cria e exibe alertas globais com foco em acessibilidade
+  const setMessage = (contexto = 'Aviso', texto, tipo = 'info') => {
+    if (!texto) return;
 
-    if (text) {
-      element.classList.add(`message--${type}`);
-    }
+    const container =
+      alertContainer ||
+      (() => {
+        const fallback = document.createElement('div');
+        fallback.id = 'alert-container';
+        fallback.className = 'alert-container';
+        fallback.setAttribute('role', 'status');
+        fallback.setAttribute('aria-live', 'polite');
+        fallback.setAttribute('aria-atomic', 'true');
+        document.body.appendChild(fallback);
+        alertContainer = fallback;
+        return fallback;
+      })();
+
+    const alerta = document.createElement('div');
+    alerta.className = `alert alert--${tipo}`;
+    alerta.setAttribute('role', tipo === 'error' ? 'alert' : 'status');
+    alerta.setAttribute('aria-live', tipo === 'error' ? 'assertive' : 'polite');
+    alerta.setAttribute('tabindex', '0');
+
+    // Conteúdo do alerta com título do contexto e mensagem detalhada
+    const conteudo = document.createElement('div');
+    conteudo.className = 'alert__content';
+
+    const titulo = document.createElement('strong');
+    titulo.className = 'alert__title';
+    titulo.textContent = contexto;
+
+    const mensagem = document.createElement('span');
+    mensagem.className = 'alert__message';
+    mensagem.textContent = texto;
+
+    conteudo.append(titulo, mensagem);
+
+    // Botão de fechar para controle manual do usuário
+    const fechar = document.createElement('button');
+    fechar.type = 'button';
+    fechar.className = 'alert__close';
+    fechar.setAttribute('aria-label', 'Fechar alerta');
+    fechar.innerHTML = '×';
+    fechar.addEventListener('click', () => alerta.remove());
+
+    alerta.append(conteudo, fechar);
+    container.appendChild(alerta);
+
+    // Remoção automática após alguns segundos com comentário explicativo
+    setTimeout(() => alerta.remove(), 8000);
+
+    // Foco para leitura imediata por tecnologias assistivas
+    alerta.focus({ preventScroll: true });
   };
 
   // Limpa o formulário para o estado inicial
@@ -80,7 +124,7 @@
     formulario?.reset();
     botaoSubmit.textContent = 'Salvar usuário';
     setMessage(
-      feedbackFormulario,
+      'Formulário de usuário',
       'Preencha os campos para incluir um novo usuário ou editar um existente.',
       'info'
     );
@@ -104,7 +148,7 @@
       campoSenha.value = '';
       usuarioEmEdicao = usuario.id;
       botaoSubmit.textContent = 'Atualizar usuário';
-      setMessage(feedbackFormulario, 'Edição iniciada. Salve para confirmar a atualização.', 'info');
+      setMessage('Formulário de usuário', 'Edição iniciada. Salve para confirmar a atualização.', 'info');
       // Abre o modal quando for edição, se houver modal na página
       openModal();
     });
@@ -119,7 +163,7 @@
       const confirmacao = confirm('Deseja realmente excluir este usuário?');
       if (!confirmacao) return;
 
-      setMessage(feedbackFormulario, 'Excluindo usuário selecionado...', 'info');
+      setMessage('Lista de usuários', 'Excluindo usuário selecionado...', 'info');
 
       try {
         const response = await authorizedFetch(`${API_URL}/${usuario.id}`, {
@@ -139,12 +183,12 @@
           throw new Error(erro);
         }
 
-        setMessage(feedbackFormulario, 'Usuário excluído com sucesso.', 'success');
+        setMessage('Lista de usuários', 'Usuário excluído com sucesso.', 'success');
         await carregarUsuarios();
         resetarFormulario();
       } catch (error) {
         setMessage(
-          feedbackFormulario,
+          'Lista de usuários',
           error?.message || 'Erro inesperado ao excluir o usuário.',
           'error'
         );
@@ -192,7 +236,7 @@
 
   // Comentário: busca usuários sem filtros para manter a experiência direta
   const carregarUsuarios = async () => {
-    setMessage(feedbackLista, 'Carregando usuários...', 'info');
+    setMessage('Lista de usuários', 'Carregando usuários...', 'info');
 
     try {
       const url = new URL(API_URL, window.location.origin);
@@ -215,13 +259,13 @@
       renderizarUsuarios(listaUsuarios);
 
       setMessage(
-        feedbackLista,
+        'Lista de usuários',
         listaUsuarios.length ? 'Usuários carregados com sucesso.' : 'Nenhum usuário cadastrado encontrado.',
         listaUsuarios.length ? 'success' : 'info'
       );
     } catch (error) {
       setMessage(
-        feedbackLista,
+        'Lista de usuários',
         error?.message || 'Erro inesperado ao carregar usuários.',
         'error'
       );
@@ -240,7 +284,7 @@
     const role = campoRole.value;
 
     if (!nome || !email || !role) {
-      setMessage(feedbackFormulario, 'Preencha nome, e-mail e perfil para continuar.', 'error');
+      setMessage('Formulário de usuário', 'Preencha nome, e-mail e perfil para continuar.', 'error');
       return;
     }
 
@@ -254,7 +298,7 @@
 
     botaoSubmit.disabled = true;
     botaoSubmit.textContent = usuarioEmEdicao ? 'Atualizando...' : 'Salvando...';
-    setMessage(feedbackFormulario, 'Enviando dados do usuário...', 'info');
+    setMessage('Formulário de usuário', 'Enviando dados do usuário...', 'info');
 
     const payload = { nome, email, role };
     if (senha) payload.senha = senha;
@@ -281,16 +325,16 @@
         throw new Error(erro);
       }
 
-        setMessage(feedbackFormulario, 'Usuário salvo com sucesso.', 'success');
-        // Notifica listeners (ex.: script que fecha o modal)
-        try {
-          document.dispatchEvent(new Event('usuario:salvo'));
-        } catch (e) {}
-        resetarFormulario();
-        await carregarUsuarios();
+      setMessage('Formulário de usuário', 'Usuário salvo com sucesso.', 'success');
+      // Notifica listeners (ex.: script que fecha o modal)
+      try {
+        document.dispatchEvent(new Event('usuario:salvo'));
+      } catch (e) {}
+      resetarFormulario();
+      await carregarUsuarios();
     } catch (error) {
       setMessage(
-        feedbackFormulario,
+        'Formulário de usuário',
         error?.message || 'Erro inesperado ao salvar os dados.',
         'error'
       );
