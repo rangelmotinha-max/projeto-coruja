@@ -7,59 +7,80 @@
     <link rel="stylesheet" href="/css/main.css" />
   </head>
   <body>
-    <main class="page" data-page="usuarios">
-      <header class="page__header">
-        <div>
-          <p class="page__eyebrow">Administração</p>
-          <h1 class="page__title">Usuários</h1>
-          <p class="page__subtitle">Visualize e cadastre usuários de forma objetiva.</p>
+    <div class="app">
+      <aside class="sidebar">
+        <div class="sidebar__brand">Projeto Coruja</div>
+        <nav class="sidebar__nav" aria-label="Menu principal">
+          <a class="sidebar__link" href="/home">Home</a>
+          <a class="sidebar__link" href="/perfil">Perfil de Usuário</a>
+          <a class="sidebar__link sidebar__link--active" href="/usuarios">Usuários</a>
+          <details class="sidebar__section" >
+            <summary class="sidebar__link sidebar__link--parent" aria-label="Abrir menu Cadastro">Cadastro</summary>
+            <div class="sidebar__subnav">
+              <a class="sidebar__link sidebar__link--child" href="/cadastro/pessoas">Pessoas</a>
+              <a class="sidebar__link sidebar__link--child" href="/cadastro/empresas">Empresas</a>
+            </div>
+          </details>
+        </nav>
+        <div class="sidebar__footer">
+          <button id="logout-button" class="sidebar__logout" type="button">Sair</button>
         </div>
-        <button id="logout-button" class="button button--ghost" type="button">Sair</button>
-      </header>
+      </aside>
 
-      <!-- Bloco simples dedicado à listagem de usuários -->
-      <section class="card">
-        <div class="card__header">
+      <main class="content" data-page="usuarios">
+        <header class="content__header">
           <div>
-            <p class="card__eyebrow">Listagem</p>
-            <h2 class="card__title">Usuários cadastrados</h2>
-            <p class="card__subtitle">Resultados retornados diretamente da API /api/usuarios.</p>
+            <p class="content__eyebrow">Administração</p>
+            <h1 class="content__title">Usuários</h1>
+            <p class="content__subtitle">Visualize e cadastre usuários de forma objetiva.</p>
           </div>
-          <div class="card__actions">
-            <button class="button button--secondary" id="recarregar-usuarios" type="button">Recarregar</button>
-          </div>
-        </div>
-        <div id="usuarios-feedback" class="message" role="status" aria-live="polite"></div>
-        <div class="table-wrapper" role="region" aria-live="polite" aria-label="Tabela de usuários">
-          <table class="table" aria-describedby="usuarios-feedback">
-            <caption class="sr-only">Usuários do sistema</caption>
-            <thead>
-              <tr>
-                <th scope="col">Nome</th>
-                <th scope="col">E-mail</th>
-                <th scope="col">Perfil</th>
-                <th scope="col">Ações</th>
-              </tr>
-            </thead>
-            <tbody id="usuarios-lista">
-              <tr>
-                <td colspan="4">Nenhum usuário carregado ainda.</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
+        </header>
 
-      <!-- Bloco dedicado ao cadastro e edição simples de usuários -->
-      <section class="card">
-        <div class="card__header">
-          <div>
-            <p class="card__eyebrow">Cadastro rápido</p>
-            <h2 class="card__title">Adicionar usuário</h2>
-            <p class="card__subtitle">Informe os dados mínimos para criar ou atualizar um registro.</p>
+        <!-- Listagem e filtros: mantém apenas a listagem e ações -->
+        <section class="panel" aria-label="Lista de usuários">
+          <div class="panel__header">
+            <div>
+              <p class="panel__eyebrow">Listagem</p>
+              <h2 class="panel__title">Usuários cadastrados</h2>
+              <p class="panel__meta">Resultados retornados diretamente da API /api/usuarios.</p>
+            </div>
+            <div class="panel__actions page-actions">
+              <button class="button button--secondary" id="recarregar-usuarios" type="button">Recarregar</button>
+              <button class="button button--primary" id="abrir-usuario-modal" type="button">Adicionar usuário</button>
+            </div>
           </div>
-        </div>
+
+          <div id="usuarios-feedback" class="message" role="status" aria-live="polite"></div>
+          <div class="table-wrapper" role="region" aria-live="polite" aria-label="Tabela de usuários">
+            <table class="table" aria-describedby="usuarios-feedback">
+              <caption class="sr-only">Usuários do sistema</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Nome</th>
+                  <th scope="col">E-mail</th>
+                  <th scope="col">Perfil</th>
+                  <th scope="col">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="usuarios-lista">
+                <tr>
+                  <td colspan="4">Nenhum usuário carregado ainda.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <!-- Modal para formulário de usuário (form removido da página e colocado aqui) -->
+    <div id="usuario-modal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="usuario-modal-title">
+      <div class="modal__overlay" data-modal-close></div>
+      <div class="modal__panel" role="document">
+        <button class="modal__close" id="usuario-modal-close" aria-label="Fechar">×</button>
+        <h3 id="usuario-modal-title">Adicionar / Editar usuário</h3>
         <div id="usuario-form-feedback" class="message" role="status" aria-live="polite"></div>
+
         <form class="form" id="usuario-form" novalidate>
           <div class="form__grid form__grid--2">
             <label class="form__field" for="usuario-nome">
@@ -99,10 +120,55 @@
             <button type="submit" class="button button--primary" id="usuario-submit">Salvar usuário</button>
           </div>
         </form>
-      </section>
-    </main>
+      </div>
+    </div>
 
     <script src="/js/main.js"></script>
     <script src="/js/usuarios.js"></script>
+    <script>
+      // Controle simples do modal: abre e fecha, acessível.
+      (function () {
+        const modal = document.getElementById('usuario-modal');
+        const abrir = document.getElementById('abrir-usuario-modal');
+        const fechar = document.getElementById('usuario-modal-close');
+        const overlay = modal?.querySelector('[data-modal-close]');
+        const primeiroCampo = document.getElementById('usuario-nome');
+
+        const abrirModal = () => {
+          if (!modal) return;
+          modal.setAttribute('aria-hidden', 'false');
+          document.body.style.overflow = 'hidden';
+          setTimeout(() => primeiroCampo?.focus(), 50);
+        };
+
+        const fecharModal = () => {
+          if (!modal) return;
+          modal.setAttribute('aria-hidden', 'true');
+          document.body.style.overflow = '';
+        };
+
+        abrir?.addEventListener('click', () => {
+          // limpa o formulário antes de abrir para novo cadastro
+          const form = document.getElementById('usuario-form');
+          form?.reset();
+          const event = new Event('usuario:abrir');
+          document.dispatchEvent(event);
+          abrirModal();
+        });
+
+        fechar?.addEventListener('click', fecharModal);
+        overlay?.addEventListener('click', fecharModal);
+
+        // Fecha com ESC
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape' && modal && modal.getAttribute('aria-hidden') === 'false') {
+            fecharModal();
+          }
+        });
+
+        // Fecha o modal quando o usuário é salvo (evento custom disparado pelo JS)
+        document.addEventListener('usuario:salvo', () => fecharModal());
+      })();
+    </script>
   </body>
 </html>

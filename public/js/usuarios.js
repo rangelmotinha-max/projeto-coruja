@@ -19,6 +19,17 @@
 
   let usuarioEmEdicao = null;
 
+  // Modal (se presente na página)
+  const modalEl = document.getElementById('usuario-modal');
+  const openModal = () => {
+    if (!modalEl) return;
+    modalEl.setAttribute('aria-hidden', 'false');
+  };
+  const closeModal = () => {
+    if (!modalEl) return;
+    modalEl.setAttribute('aria-hidden', 'true');
+  };
+
   // Utilitário para obter cookies específicos
   const getCookie = (name) => {
     return document.cookie
@@ -94,6 +105,8 @@
       usuarioEmEdicao = usuario.id;
       botaoSubmit.textContent = 'Atualizar usuário';
       setMessage(feedbackFormulario, 'Edição iniciada. Salve para confirmar a atualização.', 'info');
+      // Abre o modal quando for edição, se houver modal na página
+      openModal();
     });
 
     // Botão de exclusão com confirmação
@@ -269,6 +282,10 @@
       }
 
         setMessage(feedbackFormulario, 'Usuário salvo com sucesso.', 'success');
+        // Notifica listeners (ex.: script que fecha o modal)
+        try {
+          document.dispatchEvent(new Event('usuario:salvo'));
+        } catch (e) {}
         resetarFormulario();
         await carregarUsuarios();
     } catch (error) {
