@@ -103,108 +103,12 @@
 
             <div class="form__section">
               <div class="form__section-header">
-                <h3 class="form__section-title">Último endereço</h3>
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                  <h3 class="form__section-title">Endereços</h3>
+                  <button class="button button--secondary" id="adicionar-endereco" type="button">+ Adicionar endereço</button>
+                </div>
               </div>
-              <div class="form__grid form__grid--4">
-                <label class="form__field">
-                  <span class="form__label">UF</span>
-                  <select class="form__input" name="ultimoUf">
-                    <option value="">Selecione</option>
-                    <option value="AC">Acre (AC)</option>
-                    <option value="AL">Alagoas (AL)</option>
-                    <option value="AP">Amapá (AP)</option>
-                    <option value="AM">Amazonas (AM)</option>
-                    <option value="BA">Bahia (BA)</option>
-                    <option value="CE">Ceará (CE)</option>
-                    <option value="DF">Distrito Federal (DF)</option>
-                    <option value="ES">Espírito Santo (ES)</option>
-                    <option value="GO">Goiás (GO)</option>
-                    <option value="MA">Maranhão (MA)</option>
-                    <option value="MT">Mato Grosso (MT)</option>
-                    <option value="MS">Mato Grosso do Sul (MS)</option>
-                    <option value="MG">Minas Gerais (MG)</option>
-                    <option value="PA">Pará (PA)</option>
-                    <option value="PB">Paraíba (PB)</option>
-                    <option value="PR">Paraná (PR)</option>
-                    <option value="PE">Pernambuco (PE)</option>
-                    <option value="PI">Piauí (PI)</option>
-                    <option value="RJ">Rio de Janeiro (RJ)</option>
-                    <option value="RN">Rio Grande do Norte (RN)</option>
-                    <option value="RS">Rio Grande do Sul (RS)</option>
-                    <option value="RO">Rondônia (RO)</option>
-                    <option value="RR">Roraima (RR)</option>
-                    <option value="SC">Santa Catarina (SC)</option>
-                    <option value="SP">São Paulo (SP)</option>
-                    <option value="SE">Sergipe (SE)</option>
-                    <option value="TO">Tocantins (TO)</option>
-                  </select>
-                </label>
-                <label class="form__field form__field--wide">
-                  <span class="form__label">Logradouro/Nome</span>
-                  <input class="form__input" type="text" name="ultimoLogradouro" />
-                </label>
-                <label class="form__field">
-                  <span class="form__label">Bairro/Cidade</span>
-                  <input class="form__input" type="text" name="ultimoBairroCidade" />
-                </label>
-                <label class="form__field">
-                  <span class="form__label">CEP</span>
-                  <input class="form__input" type="text" name="ultimoCep" inputmode="numeric" />
-                </label>
-              </div>
-            </div>
-
-            <div class="form__section">
-              <div class="form__section-header">
-                <h3 class="form__section-title">Endereço atual</h3>
-              </div>
-              <div class="form__grid form__grid--4">
-                <label class="form__field">
-                  <span class="form__label">UF</span>
-                  <select class="form__input" name="enderecoUf">
-                    <option value="">Selecione</option>
-                    <option value="AC">Acre (AC)</option>
-                    <option value="AL">Alagoas (AL)</option>
-                    <option value="AP">Amapá (AP)</option>
-                    <option value="AM">Amazonas (AM)</option>
-                    <option value="BA">Bahia (BA)</option>
-                    <option value="CE">Ceará (CE)</option>
-                    <option value="DF">Distrito Federal (DF)</option>
-                    <option value="ES">Espírito Santo (ES)</option>
-                    <option value="GO">Goiás (GO)</option>
-                    <option value="MA">Maranhão (MA)</option>
-                    <option value="MT">Mato Grosso (MT)</option>
-                    <option value="MS">Mato Grosso do Sul (MS)</option>
-                    <option value="MG">Minas Gerais (MG)</option>
-                    <option value="PA">Pará (PA)</option>
-                    <option value="PB">Paraíba (PB)</option>
-                    <option value="PR">Paraná (PR)</option>
-                    <option value="PE">Pernambuco (PE)</option>
-                    <option value="PI">Piauí (PI)</option>
-                    <option value="RJ">Rio de Janeiro (RJ)</option>
-                    <option value="RN">Rio Grande do Norte (RN)</option>
-                    <option value="RS">Rio Grande do Sul (RS)</option>
-                    <option value="RO">Rondônia (RO)</option>
-                    <option value="RR">Roraima (RR)</option>
-                    <option value="SC">Santa Catarina (SC)</option>
-                    <option value="SP">São Paulo (SP)</option>
-                    <option value="SE">Sergipe (SE)</option>
-                    <option value="TO">Tocantins (TO)</option>
-                  </select>
-                </label>
-                <label class="form__field form__field--wide">
-                  <span class="form__label">Logradouro/Nome</span>
-                  <input class="form__input" type="text" name="enderecoLogradouro" />
-                </label>
-                <label class="form__field">
-                  <span class="form__label">Bairro/Cidade</span>
-                  <input class="form__input" type="text" name="enderecoBairroCidade" />
-                </label>
-                <label class="form__field">
-                  <span class="form__label">CEP</span>
-                  <input class="form__input" type="text" name="enderecoCep" inputmode="numeric" />
-                </label>
-              </div>
+              <div id="lista-enderecos" class="enderecos-lista"></div>
             </div>
 
             <div class="form__actions">
@@ -263,7 +167,13 @@
 
       const obterDadosFormulario = () => {
         const formData = new FormData(pessoaForm);
-        return Object.fromEntries(formData.entries());
+        const dados = Object.fromEntries(formData.entries());
+        
+        // Adiciona os endereços múltiplos ao payload
+        dados.enderecos = enderecos;
+        dados.endereco_atual_index = indicadorEnderecoAtual;
+        
+        return dados;
       };
 
       const aplicarMascaraCpf = (event) => {
@@ -342,13 +252,205 @@
         return { valido: true, mensagem: 'CPF válido.' };
       };
 
+      let enderecos = [];
+      let indicadorEnderecoAtual = null;
+
+      const createEstadosSelect = () => {
+        return `<option value="">Selecione</option>
+                    <option value="AC">Acre (AC)</option>
+                    <option value="AL">Alagoas (AL)</option>
+                    <option value="AP">Amapá (AP)</option>
+                    <option value="AM">Amazonas (AM)</option>
+                    <option value="BA">Bahia (BA)</option>
+                    <option value="CE">Ceará (CE)</option>
+                    <option value="DF">Distrito Federal (DF)</option>
+                    <option value="ES">Espírito Santo (ES)</option>
+                    <option value="GO">Goiás (GO)</option>
+                    <option value="MA">Maranhão (MA)</option>
+                    <option value="MT">Mato Grosso (MT)</option>
+                    <option value="MS">Mato Grosso do Sul (MS)</option>
+                    <option value="MG">Minas Gerais (MG)</option>
+                    <option value="PA">Pará (PA)</option>
+                    <option value="PB">Paraíba (PB)</option>
+                    <option value="PR">Paraná (PR)</option>
+                    <option value="PE">Pernambuco (PE)</option>
+                    <option value="PI">Piauí (PI)</option>
+                    <option value="RJ">Rio de Janeiro (RJ)</option>
+                    <option value="RN">Rio Grande do Norte (RN)</option>
+                    <option value="RS">Rio Grande do Sul (RS)</option>
+                    <option value="RO">Rondônia (RO)</option>
+                    <option value="RR">Roraima (RR)</option>
+                    <option value="SC">Santa Catarina (SC)</option>
+                    <option value="SP">São Paulo (SP)</option>
+                    <option value="SE">Sergipe (SE)</option>
+                    <option value="TO">Tocantins (TO)</option>`;
+      };
+
+      const renderizarEnderecos = () => {
+        const listaEl = document.getElementById('lista-enderecos');
+        listaEl.innerHTML = '';
+
+        if (enderecos.length === 0) {
+          listaEl.innerHTML = '<p style="color: var(--muted); margin: 1rem 0;">Nenhum endereço adicionado. Clique no botão para adicionar um.</p>';
+          return;
+        }
+
+        enderecos.forEach((endereco, index) => {
+          const div = document.createElement('div');
+          div.className = 'endereco-item';
+          div.style.cssText = 'border: 1px solid var(--border); border-radius: 0.5rem; padding: 1.5rem; margin-bottom: 1rem; background: var(--surface-muted);';
+
+          const headerDiv = document.createElement('div');
+          headerDiv.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;';
+
+          const titleSpan = document.createElement('span');
+          titleSpan.style.cssText = 'font-weight: 600; color: var(--text);';
+          titleSpan.textContent = `Endereço ${index + 1}${indicadorEnderecoAtual === index ? ' (Atual)' : ''}`;
+
+          const actionsDiv = document.createElement('div');
+          actionsDiv.style.cssText = 'display: flex; gap: 0.5rem;';
+
+          if (enderecos.length > 1 && indicadorEnderecoAtual !== index) {
+            const setarAtualBtn = document.createElement('button');
+            setarAtualBtn.type = 'button';
+            setarAtualBtn.className = 'button button--secondary';
+            setarAtualBtn.textContent = 'Definir como Atual';
+            setarAtualBtn.style.cssText = 'padding: 0.5rem 1rem; font-size: 0.875rem;';
+            setarAtualBtn.addEventListener('click', () => {
+              indicadorEnderecoAtual = index;
+              renderizarEnderecos();
+            });
+            actionsDiv.appendChild(setarAtualBtn);
+          }
+
+          const removerBtn = document.createElement('button');
+          removerBtn.type = 'button';
+          removerBtn.className = 'button button--danger';
+          removerBtn.textContent = 'Remover';
+          removerBtn.style.cssText = 'padding: 0.5rem 1rem; font-size: 0.875rem;';
+          removerBtn.addEventListener('click', () => {
+            enderecos.splice(index, 1);
+            if (indicadorEnderecoAtual === index) {
+              indicadorEnderecoAtual = enderecos.length > 0 ? 0 : null;
+            } else if (indicadorEnderecoAtual > index) {
+              indicadorEnderecoAtual--;
+            }
+            renderizarEnderecos();
+          });
+          actionsDiv.appendChild(removerBtn);
+
+          headerDiv.appendChild(titleSpan);
+          headerDiv.appendChild(actionsDiv);
+          div.appendChild(headerDiv);
+
+          // Criar campos do endereço
+          const gridDiv = document.createElement('div');
+          gridDiv.className = 'form__grid form__grid--4';
+          gridDiv.innerHTML = `
+            <label class="form__field">
+              <span class="form__label">UF</span>
+              <select class="form__input endereco-uf" data-index="${index}">
+                ${createEstadosSelect()}
+              </select>
+            </label>
+            <label class="form__field form__field--wide">
+              <span class="form__label">Logradouro/Nome</span>
+              <input class="form__input endereco-logradouro" type="text" data-index="${index}" />
+            </label>
+            <label class="form__field">
+              <span class="form__label">Bairro/Cidade</span>
+              <input class="form__input endereco-bairro" type="text" data-index="${index}" />
+            </label>
+            <label class="form__field">
+              <span class="form__label">CEP</span>
+              <input class="form__input endereco-cep" type="text" inputmode="numeric" data-index="${index}" />
+            </label>
+          `;
+
+          // Preencher valores
+          gridDiv.querySelector('.endereco-uf').value = endereco.uf || '';
+          gridDiv.querySelector('.endereco-logradouro').value = endereco.logradouro || '';
+          gridDiv.querySelector('.endereco-bairro').value = endereco.bairro || '';
+          gridDiv.querySelector('.endereco-cep').value = endereco.cep || '';
+
+          // Adicionar listeners
+          gridDiv.querySelector('.endereco-uf').addEventListener('change', (e) => {
+            enderecos[index].uf = e.target.value;
+          });
+          gridDiv.querySelector('.endereco-logradouro').addEventListener('input', (e) => {
+            enderecos[index].logradouro = e.target.value;
+          });
+          gridDiv.querySelector('.endereco-bairro').addEventListener('input', (e) => {
+            enderecos[index].bairro = e.target.value;
+          });
+          gridDiv.querySelector('.endereco-cep').addEventListener('blur', (e) => {
+            if (e.target.value?.trim()) {
+              buscarEnderecoPorCepMultiplo(e.target.value, index);
+            }
+          });
+
+          div.appendChild(gridDiv);
+          listaEl.appendChild(div);
+        });
+      };
+
+      const adicionarEndereco = () => {
+        enderecos.push({
+          uf: '',
+          logradouro: '',
+          bairro: '',
+          cep: ''
+        });
+
+        if (indicadorEnderecoAtual === null && enderecos.length === 1) {
+          indicadorEnderecoAtual = 0;
+        }
+
+        renderizarEnderecos();
+      };
+
+      const buscarEnderecoPorCepMultiplo = async (cep, index) => {
+        const somenteNumeros = cep.replace(/\D/g, '');
+
+        if (somenteNumeros.length !== 8) {
+          return;
+        }
+
+        try {
+          const response = await fetch(`https://viacep.com.br/ws/${somenteNumeros}/json/`);
+          const data = await response.json();
+
+          if (!data.erro) {
+            enderecos[index].uf = data.uf || '';
+            enderecos[index].logradouro = data.logradouro || '';
+            enderecos[index].bairro = `${data.bairro || ''} ${data.localidade || ''}`.trim();
+            enderecos[index].cep = somenteNumeros;
+            renderizarEnderecos();
+          }
+        } catch (error) {
+          console.error('Erro ao buscar CEP:', error);
+        }
+      };
+
       const preencherFormulario = (pessoa) => {
         Object.entries(pessoa).forEach(([chave, valor]) => {
           if (pessoaForm.elements[chave]) {
             pessoaForm.elements[chave].value = valor || '';
           }
         });
+
+        // Carrega endereços se existirem
+        if (pessoa.enderecos && Array.isArray(pessoa.enderecos)) {
+          enderecos = JSON.parse(JSON.stringify(pessoa.enderecos));
+          indicadorEnderecoAtual = pessoa.endereco_atual_index !== undefined ? pessoa.endereco_atual_index : 0;
+          renderizarEnderecos();
+        } else {
+          enderecos = [];
+          indicadorEnderecoAtual = null;
+          renderizarEnderecos();
+        }
       };
+
 
       const atualizarRotuloSubmit = () => {
         submitButton.textContent = pessoaEmEdicao ? 'Atualizar dados' : 'Salvar dados';
@@ -493,8 +595,16 @@
           pessoaEmEdicao = null;
           atualizarRotuloSubmit();
           exibirMensagem('Formulário limpo. Pronto para novo cadastro.', 'info');
+          enderecos = [];
+          indicadorEnderecoAtual = null;
+          renderizarEnderecos();
         });
         cpfInput?.addEventListener('input', aplicarMascaraCpf);
+
+        // Event listener para adicionar novo endereço
+        const adicionarEnderecoBtn = document.getElementById('adicionar-endereco');
+        adicionarEnderecoBtn?.addEventListener('click', adicionarEndereco);
+
         carregarPessoas();
       };
 
