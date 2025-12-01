@@ -295,7 +295,13 @@
           return;
         }
 
-        enderecos.forEach((endereco, index) => {
+        // Garante que o endereço atual seja exibido primeiro na lista renderizada
+        const ordemEnderecos = indicadorEnderecoAtual === null
+          ? enderecos.map((_, indice) => indice)
+          : [indicadorEnderecoAtual, ...enderecos.map((_, indice) => indice).filter((indice) => indice !== indicadorEnderecoAtual)];
+
+        ordemEnderecos.forEach((indiceOrdenado, posicao) => {
+          const endereco = enderecos[indiceOrdenado];
           const div = document.createElement('div');
           div.className = 'endereco-item';
           div.style.cssText = 'border: 1px solid var(--border); border-radius: 0.5rem; padding: 1.5rem; margin-bottom: 1rem; background: var(--surface-muted);';
@@ -305,19 +311,19 @@
 
           const titleSpan = document.createElement('span');
           titleSpan.style.cssText = 'font-weight: 600; color: var(--text);';
-          titleSpan.textContent = `Endereço ${index + 1}${indicadorEnderecoAtual === index ? ' (Atual)' : ''}`;
+          titleSpan.textContent = `Endereço ${posicao + 1}${indicadorEnderecoAtual === indiceOrdenado ? ' (Atual)' : ''}`;
 
           const actionsDiv = document.createElement('div');
           actionsDiv.style.cssText = 'display: flex; gap: 0.5rem;';
 
-          if (enderecos.length > 1 && indicadorEnderecoAtual !== index) {
+          if (enderecos.length > 1 && indicadorEnderecoAtual !== indiceOrdenado) {
             const setarAtualBtn = document.createElement('button');
             setarAtualBtn.type = 'button';
             setarAtualBtn.className = 'button button--secondary';
             setarAtualBtn.textContent = 'Definir como Atual';
             setarAtualBtn.style.cssText = 'padding: 0.5rem 1rem; font-size: 0.875rem;';
             setarAtualBtn.addEventListener('click', () => {
-              indicadorEnderecoAtual = index;
+              indicadorEnderecoAtual = indiceOrdenado;
               renderizarEnderecos();
             });
             actionsDiv.appendChild(setarAtualBtn);
@@ -329,10 +335,10 @@
           removerBtn.textContent = 'Remover';
           removerBtn.style.cssText = 'padding: 0.5rem 1rem; font-size: 0.875rem;';
           removerBtn.addEventListener('click', () => {
-            enderecos.splice(index, 1);
-            if (indicadorEnderecoAtual === index) {
+            enderecos.splice(indiceOrdenado, 1);
+            if (indicadorEnderecoAtual === indiceOrdenado) {
               indicadorEnderecoAtual = enderecos.length > 0 ? 0 : null;
-            } else if (indicadorEnderecoAtual > index) {
+            } else if (indicadorEnderecoAtual > indiceOrdenado) {
               indicadorEnderecoAtual--;
             }
             renderizarEnderecos();
@@ -349,53 +355,61 @@
           gridDiv.innerHTML = `
             <label class="form__field">
               <span class="form__label">UF</span>
-              <select class="form__input endereco-uf" data-index="${index}">
+              <select class="form__input endereco-uf" data-index="${indiceOrdenado}">
                 ${createEstadosSelect()}
               </select>
             </label>
             <label class="form__field form__field--wide">
               <span class="form__label">Logradouro/Nome</span>
-              <input class="form__input endereco-logradouro" type="text" data-index="${index}" />
+              <input class="form__input endereco-logradouro" type="text" data-index="${indiceOrdenado}" />
             </label>
             <label class="form__field">
               <span class="form__label">Bairro/Cidade</span>
-              <input class="form__input endereco-bairro" type="text" data-index="${index}" />
+              <input class="form__input endereco-bairro" type="text" data-index="${indiceOrdenado}" />
             </label>
             <label class="form__field">
               <span class="form__label">CEP</span>
-              <input class="form__input endereco-cep" type="text" inputmode="numeric" data-index="${index}" />
+              <input class="form__input endereco-cep" type="text" inputmode="numeric" data-index="${indiceOrdenado}" />
+            </label>
+            <label class="form__field">
+              <span class="form__label">Complemento</span>
+              <input class="form__input endereco-complemento" type="text" data-index="${indiceOrdenado}" />
             </label>
           `;
 
-          // Preencher valores
+          // Preencher valores salvos para manter sincronia com o formulário
           gridDiv.querySelector('.endereco-uf').value = endereco.uf || '';
           gridDiv.querySelector('.endereco-logradouro').value = endereco.logradouro || '';
           gridDiv.querySelector('.endereco-bairro').value = endereco.bairro || '';
           gridDiv.querySelector('.endereco-cep').value = endereco.cep || '';
+          gridDiv.querySelector('.endereco-complemento').value = endereco.complemento || '';
 
           // Adicionar listeners
           gridDiv.querySelector('.endereco-uf').addEventListener('change', (e) => {
-            enderecos[index].uf = e.target.value;
+            enderecos[indiceOrdenado].uf = e.target.value;
           });
           gridDiv.querySelector('.endereco-logradouro').addEventListener('input', (e) => {
-            enderecos[index].logradouro = e.target.value;
+            enderecos[indiceOrdenado].logradouro = e.target.value;
           });
           gridDiv.querySelector('.endereco-bairro').addEventListener('input', (e) => {
-            enderecos[index].bairro = e.target.value;
+            enderecos[indiceOrdenado].bairro = e.target.value;
+          });
+          gridDiv.querySelector('.endereco-complemento').addEventListener('input', (e) => {
+            enderecos[indiceOrdenado].complemento = e.target.value;
           });
           const cepInput = gridDiv.querySelector('.endereco-cep');
           cepInput.addEventListener('blur', (e) => {
             if (e.target.value?.trim()) {
-              mostrarCarregamentoCep(index, true);
-              buscarEnderecoPorCepMultiplo(e.target.value, index);
+              mostrarCarregamentoCep(indiceOrdenado, true);
+              buscarEnderecoPorCepMultiplo(e.target.value, indiceOrdenado);
             }
           });
 
           div.appendChild(gridDiv);
-          
+
           // Adiciona elemento para exibir status de carregamento
           const statusDiv = document.createElement('div');
-          statusDiv.className = `cep-status-${index}`;
+          statusDiv.className = `cep-status-${indiceOrdenado}`;
           statusDiv.style.cssText = 'margin-top: 0.75rem; font-size: 0.85rem; display: none;';
           div.appendChild(statusDiv);
 
@@ -408,7 +422,8 @@
           uf: '',
           logradouro: '',
           bairro: '',
-          cep: ''
+          cep: '',
+          complemento: ''
         });
 
         if (indicadorEnderecoAtual === null && enderecos.length === 1) {
