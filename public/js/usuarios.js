@@ -11,12 +11,30 @@
   const formulario = document.getElementById('usuario-form');
   const botaoSubmit = document.getElementById('usuario-submit');
 
+  // Filtros e paginação na listagem
+  const campoFiltroBusca = document.getElementById('filtro-busca');
+  const campoFiltroPerfil = document.getElementById('filtro-perfil');
+  const campoItensPagina = document.getElementById('filtro-itens');
+  const infoPaginacao = document.getElementById('paginacao-info');
+  const botaoPaginaAnterior = document.getElementById('paginacao-anterior');
+  const botaoPaginaProxima = document.getElementById('paginacao-proximo');
+
   const campoNome = document.getElementById('usuario-nome');
   const campoEmail = document.getElementById('usuario-email');
   const campoSenha = document.getElementById('usuario-senha');
   const campoRole = document.getElementById('usuario-role');
 
   let usuarioEmEdicao = null;
+  // Estado centralizado para filtros e lista carregada
+  const estadoUsuarios = {
+    lista: [],
+    filtros: {
+      busca: '',
+      role: 'todos',
+      itensPorPagina: 10,
+      paginaAtual: 1,
+    },
+  };
 
   // Modal (se presente na página)
   const modalEl = document.getElementById('usuario-modal');
@@ -189,6 +207,58 @@
     });
   };
 
+  // Aplica filtros de texto e perfil sobre a lista carregada
+  const aplicarFiltros = (usuarios = []) => {
+    const termo = (estadoUsuarios.filtros.busca || '').toLowerCase();
+    const role = estadoUsuarios.filtros.role;
+
+    return usuarios.filter((usuario) => {
+      const nome = (usuario.nome || '').toLowerCase();
+      const email = (usuario.email || '').toLowerCase();
+
+      const correspondeBusca = !termo || nome.includes(termo) || email.includes(termo);
+      const correspondeRole = role === 'todos' || usuario.role === role;
+
+      return correspondeBusca && correspondeRole;
+    });
+  };
+
+  // Atualiza contador e botões de paginação para o estado atual
+  const atualizarControlesPaginacao = (totalPaginas, totalRegistros, itensPorPagina) => {
+    if (!infoPaginacao) return;
+
+    const paginaAtual = estadoUsuarios.filtros.paginaAtual;
+    const inicio = totalRegistros === 0 ? 0 : (paginaAtual - 1) * itensPorPagina + 1;
+    const fim = Math.min(totalRegistros, paginaAtual * itensPorPagina);
+
+    infoPaginacao.textContent = `Página ${paginaAtual} de ${totalPaginas} · Exibindo ${inicio}-${fim} de ${totalRegistros}`;
+
+    if (botaoPaginaAnterior) {
+      botaoPaginaAnterior.disabled = paginaAtual <= 1 || totalRegistros === 0;
+    }
+
+    if (botaoPaginaProxima) {
+      botaoPaginaProxima.disabled = paginaAtual >= totalPaginas || totalRegistros === 0;
+    }
+  };
+
+  // Calcula o slice paginado e re-renderiza a tabela
+  const atualizarListaPaginada = () => {
+    const itensPorPagina = Math.max(1, Number.parseInt(estadoUsuarios.filtros.itensPorPagina, 10) || 1);
+    const filtrados = aplicarFiltros(estadoUsuarios.lista);
+    const totalPaginas = Math.max(1, Math.ceil(filtrados.length / itensPorPagina));
+
+    if (estadoUsuarios.filtros.paginaAtual > totalPaginas) {
+      estadoUsuarios.filtros.paginaAtual = totalPaginas;
+    }
+
+    const inicio = (estadoUsuarios.filtros.paginaAtual - 1) * itensPorPagina;
+    const pagina = filtrados.slice(inicio, inicio + itensPorPagina);
+
+    renderizarUsuarios(pagina);
+    atualizarControlesPaginacao(totalPaginas, filtrados.length, itensPorPagina);
+  };
+
   // Comentário: busca usuários sem filtros para manter a experiência direta
   const carregarUsuarios = async () => {
     setMessage(feedbackLista, 'Carregando usuários...', 'info');
@@ -211,7 +281,8 @@
       }
 
       const listaUsuarios = Array.isArray(data) ? data : [];
-      renderizarUsuarios(listaUsuarios);
+      estadoUsuarios.lista = listaUsuarios;
+      atualizarListaPaginada();
 
       setMessage(
         feedbackLista,
@@ -280,13 +351,16 @@
         throw new Error(erro);
       }
 
-        setMessage(feedbackFormulario, 'Usuário salvo com sucesso.', 'success');
-        // Notifica listeners (ex.: script que fecha o modal)
-        try {
-          document.dispatchEvent(new Event('usuario:salvo'));
-        } catch (e) {}
-        resetarFormulario();
-        await carregarUsuarios();
+      setMessage(feedbackFormulario, 'Usuário salvo com sucesso.', 'success');
+      // Notifica listeners (ex.: script que fecha o modal)
+      try {
+        document.dispatchEvent(new Event('usuario:salvo'));
+      } catch (e) {
+        // Falha silenciosa para evitar quebrar o fluxo em ambientes sem listener
+      }
+
+      resetarFormulario();
+      await carregarUsuarios();
     } catch (error) {
       setMessage(
         feedbackFormulario,
@@ -299,6 +373,61 @@
     }
   };
 
+  // Lida com atualização de filtros e reinicia a paginação
+  const registrarFiltros = () => {
+    if (campoFiltroBusca) {
+      campoFiltroBusca.addEventListener('input', (event) => {
+        estadoUsuarios.filtros.busca = event.target.value.trim();
+        estadoUsuarios.filtros.paginaAtual = 1;
+        atualizarListaPaginada();
+      });
+    }
+
+    if (campoFiltroPerfil) {
+      campoFiltroPerfil.addEventListener('change', (event) => {
+        estadoUsuarios.filtros.role = event.target.value;
+        estadoUsuarios.filtros.paginaAtual = 1;
+        atualizarListaPaginada();
+      });
+    }
+
+    if (campoItensPagina) {
+      campoItensPagina.addEventListener('change', (event) => {
+        const valor = Number.parseInt(event.target.value, 10);
+        estadoUsuarios.filtros.itensPorPagina = Number.isNaN(valor) || valor < 1 ? 1 : valor;
+        estadoUsuarios.filtros.paginaAtual = 1;
+        event.target.value = estadoUsuarios.filtros.itensPorPagina;
+        atualizarListaPaginada();
+      });
+    }
+  };
+
+  // Controles de navegação entre páginas
+  const registrarPaginacao = () => {
+    if (botaoPaginaAnterior) {
+      botaoPaginaAnterior.addEventListener('click', () => {
+        const { paginaAtual } = estadoUsuarios.filtros;
+        if (paginaAtual <= 1) return;
+        estadoUsuarios.filtros.paginaAtual = paginaAtual - 1;
+        atualizarListaPaginada();
+      });
+    }
+
+    if (botaoPaginaProxima) {
+      botaoPaginaProxima.addEventListener('click', () => {
+        const filtrados = aplicarFiltros(estadoUsuarios.lista);
+        const totalPaginas = Math.max(
+          1,
+          Math.ceil(filtrados.length / Math.max(1, Number.parseInt(estadoUsuarios.filtros.itensPorPagina, 10) || 1))
+        );
+
+        if (estadoUsuarios.filtros.paginaAtual >= totalPaginas) return;
+        estadoUsuarios.filtros.paginaAtual += 1;
+        atualizarListaPaginada();
+      });
+    }
+  };
+
   // Inicializa interações somente na página de usuários
   const inicializarPagina = () => {
     if (!document.querySelector('[data-page="usuarios"]')) return;
@@ -306,6 +435,8 @@
     // Carregamento inicial automático mantém a lista sempre atualizada ao acessar
     carregarUsuarios();
     resetarFormulario();
+    registrarFiltros();
+    registrarPaginacao();
 
     formulario?.addEventListener('submit', salvarUsuario);
     formulario?.addEventListener('reset', () => {
