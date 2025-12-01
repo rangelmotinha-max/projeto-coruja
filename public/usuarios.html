@@ -7,185 +7,100 @@
     <link rel="stylesheet" href="/css/main.css" />
   </head>
   <body>
-    <div class="app">
-      <aside class="sidebar">
-        <div class="sidebar__brand">Projeto Coruja</div>
-        <nav class="sidebar__nav" aria-label="Menu principal">
-          <a class="sidebar__link" href="/home">Home</a>
-          <a class="sidebar__link" href="/perfil">Perfil de Usuário</a>
-          <a class="sidebar__link sidebar__link--active" href="/usuarios">Usuários</a>
-          <!-- Início do menu de nível superior: Cadastro -->
-          <details class="sidebar__section" open>
-            <summary class="sidebar__link sidebar__link--parent" aria-label="Abrir menu Cadastro">Cadastro</summary>
-            <div class="sidebar__subnav">
-              <a class="sidebar__link sidebar__link--child" href="/cadastro/pessoas">Pessoas</a>
-              <a class="sidebar__link sidebar__link--child" href="/cadastro/empresas">Empresas</a>
-            </div>
-          </details>
-          <!-- Fim do menu de nível superior: Cadastro -->
-        </nav>
-        <div class="sidebar__footer">
-          <button id="logout-button" class="sidebar__logout" type="button">Sair</button>
+    <main class="page" data-page="usuarios">
+      <header class="page__header">
+        <div>
+          <p class="page__eyebrow">Administração</p>
+          <h1 class="page__title">Usuários</h1>
+          <p class="page__subtitle">Visualize e cadastre usuários de forma objetiva.</p>
         </div>
-      </aside>
+        <button id="logout-button" class="button button--ghost" type="button">Sair</button>
+      </header>
 
-      <main class="content" data-page="usuarios">
-        <header class="content__header">
-          <p class="content__eyebrow">Administração</p>
-          <h1 class="content__title">Usuários do sistema</h1>
-          <p class="content__subtitle">
-            Gerencie contas com segurança: consulte, cadastre, edite ou remova registros.
-          </p>
-        </header>
-
-        <div class="page-actions">
-          <button class="button button--primary" id="novo-usuario" type="button">Novo usuário</button>
+      <!-- Bloco simples dedicado à listagem de usuários -->
+      <section class="card">
+        <div class="card__header">
+          <div>
+            <p class="card__eyebrow">Listagem</p>
+            <h2 class="card__title">Usuários cadastrados</h2>
+            <p class="card__subtitle">Resultados retornados diretamente da API /api/usuarios.</p>
+          </div>
+          <div class="card__actions">
+            <button class="button button--secondary" id="recarregar-usuarios" type="button">Recarregar</button>
+          </div>
         </div>
+        <div id="usuarios-feedback" class="message" role="status" aria-live="polite"></div>
+        <div class="table-wrapper" role="region" aria-live="polite" aria-label="Tabela de usuários">
+          <table class="table" aria-describedby="usuarios-feedback">
+            <caption class="sr-only">Usuários do sistema</caption>
+            <thead>
+              <tr>
+                <th scope="col">Nome</th>
+                <th scope="col">E-mail</th>
+                <th scope="col">Perfil</th>
+                <th scope="col">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="usuarios-lista">
+              <tr>
+                <td colspan="4">Nenhum usuário carregado ainda.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
 
-        <section class="grid" aria-label="Gerenciamento de usuários">
-          <!-- Painel com tabela acessível de usuários -->
-          <article class="panel">
-            <div class="panel__header">
-              <div>
-                <h2 class="panel__title">Lista de usuários</h2>
-                <p class="panel__meta">Resultados retornados da API /api/usuarios</p>
-              </div>
-              <div id="usuarios-feedback" class="message" role="status" aria-live="polite"></div>
-            </div>
-
-            <form class="form" id="usuarios-filtro-form" aria-label="Filtros de usuários">
-              <div class="form__grid form__grid--3">
-                <label class="form__field" for="filtro-nome">
-                  <span class="form__label">Nome</span>
-                  <input
-                    class="form__input"
-                    type="search"
-                    id="filtro-nome"
-                    name="nome"
-                    placeholder="Pesquisar por nome"
-                  />
-                </label>
-                <label class="form__field" for="filtro-email">
-                  <span class="form__label">E-mail</span>
-                  <input
-                    class="form__input"
-                    type="search"
-                    id="filtro-email"
-                    name="email"
-                    placeholder="Pesquisar por e-mail"
-                  />
-                </label>
-                <label class="form__field" for="filtro-role">
-                  <span class="form__label">Perfil</span>
-                  <select class="form__input" id="filtro-role" name="role">
-                    <option value="">Todos</option>
-                    <option value="admin">Administrador</option>
-                    <option value="editor">Editor</option>
-                    <option value="viewer">Visualizador</option>
-                  </select>
-                </label>
-              </div>
-              <div class="form__actions form__actions--right">
-                <button type="reset" class="button button--ghost">Limpar filtros</button>
-                <button type="submit" class="button button--secondary">Aplicar filtros</button>
-              </div>
-            </form>
-
-            <div class="table-wrapper" role="region" aria-live="polite" aria-label="Tabela de usuários">
-              <table class="table" aria-describedby="usuarios-feedback">
-                <caption class="sr-only">Usuários cadastrados</caption>
-                <thead>
-                  <tr>
-                    <th scope="col">Nome</th>
-                    <th scope="col">E-mail</th>
-                    <th scope="col">Perfil</th>
-                    <th scope="col">Ações</th>
-                  </tr>
-                </thead>
-                <tbody id="usuarios-tabela-corpo">
-                  <tr>
-                    <td colspan="4">Nenhum usuário carregado ainda.</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </article>
-
-          <!-- Painel de detalhes e formulário -->
-          <article class="panel">
-            <div class="panel__header panel__header--stacked">
-              <div>
-                <h2 class="panel__title">Detalhes selecionados</h2>
-                <p class="panel__meta">Visualize ou edite dados do usuário</p>
-              </div>
-              <div id="detalhes-feedback" class="message" role="status" aria-live="polite"></div>
-            </div>
-
-            <div class="info-grid" aria-live="polite" aria-label="Informações do usuário selecionado">
-              <div class="info-item">
-                <p class="info-label">Nome</p>
-                <p class="info-value" id="detalhe-nome">—</p>
-              </div>
-              <div class="info-item">
-                <p class="info-label">E-mail</p>
-                <p class="info-value" id="detalhe-email">—</p>
-              </div>
-              <div class="info-item">
-                <p class="info-label">Perfil</p>
-                <p class="info-value" id="detalhe-role">—</p>
-              </div>
-            </div>
-
-            <form class="form" id="usuario-form" novalidate aria-label="Formulário de cadastro e edição de usuários">
-              <div class="form__section">
-                <div class="form__section-header">
-                  <h3 class="form__section-title">Dados do usuário</h3>
-                  <p class="form__helper">Campos marcados como obrigatórios devem ser preenchidos.</p>
-                </div>
-                <div class="form__grid form__grid--2">
-                  <label class="form__field" for="usuario-nome">
-                    <span class="form__label">Nome completo *</span>
-                    <input class="form__input" type="text" id="usuario-nome" name="nome" required aria-required="true" />
-                  </label>
-                  <label class="form__field" for="usuario-email">
-                    <span class="form__label">E-mail *</span>
-                    <input class="form__input" type="email" id="usuario-email" name="email" required aria-required="true" />
-                  </label>
-                </div>
-                <div class="form__grid form__grid--2">
-                  <label class="form__field" for="usuario-senha">
-                    <span class="form__label">Senha</span>
-                    <input
-                      class="form__input"
-                      type="password"
-                      id="usuario-senha"
-                      name="senha"
-                      autocomplete="new-password"
-                      aria-describedby="senha-ajuda"
-                    />
-                    <small class="form__helper" id="senha-ajuda">Informe apenas ao criar ou atualizar a senha.</small>
-                  </label>
-                  <label class="form__field" for="usuario-role">
-                    <span class="form__label">Perfil *</span>
-                    <select class="form__input" id="usuario-role" name="role" required aria-required="true">
-                      <option value="" disabled selected>Selecione</option>
-                      <option value="admin">Administrador</option>
-                      <option value="editor">Editor</option>
-                      <option value="viewer">Visualizador</option>
-                    </select>
-                  </label>
-                </div>
-              </div>
-
-              <div class="form__actions">
-                <button type="reset" class="button button--secondary">Limpar</button>
-                <button type="submit" class="button button--primary" id="usuario-submit">Salvar usuário</button>
-              </div>
-            </form>
-          </article>
-        </section>
-      </main>
-    </div>
+      <!-- Bloco dedicado ao cadastro e edição simples de usuários -->
+      <section class="card">
+        <div class="card__header">
+          <div>
+            <p class="card__eyebrow">Cadastro rápido</p>
+            <h2 class="card__title">Adicionar usuário</h2>
+            <p class="card__subtitle">Informe os dados mínimos para criar ou atualizar um registro.</p>
+          </div>
+        </div>
+        <div id="usuario-form-feedback" class="message" role="status" aria-live="polite"></div>
+        <form class="form" id="usuario-form" novalidate>
+          <div class="form__grid form__grid--2">
+            <label class="form__field" for="usuario-nome">
+              <span class="form__label">Nome completo *</span>
+              <input class="form__input" type="text" id="usuario-nome" name="nome" required aria-required="true" />
+            </label>
+            <label class="form__field" for="usuario-email">
+              <span class="form__label">E-mail *</span>
+              <input class="form__input" type="email" id="usuario-email" name="email" required aria-required="true" />
+            </label>
+          </div>
+          <div class="form__grid form__grid--2">
+            <label class="form__field" for="usuario-senha">
+              <span class="form__label">Senha</span>
+              <input
+                class="form__input"
+                type="password"
+                id="usuario-senha"
+                name="senha"
+                autocomplete="new-password"
+                aria-describedby="senha-ajuda"
+              />
+              <small class="form__helper" id="senha-ajuda">Defina apenas ao criar ou trocar a senha.</small>
+            </label>
+            <label class="form__field" for="usuario-role">
+              <span class="form__label">Perfil *</span>
+              <select class="form__input" id="usuario-role" name="role" required aria-required="true">
+                <option value="" disabled selected>Selecione</option>
+                <option value="admin">Administrador</option>
+                <option value="editor">Editor</option>
+                <option value="viewer">Visualizador</option>
+              </select>
+            </label>
+          </div>
+          <div class="form__actions">
+            <button type="reset" class="button button--ghost">Limpar</button>
+            <button type="submit" class="button button--primary" id="usuario-submit">Salvar usuário</button>
+          </div>
+        </form>
+      </section>
+    </main>
 
     <script src="/js/main.js"></script>
     <script src="/js/usuarios.js"></script>
