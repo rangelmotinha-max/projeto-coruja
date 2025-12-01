@@ -20,7 +20,12 @@ async function login(req, res, next) {
 
 async function listar(req, res, next) {
   try {
-    const usuarios = await usuarioService.listar();
+    // Comentário: envia filtros vindos da querystring para o serviço
+    const usuarios = await usuarioService.listar({
+      nome: req.query?.nome,
+      email: req.query?.email,
+      role: req.query?.role,
+    });
     return res.json(usuarios);
   } catch (error) {
     return next(error);

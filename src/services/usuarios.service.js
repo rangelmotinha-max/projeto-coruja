@@ -40,8 +40,14 @@ async function autenticar(payload) {
   return { usuario: limparSenha(usuario), token };
 }
 
-async function listar() {
-  const usuarios = await UsuarioModel.findAll();
+async function listar(filtros = {}) {
+  const filtrosSanitizados = {
+    nome: filtros?.nome?.trim(),
+    email: filtros?.email?.trim(),
+    role: filtros?.role?.trim(),
+  };
+
+  const usuarios = await UsuarioModel.findAll(filtrosSanitizados);
   return usuarios.map(limparSenha);
 }
 

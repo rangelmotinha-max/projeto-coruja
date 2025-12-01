@@ -53,6 +53,44 @@
               <div id="usuarios-feedback" class="message" role="status" aria-live="polite"></div>
             </div>
 
+            <form class="form" id="usuarios-filtro-form" aria-label="Filtros de usuários">
+              <div class="form__grid form__grid--3">
+                <label class="form__field" for="filtro-nome">
+                  <span class="form__label">Nome</span>
+                  <input
+                    class="form__input"
+                    type="search"
+                    id="filtro-nome"
+                    name="nome"
+                    placeholder="Pesquisar por nome"
+                  />
+                </label>
+                <label class="form__field" for="filtro-email">
+                  <span class="form__label">E-mail</span>
+                  <input
+                    class="form__input"
+                    type="search"
+                    id="filtro-email"
+                    name="email"
+                    placeholder="Pesquisar por e-mail"
+                  />
+                </label>
+                <label class="form__field" for="filtro-role">
+                  <span class="form__label">Perfil</span>
+                  <select class="form__input" id="filtro-role" name="role">
+                    <option value="">Todos</option>
+                    <option value="admin">Administrador</option>
+                    <option value="editor">Editor</option>
+                    <option value="viewer">Visualizador</option>
+                  </select>
+                </label>
+              </div>
+              <div class="form__actions form__actions--right">
+                <button type="reset" class="button button--ghost">Limpar filtros</button>
+                <button type="submit" class="button button--secondary">Aplicar filtros</button>
+              </div>
+            </form>
+
             <div class="table-wrapper" role="region" aria-live="polite" aria-label="Tabela de usuários">
               <table class="table" aria-describedby="usuarios-feedback">
                 <caption class="sr-only">Usuários cadastrados</caption>
