@@ -73,6 +73,7 @@ async function runMigrations(db) {
       uf TEXT,
       logradouro TEXT,
       bairro TEXT,
+      complemento TEXT,
       cep TEXT,
       criadoEm TEXT NOT NULL,
       atualizadoEm TEXT NOT NULL,
@@ -89,6 +90,18 @@ async function runMigrations(db) {
   try {
     await db.run(`
       ALTER TABLE pessoas ADD COLUMN endereco_atual_index INTEGER DEFAULT 0
+    `);
+  } catch (err) {
+    // Coluna já existe, ignorar erro
+    if (!err.message.includes('duplicate column name')) {
+      throw err;
+    }
+  }
+
+  // Tentar adicionar coluna complemento nos endereços para retrocompatibilidade
+  try {
+    await db.run(`
+      ALTER TABLE enderecos ADD COLUMN complemento TEXT
     `);
   } catch (err) {
     // Coluna já existe, ignorar erro

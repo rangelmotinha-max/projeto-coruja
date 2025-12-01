@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS enderecos (
   uf TEXT,
   logradouro TEXT,
   bairro TEXT,
+  complemento TEXT,
   cep TEXT,
   criadoEm TEXT NOT NULL,
   atualizadoEm TEXT NOT NULL,
