@@ -61,13 +61,14 @@
                 </label>
                 <label class="form__field">
                   <span class="form__label">Data de Nascimento</span>
-                  <input class="form__input" type="date" name="dataNascimento" required />
+                  <input class="form__input" type="date" name="dataNascimento" />
                 </label>
               </div>
               <div class="form__grid form__grid--3">
                 <label class="form__field">
                   <span class="form__label">CPF</span>
                   <input class="form__input" type="text" name="cpf" inputmode="numeric" />
+                  <span id="erro-cpf" class="form__error" style="display: none;">CPF inválido!</span>
                 </label>
                 <label class="form__field">
                   <span class="form__label">RG</span>
@@ -281,6 +282,64 @@
         }
 
         event.target.value = valorMascarado;
+
+        // Valida CPF em tempo real quando completo (11 dígitos)
+        const erroEl = document.getElementById('erro-cpf');
+        if (somenteNumeros.length === 11) {
+          const validacao = validarCpf(valorMascarado);
+          if (!validacao.valido) {
+            erroEl.style.display = 'block';
+            erroEl.textContent = 'CPF inválido!';
+          } else {
+            erroEl.style.display = 'none';
+          }
+        } else if (somenteNumeros.length > 0) {
+          // Mostra erro se não está completo e o usuário parou de digitar
+          erroEl.style.display = 'none';
+        }
+      };
+
+      const validarCpf = (cpf) => {
+        // Remove caracteres não numéricos
+        const somenteNumeros = cpf.replace(/\D/g, '');
+
+        // Valida comprimento
+        if (somenteNumeros.length !== 11) {
+          return { valido: false, mensagem: 'CPF deve ter 11 dígitos.' };
+        }
+
+        // Valida se todos os dígitos são iguais
+        if (/^(\d)\1{10}$/.test(somenteNumeros)) {
+          return { valido: false, mensagem: 'CPF inválido: todos os dígitos são iguais.' };
+        }
+
+        // Calcula primeiro dígito verificador
+        let soma = 0;
+        for (let i = 0; i < 9; i++) {
+          soma += parseInt(somenteNumeros[i]) * (10 - i);
+        }
+        let primeiroDigito = 11 - (soma % 11);
+        primeiroDigito = primeiroDigito > 9 ? 0 : primeiroDigito;
+
+        // Valida primeiro dígito verificador
+        if (parseInt(somenteNumeros[9]) !== primeiroDigito) {
+          return { valido: false, mensagem: 'CPF inválido: primeiro dígito verificador incorreto.' };
+        }
+
+        // Calcula segundo dígito verificador
+        soma = 0;
+        for (let i = 0; i < 10; i++) {
+          soma += parseInt(somenteNumeros[i]) * (11 - i);
+        }
+        let segundoDigito = 11 - (soma % 11);
+        segundoDigito = segundoDigito > 9 ? 0 : segundoDigito;
+
+        // Valida segundo dígito verificador
+        if (parseInt(somenteNumeros[10]) !== segundoDigito) {
+          return { valido: false, mensagem: 'CPF inválido: segundo dígito verificador incorreto.' };
+        }
+
+        return { valido: true, mensagem: 'CPF válido.' };
       };
 
       const preencherFormulario = (pessoa) => {
@@ -382,6 +441,15 @@
         if (!payload.nomeCompleto?.trim()) {
           exibirMensagem('O campo Nome Completo é obrigatório.', 'error');
           return;
+        }
+
+        // Valida CPF se preenchido
+        if (payload.cpf?.trim()) {
+          const validacao = validarCpf(payload.cpf);
+          if (!validacao.valido) {
+            exibirMensagem(validacao.mensagem, 'error');
+            return;
+          }
         }
 
         const metodo = pessoaEmEdicao ? 'PUT' : 'POST';

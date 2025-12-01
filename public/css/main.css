@@ -873,3 +873,12 @@ body {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 20%, transparent);
 }
 
+/* Mensagem de erro de validação */
+.form__error {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--error-text);
+  font-weight: 600;
+}
+
