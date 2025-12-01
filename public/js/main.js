@@ -263,6 +263,10 @@
     const role = profileRoleSelect?.value;
     const senha = profilePasswordInput?.value.trim();
 
+    // Indica se credenciais sensíveis foram modificadas para tratar renovação de sessão
+    const alterouCredencialSensivel =
+      Boolean(senha) || email !== getStoredUser()?.email;
+
     if (!nome || !email || !role) {
       setMessage(profileFeedbackEl, 'Preencha nome, e-mail e perfil para continuar.', 'error');
       return;
@@ -296,6 +300,18 @@
       }
 
       const usuarioAtualizado = data?.usuario || data;
+      const tokenRenovado = data?.token;
+
+      // Quando API retorna um token novo, sincroniza imediatamente para manter sessão válida
+      if (tokenRenovado) {
+        persistToken(tokenRenovado);
+      } else if (alterouCredencialSensivel) {
+        setMessage(
+          profileFeedbackEl,
+          'Dados sensíveis alterados: faça login novamente para continuar.',
+          'warning'
+        );
+      }
 
       persistUser(usuarioAtualizado);
       renderUserCard(usuarioAtualizado);
