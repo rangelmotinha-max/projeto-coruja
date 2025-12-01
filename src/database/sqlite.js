@@ -52,25 +52,50 @@ async function runMigrations(db) {
     CREATE TABLE IF NOT EXISTS pessoas (
       id TEXT PRIMARY KEY,
       nomeCompleto TEXT NOT NULL,
-      dataNascimento TEXT NOT NULL,
+      dataNascimento TEXT,
       cpf TEXT,
       rg TEXT,
       cnh TEXT,
       nomeMae TEXT,
       nomePai TEXT,
       telefone TEXT,
-      ultimoUf TEXT,
-      ultimoLogradouro TEXT,
-      ultimoBairroCidade TEXT,
-      ultimoCep TEXT,
-      enderecoUf TEXT,
-      enderecoLogradouro TEXT,
-      enderecoBairroCidade TEXT,
-      enderecoCep TEXT,
+      endereco_atual_index INTEGER DEFAULT 0,
       criadoEm TEXT NOT NULL,
       atualizadoEm TEXT NOT NULL
     )
   `);
+
+  // Tabela de endereços com relacionamento 1:N com pessoas
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS enderecos (
+      id TEXT PRIMARY KEY,
+      pessoa_id TEXT NOT NULL,
+      uf TEXT,
+      logradouro TEXT,
+      bairro TEXT,
+      cep TEXT,
+      criadoEm TEXT NOT NULL,
+      atualizadoEm TEXT NOT NULL,
+      FOREIGN KEY (pessoa_id) REFERENCES pessoas(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Criar índice para queries de endereços por pessoa
+  await db.run(`
+    CREATE INDEX IF NOT EXISTS idx_enderecos_pessoa_id ON enderecos(pessoa_id)
+  `);
+
+  // Tentar adicionar coluna endereco_atual_index se ela não existir (para bancos existentes)
+  try {
+    await db.run(`
+      ALTER TABLE pessoas ADD COLUMN endereco_atual_index INTEGER DEFAULT 0
+    `);
+  } catch (err) {
+    // Coluna já existe, ignorar erro
+    if (!err.message.includes('duplicate column name')) {
+      throw err;
+    }
+  }
 }
 
 async function initDatabase() {
