@@ -48,6 +48,15 @@
           </div>
         </header>
 
+        <div
+          id="alert-container"
+          class="alert-container"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+          aria-label="Feedback do sistema"
+        ></div>
+
         <!-- Listagem e filtros: mantém apenas a listagem e ações essenciais -->
         <section class="panel" aria-label="Lista de usuários">
           <div class="panel__header">
@@ -60,10 +69,8 @@
               <button class="button button--primary" id="abrir-usuario-modal" type="button">Adicionar usuário</button>
             </div>
           </div>
-
-          <div id="usuarios-feedback" class="message" role="status" aria-live="polite"></div>
           <div class="table-wrapper" role="region" aria-live="polite" aria-label="Tabela de usuários">
-            <table class="table" aria-describedby="usuarios-feedback">
+            <table class="table" aria-describedby="alert-container">
               <thead>
                 <tr>
                   <th scope="col">Nome</th>
@@ -89,7 +96,6 @@
       <div class="modal__panel" role="document">
         <button class="modal__close" id="usuario-modal-close" aria-label="Fechar">×</button>
         <h3 id="usuario-modal-title">Adicionar / Editar usuário</h3>
-        <div id="usuario-form-feedback" class="message" role="status" aria-live="polite"></div>
 
         <form class="form" id="usuario-form" novalidate>
           <div class="form__grid form__grid--2">
