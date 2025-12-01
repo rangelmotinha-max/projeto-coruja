@@ -4,28 +4,18 @@
   // Comentário: novo prefixo dedicado à API de usuários
   const API_URL = '/api/usuarios';
 
-  // Referências de elementos da interface
-  const tabelaCorpo = document.getElementById('usuarios-tabela-corpo');
+  // Referências simplificadas da interface
+  const tabelaCorpo = document.getElementById('usuarios-lista');
   const feedbackLista = document.getElementById('usuarios-feedback');
-  const feedbackDetalhes = document.getElementById('detalhes-feedback');
-  const botaoNovo = document.getElementById('novo-usuario');
+  const feedbackFormulario = document.getElementById('usuario-form-feedback');
+  const botaoRecarregar = document.getElementById('recarregar-usuarios');
   const formulario = document.getElementById('usuario-form');
   const botaoSubmit = document.getElementById('usuario-submit');
-
-  // Comentário: campos dedicados a filtros de busca
-  const filtroForm = document.getElementById('usuarios-filtro-form');
-  const filtroNome = document.getElementById('filtro-nome');
-  const filtroEmail = document.getElementById('filtro-email');
-  const filtroRole = document.getElementById('filtro-role');
 
   const campoNome = document.getElementById('usuario-nome');
   const campoEmail = document.getElementById('usuario-email');
   const campoSenha = document.getElementById('usuario-senha');
   const campoRole = document.getElementById('usuario-role');
-
-  const detalheNome = document.getElementById('detalhe-nome');
-  const detalheEmail = document.getElementById('detalhe-email');
-  const detalheRole = document.getElementById('detalhe-role');
 
   let usuarioEmEdicao = null;
 
@@ -73,20 +63,16 @@
     }
   };
 
-  // Atualiza painel de detalhes com dados selecionados
-  const atualizarDetalhes = (usuario) => {
-    if (!usuario) return;
-    detalheNome.textContent = usuario.nome || '—';
-    detalheEmail.textContent = usuario.email || '—';
-    detalheRole.textContent = usuario.role || '—';
-  };
-
   // Limpa o formulário para o estado inicial
   const resetarFormulario = () => {
     usuarioEmEdicao = null;
     formulario?.reset();
     botaoSubmit.textContent = 'Salvar usuário';
-    setMessage(feedbackDetalhes, 'Pronto para cadastrar um novo usuário.', 'info');
+    setMessage(
+      feedbackFormulario,
+      'Preencha os campos para incluir um novo usuário ou editar um existente.',
+      'info'
+    );
   };
 
   // Monta ações para cada linha da tabela
@@ -94,36 +80,20 @@
     const td = document.createElement('td');
     td.classList.add('table__actions');
 
-    // Botão de consulta de dados
-    const botaoConsultar = document.createElement('button');
-    botaoConsultar.type = 'button';
-    botaoConsultar.className = 'button button--ghost';
-    botaoConsultar.textContent = 'Consultar';
-    botaoConsultar.setAttribute('aria-label', `Consultar dados de ${usuario.nome || 'usuário'}`);
-    botaoConsultar.addEventListener('click', () => {
-      atualizarDetalhes(usuario);
-      setMessage(feedbackDetalhes, 'Usuário destacado para consulta.', 'info');
-    });
-
-    // Botão de edição com confirmação
+    // Botão de edição que preenche o formulário
     const botaoEditar = document.createElement('button');
     botaoEditar.type = 'button';
     botaoEditar.className = 'button button--secondary';
     botaoEditar.textContent = 'Editar';
     botaoEditar.setAttribute('aria-label', `Editar dados de ${usuario.nome || 'usuário'}`);
     botaoEditar.addEventListener('click', () => {
-      atualizarDetalhes(usuario);
       campoNome.value = usuario.nome || '';
       campoEmail.value = usuario.email || '';
       campoRole.value = usuario.role || '';
       campoSenha.value = '';
       usuarioEmEdicao = usuario.id;
       botaoSubmit.textContent = 'Atualizar usuário';
-      setMessage(
-        feedbackDetalhes,
-        'Edição iniciada. Confirme o envio ao atualizar os dados.',
-        'info'
-      );
+      setMessage(feedbackFormulario, 'Edição iniciada. Salve para confirmar a atualização.', 'info');
     });
 
     // Botão de exclusão com confirmação
@@ -136,7 +106,7 @@
       const confirmacao = confirm('Deseja realmente excluir este usuário?');
       if (!confirmacao) return;
 
-      setMessage(feedbackDetalhes, 'Excluindo usuário selecionado...', 'info');
+      setMessage(feedbackFormulario, 'Excluindo usuário selecionado...', 'info');
 
       try {
         const response = await authorizedFetch(`${API_URL}/${usuario.id}`, {
@@ -156,40 +126,32 @@
           throw new Error(erro);
         }
 
-        setMessage(feedbackDetalhes, 'Usuário excluído com sucesso.', 'success');
+        setMessage(feedbackFormulario, 'Usuário excluído com sucesso.', 'success');
         await carregarUsuarios();
         resetarFormulario();
       } catch (error) {
         setMessage(
-          feedbackDetalhes,
+          feedbackFormulario,
           error?.message || 'Erro inesperado ao excluir o usuário.',
           'error'
         );
       }
     });
 
-    td.append(botaoConsultar, botaoEditar, botaoExcluir);
+    td.append(botaoEditar, botaoExcluir);
     return td;
   };
 
   // Renderiza as linhas da tabela
-  const renderizarUsuarios = (usuarios = [], filtros = {}) => {
+  const renderizarUsuarios = (usuarios = []) => {
     if (!tabelaCorpo) return;
     tabelaCorpo.innerHTML = '';
-
-    const filtrosAtivos = Boolean(
-      (filtros?.nome && filtros.nome.trim()) ||
-        (filtros?.email && filtros.email.trim()) ||
-        (filtros?.role && filtros.role.trim())
-    );
 
     if (!usuarios.length) {
       const linha = document.createElement('tr');
       const celula = document.createElement('td');
       celula.colSpan = 4;
-      celula.textContent = filtrosAtivos
-        ? 'Nenhum usuário corresponde aos filtros aplicados.'
-        : 'Nenhum usuário encontrado.';
+      celula.textContent = 'Nenhum usuário encontrado.';
       linha.appendChild(celula);
       tabelaCorpo.appendChild(linha);
       return;
@@ -215,26 +177,12 @@
     });
   };
 
-  // Busca lista de usuários na API
-  const obterFiltros = () => {
-    // Comentário: garante textos limpos antes de enviar à API
-    return {
-      nome: filtroNome?.value.trim() || '',
-      email: filtroEmail?.value.trim() || '',
-      role: filtroRole?.value || '',
-    };
-  };
-
-  // Comentário: busca usuários considerando filtros ativos
-  const carregarUsuarios = async (filtros = obterFiltros()) => {
+  // Comentário: busca usuários sem filtros para manter a experiência direta
+  const carregarUsuarios = async () => {
     setMessage(feedbackLista, 'Carregando usuários...', 'info');
 
     try {
       const url = new URL(API_URL, window.location.origin);
-
-      Object.entries(filtros || {})
-        .filter(([, valor]) => Boolean(valor))
-        .forEach(([chave, valor]) => url.searchParams.append(chave, valor));
 
       const response = await authorizedFetch(url.toString());
       const data = await response.json().catch(() => []);
@@ -251,19 +199,13 @@
       }
 
       const listaUsuarios = Array.isArray(data) ? data : [];
-      renderizarUsuarios(listaUsuarios, filtros);
+      renderizarUsuarios(listaUsuarios);
 
-      if (!listaUsuarios.length) {
-        setMessage(
-          feedbackLista,
-          (filtros?.nome || filtros?.email || filtros?.role)
-            ? 'Nenhum resultado encontrado para os filtros aplicados.'
-            : 'Nenhum usuário cadastrado encontrado.',
-          'info'
-        );
-      } else {
-        setMessage(feedbackLista, 'Usuários carregados com sucesso.', 'success');
-      }
+      setMessage(
+        feedbackLista,
+        listaUsuarios.length ? 'Usuários carregados com sucesso.' : 'Nenhum usuário cadastrado encontrado.',
+        listaUsuarios.length ? 'success' : 'info'
+      );
     } catch (error) {
       setMessage(
         feedbackLista,
@@ -285,7 +227,7 @@
     const role = campoRole.value;
 
     if (!nome || !email || !role) {
-      setMessage(feedbackDetalhes, 'Preencha nome, e-mail e perfil para continuar.', 'error');
+      setMessage(feedbackFormulario, 'Preencha nome, e-mail e perfil para continuar.', 'error');
       return;
     }
 
@@ -299,7 +241,7 @@
 
     botaoSubmit.disabled = true;
     botaoSubmit.textContent = usuarioEmEdicao ? 'Atualizando...' : 'Salvando...';
-    setMessage(feedbackDetalhes, 'Enviando dados do usuário...', 'info');
+    setMessage(feedbackFormulario, 'Enviando dados do usuário...', 'info');
 
     const payload = { nome, email, role };
     if (senha) payload.senha = senha;
@@ -326,13 +268,12 @@
         throw new Error(erro);
       }
 
-      setMessage(feedbackDetalhes, 'Usuário salvo com sucesso.', 'success');
-      atualizarDetalhes(data);
-      resetarFormulario();
-      await carregarUsuarios();
+        setMessage(feedbackFormulario, 'Usuário salvo com sucesso.', 'success');
+        resetarFormulario();
+        await carregarUsuarios();
     } catch (error) {
       setMessage(
-        feedbackDetalhes,
+        feedbackFormulario,
         error?.message || 'Erro inesperado ao salvar os dados.',
         'error'
       );
@@ -354,21 +295,7 @@
       // Comentário: limpeza manual para garantir estados visuais consistentes
       resetarFormulario();
     });
-    botaoNovo?.addEventListener('click', resetarFormulario);
-
-    // Comentário: dispara recarregamento quando filtros mudam
-    filtroForm?.addEventListener('submit', (event) => {
-      event.preventDefault();
-      carregarUsuarios(obterFiltros());
-    });
-    filtroForm?.addEventListener('reset', () => carregarUsuarios());
-    [filtroNome, filtroEmail, filtroRole].forEach((campo) => {
-      campo?.addEventListener('change', () => carregarUsuarios(obterFiltros()));
-      campo?.addEventListener('keyup', (event) => {
-        if (event.key === 'Enter') return;
-        carregarUsuarios(obterFiltros());
-      });
-    });
+    botaoRecarregar?.addEventListener('click', carregarUsuarios);
   };
 
   inicializarPagina();
