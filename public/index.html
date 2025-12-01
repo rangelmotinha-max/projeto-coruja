@@ -7,13 +7,26 @@
     <link rel="stylesheet" href="/css/main.css" />
     <link rel="stylesheet" href="/css/componentes/form.css" />
   </head>
-  <body>
+  <body class="theme-dark">
     <main class="pagina">
       <section class="card">
-        <header class="card__header">
-          <p class="card__eyebrow">Projeto Coruja</p>
-          <h1 class="card__title">Acesse sua conta</h1>
-          <p class="card__subtitle">Informe suas credenciais para continuar.</p>
+        <header class="card__header card__header--with-actions">
+          <div>
+            <p class="card__eyebrow">Projeto Coruja</p>
+            <h1 class="card__title">Acesse sua conta</h1>
+            <p class="card__subtitle">Informe suas credenciais para continuar.</p>
+          </div>
+          <!-- Botão dedicado para alternar entre tema claro e escuro -->
+          <button
+            class="theme-toggle"
+            type="button"
+            data-theme-toggle
+            aria-pressed="false"
+            aria-label="Alternar tema visual"
+          >
+            <span class="theme-toggle__icon" aria-hidden="true" data-theme-icon>🌙</span>
+            <span class="theme-toggle__label" data-theme-label>Modo escuro</span>
+          </button>
         </header>
 
         <div id="message" class="message" role="status" aria-live="polite"></div>

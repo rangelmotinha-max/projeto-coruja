@@ -35,7 +35,7 @@
 
       .button {
         border: 1px solid var(--border);
-        background: rgba(255, 255, 255, 0.04);
+        background: var(--surface-muted);
         color: var(--text);
         padding: 0.7rem 1rem;
         border-radius: 12px;
@@ -45,16 +45,16 @@
       }
 
       .button:hover {
-        background: rgba(255, 255, 255, 0.07);
-        border-color: rgba(124, 58, 237, 0.4);
+        background: var(--hover-surface);
+        border-color: color-mix(in srgb, var(--primary) 40%, transparent);
         transform: translateY(-1px);
       }
 
       .button--primary {
         border: none;
         background: linear-gradient(90deg, var(--primary), var(--primary-hover));
-        color: #fff;
-        box-shadow: 0 10px 30px rgba(124, 58, 237, 0.25);
+        color: var(--text);
+        box-shadow: 0 10px 30px color-mix(in srgb, var(--primary) 25%, transparent);
       }
 
       .dashboard__grid {
@@ -64,7 +64,7 @@
       }
 
       .stat {
-        background: rgba(255, 255, 255, 0.02);
+        background: var(--surface-raised);
         border: 1px solid var(--border);
         border-radius: 14px;
         padding: 1rem;
@@ -84,7 +84,7 @@
       }
     </style>
   </head>
-  <body>
+  <body class="theme-dark">
     <main class="pagina" data-page="welcome">
       <section class="card" style="max-width: 760px; width: 100%">
         <header class="dashboard__header">
@@ -94,6 +94,17 @@
             <p class="card__subtitle">Confira seus dados e continue sua jornada.</p>
           </div>
           <div class="dashboard__actions">
+            <!-- Botão dedicado para alternar entre tema claro e escuro -->
+            <button
+              class="theme-toggle"
+              type="button"
+              data-theme-toggle
+              aria-pressed="false"
+              aria-label="Alternar tema visual"
+            >
+              <span class="theme-toggle__icon" aria-hidden="true" data-theme-icon>🌙</span>
+              <span class="theme-toggle__label" data-theme-label>Modo escuro</span>
+            </button>
             <button id="logout-button" class="button" type="button">Sair</button>
           </div>
         </header>

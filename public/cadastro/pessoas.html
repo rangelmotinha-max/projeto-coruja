@@ -6,10 +6,23 @@
     <title>Cadastro de Pessoas | Projeto Coruja</title>
     <link rel="stylesheet" href="/css/main.css" />
   </head>
-  <body>
+  <body class="theme-dark">
     <div class="app">
       <aside class="sidebar">
-        <div class="sidebar__brand">Projeto Coruja</div>
+        <div class="sidebar__header">
+          <div class="sidebar__brand">Projeto Coruja</div>
+          <!-- Botão dedicado para alternar entre tema claro e escuro -->
+          <button
+            class="theme-toggle"
+            type="button"
+            data-theme-toggle
+            aria-pressed="false"
+            aria-label="Alternar tema visual"
+          >
+            <span class="theme-toggle__icon" aria-hidden="true" data-theme-icon>🌙</span>
+            <span class="theme-toggle__label" data-theme-label>Modo escuro</span>
+          </button>
+        </div>
         <nav class="sidebar__nav" aria-label="Menu principal">
           <a class="sidebar__link" href="/home">Home</a>
           <a class="sidebar__link" href="/perfil">Perfil de Usuário</a>
