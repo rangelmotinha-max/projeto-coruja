@@ -18,6 +18,13 @@
   const userEmailEl = document.getElementById('user-email');
   const userRoleEl = document.getElementById('user-role');
   const logoutButton = document.getElementById('logout-button');
+  const profileForm = profilePage?.querySelector('form');
+  const profileFeedbackEl = document.getElementById('feedback-area');
+  const deleteAccountButton = profilePage?.querySelector('.button--danger');
+  const profileNameInput = document.getElementById('input-name');
+  const profileEmailInput = document.getElementById('input-email');
+  const profilePasswordInput = document.getElementById('input-password');
+  const profileRoleSelect = document.getElementById('select-role');
 
   const setMessage = (element, text, type = 'info') => {
     if (!element) return;
@@ -174,6 +181,17 @@
     if (userRoleEl) userRoleEl.textContent = user?.role || '—';
   };
 
+  // Preenche o formulário de edição de perfil com os dados disponíveis
+  const fillProfileForm = (user) => {
+    if (!profileForm || !user) return;
+
+    if (profileNameInput) profileNameInput.value = user?.nome || '';
+    if (profileEmailInput) profileEmailInput.value = user?.email || '';
+    if (profileRoleSelect) profileRoleSelect.value = user?.role || '';
+    if (profilePasswordInput) profilePasswordInput.value = '';
+  };
+
+  // CRUD: Obtém o usuário autenticado e sincroniza o estado local/DOM para leitura inicial
   const carregarPerfil = async () => {
     if (!profilePage) return;
 
@@ -187,6 +205,7 @@
     const storedUser = getStoredUser();
     if (storedUser) {
       renderUserCard(storedUser);
+      fillProfileForm(storedUser);
     }
 
     const userId = storedUser?.id || getUserIdFromToken();
@@ -216,10 +235,119 @@
 
       persistUser(data);
       renderUserCard(data);
+      fillProfileForm(data);
     } catch (error) {
       setMessage(
         profileMessageEl,
         error?.message || 'Erro ao carregar as informações do usuário.',
+        'error'
+      );
+    }
+  };
+
+  // CRUD: Atualiza o usuário logado enviando dados editados para a API e sincronizando o cache local
+  const handleProfileSubmit = async (event) => {
+    event.preventDefault();
+
+    if (!profileForm) return;
+
+    const userId = getStoredUser()?.id || getUserIdFromToken();
+    if (!userId) {
+      clearAuth();
+      window.location.href = '/';
+      return;
+    }
+
+    const nome = profileNameInput?.value.trim();
+    const email = profileEmailInput?.value.trim();
+    const role = profileRoleSelect?.value;
+    const senha = profilePasswordInput?.value.trim();
+
+    if (!nome || !email || !role) {
+      setMessage(profileFeedbackEl, 'Preencha nome, e-mail e perfil para continuar.', 'error');
+      return;
+    }
+
+    setMessage(profileFeedbackEl, 'Salvando alterações...', 'info');
+
+    try {
+      const payload = { nome, email, role };
+      if (senha) payload.senha = senha;
+
+      const response = await authorizedFetch(`/usuarios/${userId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          clearAuth();
+          window.location.href = '/';
+          return;
+        }
+        const errorMessage =
+          data?.mensagem || data?.message || 'Não foi possível atualizar o perfil.';
+        throw new Error(errorMessage);
+      }
+
+      const usuarioAtualizado = data?.usuario || data;
+
+      persistUser(usuarioAtualizado);
+      renderUserCard(usuarioAtualizado);
+      fillProfileForm(usuarioAtualizado);
+      if (profilePasswordInput) profilePasswordInput.value = '';
+
+      setMessage(profileFeedbackEl, 'Perfil atualizado com sucesso!', 'success');
+      setMessage(profileMessageEl, 'Dados sincronizados com sucesso.', 'success');
+    } catch (error) {
+      setMessage(
+        profileFeedbackEl,
+        error?.message || 'Erro ao salvar alterações do perfil.',
+        'error'
+      );
+    }
+  };
+
+  // CRUD: Remove a conta do usuário chamando o endpoint de exclusão e limpando o estado local
+  const handleDeleteAccount = async () => {
+    const userId = getStoredUser()?.id || getUserIdFromToken();
+    if (!userId) {
+      clearAuth();
+      window.location.href = '/';
+      return;
+    }
+
+    setMessage(profileMessageEl, 'Removendo conta...', 'info');
+
+    try {
+      const response = await authorizedFetch(`/usuarios/${userId}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          clearAuth();
+          window.location.href = '/';
+          return;
+        }
+        const errorMessage =
+          data?.mensagem || data?.message || 'Não foi possível remover a conta.';
+        throw new Error(errorMessage);
+      }
+
+      clearAuth();
+      window.location.href = '/';
+    } catch (error) {
+      setMessage(
+        profileMessageEl,
+        error?.message || 'Erro ao remover a conta do usuário.',
         'error'
       );
     }
@@ -232,6 +360,14 @@
 
   form?.addEventListener('submit', handleLogin);
   logoutButton?.addEventListener('click', handleLogout);
+
+  if (profileForm) {
+    profileForm.addEventListener('submit', handleProfileSubmit);
+  }
+
+  if (deleteAccountButton) {
+    deleteAccountButton.addEventListener('click', handleDeleteAccount);
+  }
 
   if (profilePage) {
     carregarPerfil();
