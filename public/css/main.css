@@ -1,12 +1,64 @@
+/* Tokens globais de cores inspirados em Material Design para ambos os temas */
 :root {
+  /* Controles de profundidade e sombra reutilizados pelos componentes */
+  --shadow: 0 12px 50px rgba(0, 0, 0, 0.35);
+}
+
+/* Paleta do tema escuro preservando os tons atuais */
+.theme-dark {
   --bg: #0f172a;
   --surface: #0b1224;
+  --surface-raised: rgba(255, 255, 255, 0.02);
+  --surface-muted: rgba(255, 255, 255, 0.04);
   --primary: #7c3aed;
   --primary-hover: #6d28d9;
   --text: #e2e8f0;
   --muted: #94a3b8;
   --border: rgba(148, 163, 184, 0.2);
-  --shadow: 0 12px 50px rgba(0, 0, 0, 0.35);
+  --hover-surface: rgba(255, 255, 255, 0.07);
+  --input-bg: rgba(255, 255, 255, 0.03);
+  --input-focus-bg: rgba(255, 255, 255, 0.05);
+  --overlay: rgba(2, 6, 23, 0.6);
+  --glow-1: rgba(124, 58, 237, 0.12);
+  --glow-2: rgba(56, 189, 248, 0.14);
+  --sidebar-bg: rgba(15, 23, 42, 0.85);
+  --info-surface: color-mix(in srgb, var(--primary) 18%, transparent);
+  --info-border: color-mix(in srgb, var(--primary) 35%, transparent);
+  --success-surface: rgba(34, 197, 94, 0.12);
+  --success-border: rgba(34, 197, 94, 0.3);
+  --success-text: #bbf7d0;
+  --error-surface: rgba(239, 68, 68, 0.12);
+  --error-border: rgba(239, 68, 68, 0.3);
+  --error-text: #fecdd3;
+}
+
+/* Paleta do tema claro inspirada em Material Design 3 (tons suaves) */
+.theme-light {
+  --bg: #f6f7fb;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --surface-muted: #f0f4ff;
+  --primary: #6750a4;
+  --primary-hover: #5b4bb2;
+  --text: #1f2937;
+  --muted: #4b5563;
+  --border: #d9e2ec;
+  --hover-surface: #eef2ff;
+  --input-bg: #f8fafc;
+  --input-focus-bg: #eef2ff;
+  --overlay: rgba(15, 23, 42, 0.45);
+  --glow-1: rgba(103, 80, 164, 0.12);
+  --glow-2: rgba(3, 218, 198, 0.14);
+  --sidebar-bg: #ffffff;
+  --shadow: 0 12px 40px rgba(15, 23, 42, 0.12);
+  --info-surface: color-mix(in srgb, var(--primary) 12%, white 88%);
+  --info-border: color-mix(in srgb, var(--primary) 35%, white 65%);
+  --success-surface: #e7f8ed;
+  --success-border: #b2dfc2;
+  --success-text: #166534;
+  --error-surface: #fce8e8;
+  --error-border: #f5b5b8;
+  --error-text: #9f1239;
 }
 
 * {
@@ -18,8 +70,9 @@ body {
   min-height: 100vh;
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
     sans-serif;
-  background: radial-gradient(circle at 20% 20%, rgba(124, 58, 237, 0.12), transparent 35%),
-    radial-gradient(circle at 80% 0%, rgba(56, 189, 248, 0.14), transparent 30%),
+  /* Fundo dinâmico que usa os tokens de brilho para cada tema */
+  background: radial-gradient(circle at 20% 20%, var(--glow-1), transparent 35%),
+    radial-gradient(circle at 80% 0%, var(--glow-2), transparent 30%),
     var(--bg);
   color: var(--text);
 }
@@ -28,17 +81,18 @@ body {
   min-height: 100vh;
   display: grid;
   grid-template-columns: 260px 1fr;
+  /* Replica o fundo para manter coerência em toda a área da aplicação */
   background: radial-gradient(
       circle at 20% 20%,
-      rgba(124, 58, 237, 0.12),
+      var(--glow-1),
       transparent 35%
     ),
-    radial-gradient(circle at 80% 0%, rgba(56, 189, 248, 0.14), transparent 30%),
+    radial-gradient(circle at 80% 0%, var(--glow-2), transparent 30%),
     var(--bg);
 }
 
 .sidebar {
-  background: rgba(15, 23, 42, 0.85);
+  background: var(--sidebar-bg);
   border-right: 1px solid var(--border);
   padding: 2rem 1.5rem;
   display: flex;
@@ -47,11 +101,45 @@ body {
   box-shadow: var(--shadow);
 }
 
+/* Cabeçalho da sidebar que agrupa marca e controle de tema */
+.sidebar__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
 .sidebar__brand {
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--primary);
+}
+
+/* Botão de alternância de tema visível em todas as páginas */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface-muted);
+  color: var(--text);
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.95rem;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
+}
+
+.theme-toggle:hover {
+  background: var(--hover-surface);
+  border-color: color-mix(in srgb, var(--primary) 40%, transparent);
+  transform: translateY(-1px);
+}
+
+.theme-toggle__icon {
+  font-size: 1.05rem;
 }
 
 .sidebar__nav {
@@ -73,14 +161,14 @@ body {
 }
 
 .sidebar__link:hover {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(124, 58, 237, 0.4);
+  background: var(--hover-surface);
+  border-color: color-mix(in srgb, var(--primary) 45%, transparent);
   transform: translateX(2px);
 }
 
 .sidebar__link--active {
-  background: linear-gradient(90deg, rgba(124, 58, 237, 0.2), rgba(124, 58, 237, 0.04));
-  border-color: rgba(124, 58, 237, 0.5);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--primary) 22%, transparent), color-mix(in srgb, var(--primary) 8%, transparent));
+  border-color: color-mix(in srgb, var(--primary) 55%, transparent);
   font-weight: 700;
 }
 
@@ -92,8 +180,8 @@ body {
 }
 
 .sidebar__section[open] {
-  border-color: rgba(124, 58, 237, 0.35);
-  background: rgba(255, 255, 255, 0.02);
+  border-color: color-mix(in srgb, var(--primary) 40%, transparent);
+  background: var(--surface-muted);
 }
 
 .sidebar__section summary {
@@ -123,8 +211,8 @@ body {
 }
 
 .sidebar__section--active {
-  border-color: rgba(124, 58, 237, 0.55);
-  background: linear-gradient(180deg, rgba(124, 58, 237, 0.08), rgba(124, 58, 237, 0.03));
+  border-color: color-mix(in srgb, var(--primary) 55%, transparent);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--primary) 12%, transparent), color-mix(in srgb, var(--primary) 4%, transparent));
 }
 
 .sidebar__footer {
@@ -134,7 +222,7 @@ body {
 .sidebar__logout {
   width: 100%;
   border: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface-muted);
   color: var(--text);
   padding: 0.75rem 1rem;
   border-radius: 12px;
@@ -144,8 +232,8 @@ body {
 }
 
 .sidebar__logout:hover {
-  background: rgba(255, 255, 255, 0.07);
-  border-color: rgba(124, 58, 237, 0.4);
+  background: var(--hover-surface);
+  border-color: color-mix(in srgb, var(--primary) 40%, transparent);
   transform: translateY(-1px);
 }
 
@@ -183,7 +271,7 @@ body {
 }
 
 .panel {
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--surface-raised);
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 1.25rem;
@@ -219,7 +307,7 @@ body {
   gap: 0.35rem;
   padding: 0.75rem 0.85rem;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--surface-raised);
   border: 1px solid var(--border);
 }
 
@@ -247,7 +335,7 @@ body {
 .list__item {
   padding: 0.75rem 0.85rem;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--surface-raised);
   border: 1px solid var(--border);
 }
 
@@ -293,7 +381,7 @@ body {
   padding: 1.25rem;
   border: 1px solid var(--border);
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--surface-raised);
 }
 
 .form__section-header {
@@ -354,21 +442,21 @@ body {
   padding: 0.75rem 0.9rem;
   border-radius: 12px;
   border: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--input-bg);
   color: var(--text);
   font-size: 1rem;
   transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
 }
 
 .form__input::placeholder {
-  color: rgba(148, 163, 184, 0.8);
+  color: color-mix(in srgb, var(--muted) 80%, transparent);
 }
 
 .form__input:focus {
   outline: none;
-  border-color: rgba(124, 58, 237, 0.6);
-  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2);
-  background: rgba(255, 255, 255, 0.05);
+  border-color: color-mix(in srgb, var(--primary) 60%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 20%, transparent);
+  background: var(--input-focus-bg);
 }
 
 .form__actions {
@@ -390,25 +478,25 @@ body {
 }
 
 .button--primary {
-  background: linear-gradient(90deg, rgba(124, 58, 237, 0.9), rgba(124, 58, 237, 0.7));
-  border-color: rgba(124, 58, 237, 0.8);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--primary) 90%, white 10%), color-mix(in srgb, var(--primary) 70%, white 30%));
+  border-color: color-mix(in srgb, var(--primary) 80%, transparent);
   color: var(--text);
 }
 
 .button--primary:hover {
-  background: linear-gradient(90deg, rgba(109, 40, 217, 0.95), rgba(124, 58, 237, 0.8));
+  background: linear-gradient(90deg, color-mix(in srgb, var(--primary-hover) 95%, white 5%), color-mix(in srgb, var(--primary) 80%, white 20%));
   transform: translateY(-1px);
 }
 
 .button--secondary {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface-muted);
   border-color: var(--border);
   color: var(--text);
 }
 
 .button--secondary:hover {
-  background: rgba(255, 255, 255, 0.07);
-  border-color: rgba(124, 58, 237, 0.4);
+  background: var(--hover-surface);
+  border-color: color-mix(in srgb, var(--primary) 40%, transparent);
   transform: translateY(-1px);
 }
 
@@ -424,9 +512,9 @@ body {
   gap: 0.35rem;
   padding: 0.35rem 0.7rem;
   border-radius: 999px;
-  background: rgba(124, 58, 237, 0.14);
+  background: color-mix(in srgb, var(--primary) 18%, transparent);
   color: var(--text);
-  border: 1px solid rgba(124, 58, 237, 0.4);
+  border: 1px solid color-mix(in srgb, var(--primary) 40%, transparent);
   font-size: 0.9rem;
   font-weight: 600;
 }
@@ -488,6 +576,14 @@ body {
   margin-bottom: 1.5rem;
 }
 
+/* Cabeçalhos de cartões com ações laterais (login/bem-vindo) */
+.card__header--with-actions {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
 .card__eyebrow {
   color: var(--primary);
   font-weight: 600;
@@ -518,21 +614,21 @@ body {
 }
 
 .message--info {
-  background: rgba(124, 58, 237, 0.12);
-  border-color: rgba(124, 58, 237, 0.3);
+  background: var(--info-surface);
+  border-color: var(--info-border);
   color: var(--text);
 }
 
 .message--success {
-  background: rgba(34, 197, 94, 0.12);
-  border-color: rgba(34, 197, 94, 0.3);
-  color: #bbf7d0;
+  background: var(--success-surface);
+  border-color: var(--success-border);
+  color: var(--success-text);
 }
 
 .message--error {
-  background: rgba(239, 68, 68, 0.12);
-  border-color: rgba(239, 68, 68, 0.3);
-  color: #fecdd3;
+  background: var(--error-surface);
+  border-color: var(--error-border);
+  color: var(--error-text);
 }
 
 @media (max-width: 480px) {
@@ -561,7 +657,7 @@ body {
 .modal__overlay {
   position: absolute;
   inset: 0;
-  background: rgba(2, 6, 23, 0.6);
+  background: var(--overlay);
   backdrop-filter: blur(4px);
 }
 .modal__panel {

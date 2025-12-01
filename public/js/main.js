@@ -3,6 +3,57 @@
   const USER_KEY = 'authUser';
   // Comentário: prefixo dedicado para a API de usuários
   const USERS_API_BASE = '/api/usuarios';
+  const THEME_KEY = 'projeto-coruja-theme';
+  const Theme = { LIGHT: 'theme-light', DARK: 'theme-dark' };
+
+  // Componentes do controle de tema presentes nos layouts
+  const themeToggleButton = document.querySelector('[data-theme-toggle]');
+  const themeToggleIcon = document.querySelector('[data-theme-icon]');
+  const themeToggleLabel = document.querySelector('[data-theme-label]');
+
+  // Define o tema inicial respeitando armazenamento local ou preferência do sistema
+  const detectPreferredTheme = () => {
+    const stored = localStorage.getItem(THEME_KEY);
+    if (stored === Theme.LIGHT || stored === Theme.DARK) return stored;
+
+    return window.matchMedia('(prefers-color-scheme: dark)').matches
+      ? Theme.DARK
+      : Theme.LIGHT;
+  };
+
+  // Aplica classes, cor de esquema e atualiza o rótulo do botão
+  const applyTheme = (theme) => {
+    const targetTheme = theme === Theme.LIGHT ? Theme.LIGHT : Theme.DARK;
+    document.body.classList.remove(Theme.LIGHT, Theme.DARK);
+    document.body.classList.add(targetTheme);
+    document.documentElement.style.colorScheme = targetTheme === Theme.DARK ? 'dark' : 'light';
+
+    const isLight = targetTheme === Theme.LIGHT;
+    if (themeToggleButton) {
+      themeToggleButton.setAttribute('aria-pressed', String(isLight));
+    }
+    if (themeToggleIcon) {
+      themeToggleIcon.textContent = isLight ? '🌞' : '🌙';
+    }
+    if (themeToggleLabel) {
+      themeToggleLabel.textContent = isLight ? 'Modo claro' : 'Modo escuro';
+    }
+  };
+
+  // Alterna o tema ativo e persiste a escolha
+  const toggleTheme = () => {
+    const currentTheme = document.body.classList.contains(Theme.LIGHT)
+      ? Theme.LIGHT
+      : Theme.DARK;
+    const nextTheme = currentTheme === Theme.LIGHT ? Theme.DARK : Theme.LIGHT;
+    localStorage.setItem(THEME_KEY, nextTheme);
+    applyTheme(nextTheme);
+  };
+
+  applyTheme(detectPreferredTheme());
+  if (themeToggleButton) {
+    themeToggleButton.addEventListener('click', toggleTheme);
+  }
 
   const form = document.getElementById('login-form');
   const messageEl = document.getElementById('message');
