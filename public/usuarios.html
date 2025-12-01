@@ -61,6 +61,44 @@
           </div>
 
           <div id="usuarios-feedback" class="message" role="status" aria-live="polite"></div>
+
+          <!-- Filtros de busca e seleção de perfil -->
+          <div class="filters" aria-label="Filtros da listagem de usuários">
+            <label class="filters__field" for="filtro-busca">
+              <span class="filters__label">Buscar por nome ou e-mail</span>
+              <input
+                id="filtro-busca"
+                class="form__input"
+                type="search"
+                name="filtroBusca"
+                placeholder="Digite para filtrar"
+                autocomplete="off"
+              />
+            </label>
+            <label class="filters__field" for="filtro-perfil">
+              <span class="filters__label">Perfil</span>
+              <select id="filtro-perfil" class="form__input" name="filtroPerfil">
+                <option value="todos" selected>Todos</option>
+                <option value="admin">Administrador</option>
+                <option value="editor">Editor</option>
+                <option value="viewer">Visualizador</option>
+              </select>
+            </label>
+            <label class="filters__field filters__field--compact" for="filtro-itens">
+              <span class="filters__label">Itens por página</span>
+              <input
+                id="filtro-itens"
+                class="form__input"
+                type="number"
+                name="filtroItens"
+                value="10"
+                min="1"
+                step="1"
+                inputmode="numeric"
+              />
+            </label>
+          </div>
+
           <div class="table-wrapper" role="region" aria-live="polite" aria-label="Tabela de usuários">
             <table class="table" aria-describedby="usuarios-feedback">
               <thead>
@@ -77,6 +115,21 @@
                 </tr>
               </tbody>
             </table>
+          </div>
+
+          <!-- Paginação e contagem de páginas -->
+          <div class="table-controls" aria-label="Paginação da tabela de usuários">
+            <div class="table-controls__info" id="paginacao-info" role="status" aria-live="polite">
+              Página 1 de 1
+            </div>
+            <div class="table-controls__actions">
+              <button type="button" class="button button--secondary" id="paginacao-anterior">
+                Anterior
+              </button>
+              <button type="button" class="button button--secondary" id="paginacao-proximo">
+                Próxima
+              </button>
+            </div>
           </div>
         </section>
       </main>
