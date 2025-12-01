@@ -6,7 +6,6 @@
 
   // Referências simplificadas da interface
   const tabelaCorpo = document.getElementById('usuarios-lista');
-  const botaoRecarregar = document.getElementById('recarregar-usuarios');
   const formulario = document.getElementById('usuario-form');
   const botaoSubmit = document.getElementById('usuario-submit');
 
@@ -262,10 +261,6 @@
     resetarFormulario();
 
     formulario?.addEventListener('submit', salvarUsuario);
-    formulario?.addEventListener('reset', () => {
-      usuarioEmEdicao = null;
-    });
-    botaoRecarregar?.addEventListener('click', carregarUsuarios);
   };
 
   inicializarPagina();
