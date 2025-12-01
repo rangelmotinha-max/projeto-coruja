@@ -926,3 +926,10 @@ body {
   font-size: 0.875rem;
   white-space: nowrap;
 }
+
+/* Animação do spinner de carregamento */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
