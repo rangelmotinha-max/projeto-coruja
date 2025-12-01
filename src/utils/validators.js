@@ -88,6 +88,8 @@ function validarEnderecos(enderecos) {
     uf: normalizarOpcional(endereco.uf),
     logradouro: normalizarOpcional(endereco.logradouro),
     bairro: normalizarOpcional(endereco.bairro),
+    // Complemento agora é validado e normalizado para ser persistido corretamente.
+    complemento: normalizarOpcional(endereco.complemento),
     cep: normalizarOpcional(endereco.cep),
   }));
 }

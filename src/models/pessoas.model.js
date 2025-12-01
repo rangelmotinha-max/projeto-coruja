@@ -81,7 +81,10 @@ class PessoaModel {
   // Obtém todos os endereços de uma pessoa
   static async obterEnderecosPorPessoa(pessoaId) {
     const db = await initDatabase();
-    return db.all('SELECT id, uf, logradouro, bairro, cep FROM enderecos WHERE pessoa_id = ? ORDER BY criadoEm ASC', [pessoaId]);
+    return db.all(
+      'SELECT id, uf, logradouro, bairro, complemento, cep FROM enderecos WHERE pessoa_id = ? ORDER BY criadoEm ASC',
+      [pessoaId]
+    );
   }
 
   // Adiciona um novo endereço para uma pessoa
@@ -95,20 +98,23 @@ class PessoaModel {
       uf: endereco.uf || null,
       logradouro: endereco.logradouro || null,
       bairro: endereco.bairro || null,
+      // Complemento agora é salvo para permitir recuperar o campo na edição.
+      complemento: endereco.complemento || null,
       cep: endereco.cep || null,
       criadoEm: agora,
       atualizadoEm: agora,
     };
 
     await db.run(
-      `INSERT INTO enderecos (id, pessoa_id, uf, logradouro, bairro, cep, criadoEm, atualizadoEm)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO enderecos (id, pessoa_id, uf, logradouro, bairro, complemento, cep, criadoEm, atualizadoEm)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         novoEndereco.id,
         novoEndereco.pessoa_id,
         novoEndereco.uf,
         novoEndereco.logradouro,
         novoEndereco.bairro,
+        novoEndereco.complemento,
         novoEndereco.cep,
         novoEndereco.criadoEm,
         novoEndereco.atualizadoEm,
@@ -124,7 +130,7 @@ class PessoaModel {
     const campos = [];
     const valores = [];
 
-    const colunasPermitidas = ['uf', 'logradouro', 'bairro', 'cep'];
+    const colunasPermitidas = ['uf', 'logradouro', 'bairro', 'complemento', 'cep'];
 
     colunasPermitidas.forEach((coluna) => {
       if (updates[coluna] !== undefined) {
