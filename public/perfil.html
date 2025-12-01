@@ -63,6 +63,65 @@
             </div>
           </article>
 
+          <!-- Seção de edição de dados do usuário -->
+          <article class="panel">
+            <div class="panel__header">
+              <h2 class="panel__title">Editar informações</h2>
+              <p class="panel__meta">Mantenha os dados atualizados</p>
+            </div>
+            <form class="form" aria-labelledby="form-title">
+              <div class="form__messages" role="status" aria-live="polite">
+                <p id="form-title" class="sr-only">Formulário de edição de perfil</p>
+                <p id="feedback-area">Use os campos abaixo para atualizar seus dados.</p>
+              </div>
+              <div class="form__group">
+                <label class="form__label" for="input-name">Nome</label>
+                <input class="form__input" type="text" id="input-name" name="name" autocomplete="name" required />
+              </div>
+              <div class="form__group">
+                <label class="form__label" for="input-email">E-mail</label>
+                <input class="form__input" type="email" id="input-email" name="email" autocomplete="email" required />
+              </div>
+              <div class="form__group">
+                <label class="form__label" for="input-password">Senha (opcional)</label>
+                <input
+                  class="form__input"
+                  type="password"
+                  id="input-password"
+                  name="password"
+                  autocomplete="new-password"
+                  aria-describedby="password-hint"
+                />
+                <p class="form__helper" id="password-hint">Preencha apenas se desejar alterar a senha atual.</p>
+              </div>
+              <div class="form__group">
+                <label class="form__label" for="select-role">Perfil (role)</label>
+                <select class="form__input" id="select-role" name="role" required>
+                  <option value="" disabled selected>Selecione uma opção</option>
+                  <option value="admin">Administrador</option>
+                  <option value="editor">Editor</option>
+                  <option value="viewer">Visualizador</option>
+                </select>
+              </div>
+              <div class="form__actions">
+                <button type="submit" class="button button--primary">Salvar alterações</button>
+                <button type="reset" class="button button--secondary">Limpar campos</button>
+              </div>
+            </form>
+          </article>
+
+          <!-- Seção de exclusão da conta do usuário -->
+          <article class="panel">
+            <div class="panel__header">
+              <h2 class="panel__title">Remoção de conta</h2>
+              <p class="panel__meta">Ação definitiva</p>
+            </div>
+            <div class="stack">
+              <p>Esta ação é irreversível. Confirme se realmente deseja remover a conta.</p>
+              <button type="button" class="button button--danger">Remover conta</button>
+            </div>
+          </article>
+
           <article class="panel">
             <div class="panel__header">
               <h2 class="panel__title">Orientações</h2>
