@@ -8,7 +8,6 @@
   const tabelaCorpo = document.getElementById('usuarios-lista');
   const feedbackLista = document.getElementById('usuarios-feedback');
   const feedbackFormulario = document.getElementById('usuario-form-feedback');
-  const botaoRecarregar = document.getElementById('recarregar-usuarios');
   const formulario = document.getElementById('usuario-form');
   const botaoSubmit = document.getElementById('usuario-submit');
 
@@ -304,6 +303,7 @@
   const inicializarPagina = () => {
     if (!document.querySelector('[data-page="usuarios"]')) return;
 
+    // Carregamento inicial automático mantém a lista sempre atualizada ao acessar
     carregarUsuarios();
     resetarFormulario();
 
@@ -312,7 +312,6 @@
       // Comentário: limpeza manual para garantir estados visuais consistentes
       resetarFormulario();
     });
-    botaoRecarregar?.addEventListener('click', carregarUsuarios);
   };
 
   inicializarPagina();
