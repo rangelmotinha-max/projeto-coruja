@@ -70,13 +70,25 @@ async function atualizar(id, payload, solicitante) {
     }
   }
 
+  // Marca se e-mail ou senha foram alterados para decidir sobre renovação do token
+  const alterouEmail = Boolean(atualizacoes.email && atualizacoes.email !== usuario.email);
+  const alterouSenha = Boolean(atualizacoes.senha);
+
   if (atualizacoes.senha) {
     atualizacoes.senhaHash = await bcrypt.hash(atualizacoes.senha, 10);
     delete atualizacoes.senha;
   }
 
   const atualizado = await UsuarioModel.update(id, atualizacoes);
-  return limparSenha(atualizado);
+
+  // Quando credenciais sensíveis são alteradas, gera um novo token para manter a sessão alinhada
+  const usuarioLimpo = limparSenha(atualizado);
+  if (alterouEmail || alterouSenha) {
+    const token = gerarToken(atualizado);
+    return { usuario: usuarioLimpo, token };
+  }
+
+  return usuarioLimpo;
 }
 
 async function remover(id, solicitante) {
