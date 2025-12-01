@@ -32,9 +32,31 @@ class UsuarioModel {
     return { ...usuario };
   }
 
-  static async findAll() {
+  static async findAll(filtros = {}) {
     const db = await initDatabase();
-    const usuarios = await db.all('SELECT * FROM usuarios');
+    const condicoes = [];
+    const valores = [];
+
+    // Comentário: filtra por nome usando busca parcial case-insensitive
+    if (filtros.nome) {
+      condicoes.push('LOWER(nome) LIKE ?');
+      valores.push(`%${filtros.nome.toLowerCase()}%`);
+    }
+
+    // Comentário: filtra por e-mail de forma parcial e case-insensitive
+    if (filtros.email) {
+      condicoes.push('LOWER(email) LIKE ?');
+      valores.push(`%${filtros.email.toLowerCase()}%`);
+    }
+
+    // Comentário: filtra por perfil quando informado
+    if (filtros.role) {
+      condicoes.push('LOWER(role) = ?');
+      valores.push(filtros.role.toLowerCase());
+    }
+
+    const whereClause = condicoes.length ? ` WHERE ${condicoes.join(' AND ')}` : '';
+    const usuarios = await db.all(`SELECT * FROM usuarios${whereClause}`, valores);
     return usuarios.map((usuario) => ({ ...usuario }));
   }
 

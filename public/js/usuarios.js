@@ -12,6 +12,12 @@
   const formulario = document.getElementById('usuario-form');
   const botaoSubmit = document.getElementById('usuario-submit');
 
+  // Comentário: campos dedicados a filtros de busca
+  const filtroForm = document.getElementById('usuarios-filtro-form');
+  const filtroNome = document.getElementById('filtro-nome');
+  const filtroEmail = document.getElementById('filtro-email');
+  const filtroRole = document.getElementById('filtro-role');
+
   const campoNome = document.getElementById('usuario-nome');
   const campoEmail = document.getElementById('usuario-email');
   const campoSenha = document.getElementById('usuario-senha');
@@ -167,15 +173,23 @@
   };
 
   // Renderiza as linhas da tabela
-  const renderizarUsuarios = (usuarios = []) => {
+  const renderizarUsuarios = (usuarios = [], filtros = {}) => {
     if (!tabelaCorpo) return;
     tabelaCorpo.innerHTML = '';
+
+    const filtrosAtivos = Boolean(
+      (filtros?.nome && filtros.nome.trim()) ||
+        (filtros?.email && filtros.email.trim()) ||
+        (filtros?.role && filtros.role.trim())
+    );
 
     if (!usuarios.length) {
       const linha = document.createElement('tr');
       const celula = document.createElement('td');
       celula.colSpan = 4;
-      celula.textContent = 'Nenhum usuário encontrado.';
+      celula.textContent = filtrosAtivos
+        ? 'Nenhum usuário corresponde aos filtros aplicados.'
+        : 'Nenhum usuário encontrado.';
       linha.appendChild(celula);
       tabelaCorpo.appendChild(linha);
       return;
@@ -202,11 +216,27 @@
   };
 
   // Busca lista de usuários na API
-  const carregarUsuarios = async () => {
+  const obterFiltros = () => {
+    // Comentário: garante textos limpos antes de enviar à API
+    return {
+      nome: filtroNome?.value.trim() || '',
+      email: filtroEmail?.value.trim() || '',
+      role: filtroRole?.value || '',
+    };
+  };
+
+  // Comentário: busca usuários considerando filtros ativos
+  const carregarUsuarios = async (filtros = obterFiltros()) => {
     setMessage(feedbackLista, 'Carregando usuários...', 'info');
 
     try {
-      const response = await authorizedFetch(API_URL);
+      const url = new URL(API_URL, window.location.origin);
+
+      Object.entries(filtros || {})
+        .filter(([, valor]) => Boolean(valor))
+        .forEach(([chave, valor]) => url.searchParams.append(chave, valor));
+
+      const response = await authorizedFetch(url.toString());
       const data = await response.json().catch(() => []);
 
       if (response.status === 401) {
@@ -220,8 +250,20 @@
         throw new Error(erro);
       }
 
-      renderizarUsuarios(Array.isArray(data) ? data : []);
-      setMessage(feedbackLista, 'Usuários carregados com sucesso.', 'success');
+      const listaUsuarios = Array.isArray(data) ? data : [];
+      renderizarUsuarios(listaUsuarios, filtros);
+
+      if (!listaUsuarios.length) {
+        setMessage(
+          feedbackLista,
+          (filtros?.nome || filtros?.email || filtros?.role)
+            ? 'Nenhum resultado encontrado para os filtros aplicados.'
+            : 'Nenhum usuário cadastrado encontrado.',
+          'info'
+        );
+      } else {
+        setMessage(feedbackLista, 'Usuários carregados com sucesso.', 'success');
+      }
     } catch (error) {
       setMessage(
         feedbackLista,
@@ -313,6 +355,20 @@
       resetarFormulario();
     });
     botaoNovo?.addEventListener('click', resetarFormulario);
+
+    // Comentário: dispara recarregamento quando filtros mudam
+    filtroForm?.addEventListener('submit', (event) => {
+      event.preventDefault();
+      carregarUsuarios(obterFiltros());
+    });
+    filtroForm?.addEventListener('reset', () => carregarUsuarios());
+    [filtroNome, filtroEmail, filtroRole].forEach((campo) => {
+      campo?.addEventListener('change', () => carregarUsuarios(obterFiltros()));
+      campo?.addEventListener('keyup', (event) => {
+        if (event.key === 'Enter') return;
+        carregarUsuarios(obterFiltros());
+      });
+    });
   };
 
   inicializarPagina();
