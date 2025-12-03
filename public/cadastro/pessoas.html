@@ -50,21 +50,16 @@
           </div>
 
           <form class="form" id="pessoa-form" action="#" method="post">
+            <!-- Seção 1: Identificação -->
             <div class="form__section">
               <div class="form__section-header">
                 <h3 class="form__section-title">Identificação</h3>
               </div>
-              <div class="form__grid form__grid--2">
+              <div class="form__grid form__grid--1">
                 <label class="form__field">
                   <span class="form__label">Nome Completo</span>
                   <input class="form__input" type="text" name="nomeCompleto" required />
                 </label>
-                <label class="form__field">
-                  <span class="form__label">Data de Nascimento</span>
-                  <input class="form__input" type="date" name="dataNascimento" />
-                </label>
-              </div>
-              <div class="form__grid form__grid--3">
                 <label class="form__field">
                   <span class="form__label">CPF</span>
                   <input class="form__input" type="text" name="cpf" inputmode="numeric" />
@@ -78,8 +73,10 @@
                   <span class="form__label">CNH</span>
                   <input class="form__input" type="text" name="cnh" inputmode="numeric" />
                 </label>
-              </div>
-              <div class="form__grid form__grid--3">
+                <label class="form__field">
+                  <span class="form__label">Data de Nascimento</span>
+                  <input class="form__input" type="date" name="dataNascimento" />
+                </label>
                 <label class="form__field">
                   <span class="form__label">Nome da Mãe</span>
                   <input class="form__input" type="text" name="nomeMae" />
@@ -89,17 +86,20 @@
                   <input class="form__input" type="text" name="nomePai" />
                 </label>
               </div>
-              <div class="form__grid form__grid--1">
-                <div class="form__field" style="display: flex; flex-direction: column; gap: 0.5rem;">
-                  <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span class="form__label">Telefone(s)</span>
-                    <button class="button button--secondary" id="adicionar-telefone" type="button" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">+ Adicionar</button>
-                  </div>
-                  <div id="lista-telefones" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
-                </div>
-              </div>
             </div>
 
+            <!-- Seção 2: Telefones -->
+            <div class="form__section">
+              <div class="form__section-header">
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                  <h3 class="form__section-title">Telefone(s)</h3>
+                  <button class="button button--secondary" id="adicionar-telefone" type="button">+ Adicionar telefone</button>
+                </div>
+              </div>
+              <div id="lista-telefones" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
+            </div>
+
+            <!-- Seção 3: Endereços -->
             <div class="form__section">
               <div class="form__section-header">
                 <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
