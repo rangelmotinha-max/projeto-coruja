@@ -533,21 +533,71 @@
         listaPessoasEl.innerHTML = '';
 
         if (!pessoas.length) {
-          listaPessoasEl.innerHTML = '<li class="list__item">Nenhum registro encontrado.</li>';
+          listaPessoasEl.innerHTML = '<div class="list__item">Nenhum registro encontrado.</div>';
           return;
         }
 
+        // Cria tabela
+        const table = document.createElement('table');
+        table.style.width = '100%';
+        table.style.borderCollapse = 'collapse';
+        table.style.marginTop = '1rem';
+        table.innerHTML = `
+          <thead>
+            <tr style="background: var(--surface-muted);">
+              <th style="padding: 0.75rem; border: 1px solid var(--border); text-align: left;">Nome</th>
+              <th style="padding: 0.75rem; border: 1px solid var(--border); text-align: left;">CPF</th>
+              <th style="padding: 0.75rem; border: 1px solid var(--border); text-align: left;">Mãe</th>
+              <th style="padding: 0.75rem; border: 1px solid var(--border); text-align: left;">Último Endereço</th>
+              <th style="padding: 0.75rem; border: 1px solid var(--border); text-align: center;">Ações</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        `;
+        const tbody = table.querySelector('tbody');
+
         pessoas.forEach((pessoa) => {
-          const item = document.createElement('li');
-          item.className = 'list__item';
+          const tr = document.createElement('tr');
+          tr.style.borderBottom = '1px solid var(--border)';
 
-          const titulo = document.createElement('p');
-          titulo.className = 'list__title';
-          titulo.textContent = pessoa.nomeCompleto || 'Pessoa sem nome';
-          item.appendChild(titulo);
+          // Nome
+          const tdNome = document.createElement('td');
+          tdNome.style.padding = '0.75rem';
+          tdNome.textContent = pessoa.nomeCompleto || '';
+          tr.appendChild(tdNome);
 
-          const actions = document.createElement('div');
-          actions.className = 'list__actions';
+          // CPF
+          const tdCpf = document.createElement('td');
+          tdCpf.style.padding = '0.75rem';
+          tdCpf.textContent = pessoa.cpf || '';
+          tr.appendChild(tdCpf);
+
+          // Mãe
+          const tdMae = document.createElement('td');
+          tdMae.style.padding = '0.75rem';
+          tdMae.textContent = pessoa.nomeMae || '';
+          tr.appendChild(tdMae);
+
+          // Último Endereço
+          const tdEndereco = document.createElement('td');
+          tdEndereco.style.padding = '0.75rem';
+          let ultimoEndereco = '';
+          if (Array.isArray(pessoa.enderecos) && pessoa.enderecos.length > 0) {
+            const idx = pessoa.endereco_atual_index !== undefined ? pessoa.endereco_atual_index : pessoa.enderecos.length - 1;
+            const end = pessoa.enderecos[idx] || pessoa.enderecos[pessoa.enderecos.length - 1];
+            if (end) {
+              ultimoEndereco = `${end.logradouro || ''}, ${end.bairro || ''}, ${end.uf || ''}`;
+            }
+          }
+          tdEndereco.textContent = ultimoEndereco;
+          tr.appendChild(tdEndereco);
+
+          // Ações
+          const tdAcoes = document.createElement('td');
+          tdAcoes.style.padding = '0.75rem';
+          tdAcoes.style.display = 'flex';
+          tdAcoes.style.gap = '0.5rem';
+          tdAcoes.style.justifyContent = 'center';
 
           const editarBtn = document.createElement('button');
           editarBtn.type = 'button';
@@ -583,12 +633,14 @@
             }
           });
 
-          actions.appendChild(editarBtn);
-          actions.appendChild(excluirBtn);
-          item.appendChild(actions);
+          tdAcoes.appendChild(editarBtn);
+          tdAcoes.appendChild(excluirBtn);
+          tr.appendChild(tdAcoes);
 
-          listaPessoasEl.appendChild(item);
+          tbody.appendChild(tr);
         });
+
+        listaPessoasEl.appendChild(table);
       };
 
       const carregarPessoas = async () => {
