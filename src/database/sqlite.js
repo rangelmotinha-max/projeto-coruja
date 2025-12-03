@@ -86,6 +86,23 @@ async function runMigrations(db) {
     CREATE INDEX IF NOT EXISTS idx_enderecos_pessoa_id ON enderecos(pessoa_id)
   `);
 
+  // Tabela de telefones com relacionamento 1:N com pessoas
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS telefones (
+      id TEXT PRIMARY KEY,
+      pessoa_id TEXT NOT NULL,
+      numero TEXT NOT NULL,
+      criadoEm TEXT NOT NULL,
+      atualizadoEm TEXT NOT NULL,
+      FOREIGN KEY (pessoa_id) REFERENCES pessoas(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Criar índice para queries de telefones por pessoa
+  await db.run(`
+    CREATE INDEX IF NOT EXISTS idx_telefones_pessoa_id ON telefones(pessoa_id)
+  `);
+
   // Tentar adicionar coluna endereco_atual_index se ela não existir (para bancos existentes)
   try {
     await db.run(`

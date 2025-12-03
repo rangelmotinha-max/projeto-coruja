@@ -49,6 +49,24 @@ async function atualizar(id, payload) {
     }
   }
 
+  // Processar telefones se fornecidos no payload
+  if (payload.telefones && Array.isArray(payload.telefones)) {
+    // Obter telefones atuais
+    const telefonesAtuais = await PessoaModel.obterTelefonesPorPessoa(id);
+    
+    // Remover todos os telefones antigos
+    for (const telefoneAtual of telefonesAtuais) {
+      await PessoaModel.removerTelefone(telefoneAtual.id);
+    }
+    
+    // Adicionar novos telefones
+    for (const telefone of payload.telefones) {
+      if (telefone.trim()) {
+        await PessoaModel.adicionarTelefone(id, telefone);
+      }
+    }
+  }
+
   // Atualizar dados da pessoa e índice do endereço atual
   if (payload.endereco_atual_index !== undefined) {
     atualizacoes.endereco_atual_index = payload.endereco_atual_index;

@@ -16,7 +16,6 @@ class PessoaModel {
       cnh: dados.cnh || null,
       nomeMae: dados.nomeMae || null,
       nomePai: dados.nomePai || null,
-      telefone: dados.telefone || null,
       endereco_atual_index: dados.endereco_atual_index || 0,
       criadoEm: agora,
       atualizadoEm: agora,
@@ -24,9 +23,9 @@ class PessoaModel {
 
     await db.run(
       `INSERT INTO pessoas (
-        id, nomeCompleto, dataNascimento, cpf, rg, cnh, nomeMae, nomePai, telefone,
+        id, nomeCompleto, dataNascimento, cpf, rg, cnh, nomeMae, nomePai,
         endereco_atual_index, criadoEm, atualizadoEm
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         pessoa.id,
         pessoa.nomeCompleto,
@@ -36,7 +35,6 @@ class PessoaModel {
         pessoa.cnh,
         pessoa.nomeMae,
         pessoa.nomePai,
-        pessoa.telefone,
         pessoa.endereco_atual_index,
         pessoa.criadoEm,
         pessoa.atualizadoEm,
@@ -50,29 +48,40 @@ class PessoaModel {
       }
     }
 
-    return { ...pessoa, enderecos: [] };
+    // Salvar telefones se fornecidos
+    if (dados.telefones && Array.isArray(dados.telefones)) {
+      for (const telefone of dados.telefones) {
+        if (telefone.trim()) {
+          await this.adicionarTelefone(pessoa.id, telefone);
+        }
+      }
+    }
+
+    return { ...pessoa, enderecos: [], telefones: [] };
   }
 
-  // Retorna todas as pessoas cadastradas com seus endereços.
+  // Retorna todas as pessoas cadastradas com seus endereços e telefones.
   static async findAll() {
     const db = await initDatabase();
     const pessoas = await db.all('SELECT * FROM pessoas');
     
-    // Buscar endereços para cada pessoa
+    // Buscar endereços e telefones para cada pessoa
     for (const pessoa of pessoas) {
       pessoa.enderecos = await this.obterEnderecosPorPessoa(pessoa.id);
+      pessoa.telefones = (await this.obterTelefonesPorPessoa(pessoa.id)).map(t => t.numero);
     }
     
     return pessoas;
   }
 
-  // Busca pessoa por ID com todos seus endereços.
+  // Busca pessoa por ID com todos seus endereços e telefones.
   static async findById(id) {
     const db = await initDatabase();
     const pessoa = await db.get('SELECT * FROM pessoas WHERE id = ?', [id]);
     
     if (pessoa) {
       pessoa.enderecos = await this.obterEnderecosPorPessoa(id);
+      pessoa.telefones = (await this.obterTelefonesPorPessoa(id)).map(t => t.numero);
     }
     
     return pessoa;
@@ -154,6 +163,57 @@ class PessoaModel {
     return resultado.changes > 0;
   }
 
+  // Obtém todos os telefones de uma pessoa
+  static async obterTelefonesPorPessoa(pessoaId) {
+    const db = await initDatabase();
+    return db.all(
+      'SELECT id, numero FROM telefones WHERE pessoa_id = ? ORDER BY criadoEm ASC',
+      [pessoaId]
+    );
+  }
+
+  // Adiciona um novo telefone para uma pessoa
+  static async adicionarTelefone(pessoaId, numero) {
+    const db = await initDatabase();
+    const agora = new Date().toISOString();
+    
+    const novoTelefone = {
+      id: randomUUID(),
+      pessoa_id: pessoaId,
+      numero: numero,
+      criadoEm: agora,
+      atualizadoEm: agora,
+    };
+
+    await db.run(
+      `INSERT INTO telefones (id, pessoa_id, numero, criadoEm, atualizadoEm)
+       VALUES (?, ?, ?, ?, ?)`,
+      [novoTelefone.id, novoTelefone.pessoa_id, novoTelefone.numero, novoTelefone.criadoEm, novoTelefone.atualizadoEm]
+    );
+
+    return novoTelefone;
+  }
+
+  // Atualiza um telefone específico
+  static async atualizarTelefone(telefoneId, numero) {
+    const db = await initDatabase();
+    const agora = new Date().toISOString();
+
+    const resultado = await db.run(
+      `UPDATE telefones SET numero = ?, atualizadoEm = ? WHERE id = ?`,
+      [numero, agora, telefoneId]
+    );
+
+    return resultado.changes > 0;
+  }
+
+  // Remove um telefone específico
+  static async removerTelefone(telefoneId) {
+    const db = await initDatabase();
+    const resultado = await db.run('DELETE FROM telefones WHERE id = ?', [telefoneId]);
+    return resultado.changes > 0;
+  }
+
   // Atualiza campos da pessoa (dados pessoais)
   static async update(id, updates) {
     const db = await initDatabase();
@@ -168,7 +228,6 @@ class PessoaModel {
       'cnh',
       'nomeMae',
       'nomePai',
-      'telefone',
       'endereco_atual_index',
     ];
 
