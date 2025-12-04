@@ -136,7 +136,7 @@
             <div class="form__actions">
               <button class="button button--secondary" type="reset">Limpar</button>
               <button class="button button--ghost" id="listar-pessoas" type="button">Listar</button>
-              <button class="button button--primary" id="submit-pessoa" type="submit">Salvar dados</button>
+              <button class="button button--primary" id="submit-pessoa" type="submit">Incluir</button>
             </div>
           </form>
         </section>
@@ -410,15 +410,44 @@
           linha.style.gap = '0.5rem';
           linha.style.alignItems = 'center';
 
+          const partes = String(rede).split('|');
+          const valorTipo = (partes[0] || '').trim();
+          const valorPerfil = (partes[1] || '').trim();
+
+          const select = document.createElement('select');
+          select.className = 'form__input';
+          select.style.maxWidth = '12rem';
+          select.innerHTML = `
+            <option value="">Selecione</option>
+            <option value="instagram">Instagram</option>
+            <option value="facebook">Facebook</option>
+            <option value="linkedin">LinkedIn</option>
+            <option value="twitter">Twitter / X</option>
+            <option value="youtube">YouTube</option>
+            <option value="tiktok">TikTok</option>
+            <option value="github">GitHub</option>
+            <option value="website">Website</option>
+            <option value="outro">Outro</option>
+          `;
+          select.value = valorTipo;
+          linha.appendChild(select);
+
           const input = document.createElement('input');
           input.type = 'text';
           input.className = 'form__input';
-          input.value = rede;
-          input.placeholder = '@usuario ou URL';
-          input.addEventListener('input', (e) => {
-            redes[indice] = e.target.value;
-          });
+          input.placeholder = 'URL ou @usuario';
+          input.value = valorPerfil;
+          input.style.flex = '1';
           linha.appendChild(input);
+
+          const atualizarValor = () => {
+            const tipo = select.value || '';
+            const perfil = input.value || '';
+            redes[indice] = `${tipo}|${perfil}`;
+          };
+
+          select.addEventListener('change', atualizarValor);
+          input.addEventListener('input', atualizarValor);
 
           const btnRemover = document.createElement('button');
           btnRemover.type = 'button';
@@ -440,7 +469,7 @@
       };
 
       const adicionarRede = () => {
-        redes.push('');
+        redes.push('|');
         renderizarRedes();
       };
 
@@ -741,7 +770,7 @@
 
 
       const atualizarRotuloSubmit = () => {
-        submitButton.textContent = pessoaEmEdicao ? 'Atualizar dados' : 'Salvar dados';
+        submitButton.textContent = 'Incluir';
       };
 
       const renderizarLista = (pessoas = []) => {
