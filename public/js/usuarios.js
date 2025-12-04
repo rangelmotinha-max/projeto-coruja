@@ -3,6 +3,7 @@
   const TOKEN_KEY = 'authToken';
   // Comentário: novo prefixo dedicado à API de usuários
   const API_URL = '/api/usuarios';
+  const USER_KEY = 'authUser';
 
   // Referências simplificadas da interface
   const tabelaCorpo = document.getElementById('usuarios-lista');
@@ -64,6 +65,32 @@
   // Recupera o token salvo para autenticar as chamadas
   const getToken = () => localStorage.getItem(TOKEN_KEY) || getCookie(TOKEN_KEY);
 
+  // Helpers para obter o perfil do usuário atual
+  const decodeTokenPayload = (token) => {
+    if (!token) return null;
+    try {
+      const payloadBase64 = token.split('.')[1];
+      const normalized = payloadBase64.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = atob(normalized);
+      return JSON.parse(jsonPayload);
+    } catch (e) {
+      return null;
+    }
+  };
+
+  const getStoredUser = () => {
+    const raw = localStorage.getItem(USER_KEY);
+    if (!raw) return null;
+    try { return JSON.parse(raw); } catch { return null; }
+  };
+
+  const getCurrentRole = () => {
+    const stored = getStoredUser();
+    if (stored?.role) return String(stored.role).toLowerCase();
+    const payload = decodeTokenPayload(getToken());
+    return (payload?.role || '').toLowerCase();
+  };
+
   // Limpa qualquer vestígio de autenticação e redireciona para login
   const clearAuth = () => {
     localStorage.removeItem(TOKEN_KEY);
@@ -96,6 +123,11 @@
     const td = document.createElement('td');
     td.classList.add('table__actions');
 
+    const role = getCurrentRole();
+    const isAdmin = role === 'admin';
+    const isEditor = role === 'editor';
+    const isViewer = role === 'viewer' || role === 'leitor' || role === 'reader';
+
     // Botão de edição que preenche o formulário
     const botaoEditar = document.createElement('button');
     botaoEditar.type = 'button';
@@ -119,36 +151,40 @@
     botaoExcluir.className = 'button button--danger';
     botaoExcluir.textContent = 'Excluir';
     botaoExcluir.setAttribute('aria-label', `Excluir ${usuario.nome || 'usuário'}`);
-    botaoExcluir.addEventListener('click', async () => {
-      const confirmacao = confirm('Deseja realmente excluir este usuário?');
-      if (!confirmacao) return;
-
-      try {
-        const response = await authorizedFetch(`${API_URL}/${usuario.id}`, {
-          method: 'DELETE',
-        });
-
-        const data = await response.json().catch(() => ({}));
-
-        if (response.status === 401) {
-          clearAuth();
-          window.location.href = '/';
-          return;
+    if (isAdmin) {
+      botaoExcluir.addEventListener('click', async () => {
+        const confirmacao = confirm('Deseja realmente excluir este usuário?');
+        if (!confirmacao) return;
+        try {
+          const response = await authorizedFetch(`${API_URL}/${usuario.id}`, { method: 'DELETE' });
+          const data = await response.json().catch(() => ({}));
+          if (response.status === 401) { clearAuth(); window.location.href = '/'; return; }
+          if (!response.ok) { throw new Error(data?.mensagem || data?.message || 'Falha ao excluir usuário.'); }
+          await carregarUsuarios();
+          resetarFormulario();
+        } catch (error) {
+          console.error('Erro ao excluir usuário:', error);
         }
+      });
+    } else if (isEditor) {
+      botaoExcluir.addEventListener('click', () => {
+        alert('Ação não permitida. Contate o Administrador!');
+      });
+    }
 
-        if (!response.ok) {
-          const erro = data?.mensagem || data?.message || 'Falha ao excluir usuário.';
-          throw new Error(erro);
-        }
+    // Render conforme perfil
+    if (isViewer) {
+      // Visualizador: sem ações
+      td.textContent = '—';
+      return td;
+    }
 
-        await carregarUsuarios();
-        resetarFormulario();
-      } catch (error) {
-        console.error('Erro ao excluir usuário:', error);
-      }
-    });
-
-    td.append(botaoEditar, botaoExcluir);
+    // Editor: sem exclusão efetiva; Admin: ambos
+    if (isAdmin) {
+      td.append(botaoEditar, botaoExcluir);
+    } else if (isEditor) {
+      td.append(botaoEditar, botaoExcluir);
+    }
     return td;
   };
 
@@ -379,6 +415,22 @@
 
     // Event listener de busca
     campoConsulta?.addEventListener('input', (e) => filtrarUsuarios(e.target.value));
+
+    // Restrições por perfil
+    const role = getCurrentRole();
+    const isViewer = role === 'viewer' || role === 'leitor' || role === 'reader';
+    const abrirBtn = document.getElementById('abrir-usuario-modal');
+    if (isViewer) {
+      // Bloqueia criação/edição para leitor
+      abrirBtn?.setAttribute('hidden', 'true');
+      if (formulario) {
+        formulario.querySelectorAll('input, select, textarea, button').forEach((el) => {
+          el.disabled = true;
+          el.setAttribute('aria-disabled', 'true');
+        });
+      }
+      setMessage('Perfil Leitor: apenas consulta está disponível.', 'info');
+    }
   };
 
   inicializarPagina();

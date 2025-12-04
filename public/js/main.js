@@ -459,4 +459,55 @@
       }
     });
   }
+
+  const getCurrentRole = () => {
+    const stored = getStoredUser();
+    if (stored?.role) return String(stored.role);
+    const payload = decodeTokenPayload(getToken());
+    return payload?.role || null;
+  };
+
+  const showDenied = () => alert('Ação não permitida. Contate o Administrador!');
+
+  const enforceRoleRestrictions = () => {
+    const role = (getCurrentRole() || '').toLowerCase();
+    const isViewer = role === 'viewer' || role === 'leitor' || role === 'reader';
+    const isEditor = role === 'editor';
+
+    // Bloqueia ações de exclusão para não-admin (Editor/Viewer)
+    document.addEventListener('click', (e) => {
+      const target = e.target;
+      if (!(target instanceof Element)) return;
+      if (target.closest('.button--danger')) {
+        // botão de excluir ou ação destrutiva
+        if (isEditor || isViewer) {
+          e.preventDefault();
+          e.stopPropagation();
+          showDenied();
+        }
+      }
+    }, true);
+
+    // Modo somente leitura para Viewer em áreas de conteúdo
+    if (isViewer) {
+      const content = document.querySelector('main.content');
+      if (content) {
+        content.querySelectorAll('input, select, textarea, button[type="submit"], button.button--secondary')
+          .forEach((el) => {
+            el.disabled = true;
+            el.setAttribute('aria-disabled', 'true');
+          });
+        // Bloqueia qualquer submit
+        content.addEventListener('submit', (ev) => {
+          ev.preventDefault();
+          showDenied();
+        }, true);
+      }
+      // Esconde botões de adicionar comuns
+      document.querySelectorAll('#abrir-usuario-modal').forEach((el) => el.setAttribute('hidden', 'true'));
+    }
+  };
+
+  // Aplica as restrições após carregar a página
+  try { enforceRoleRestrictions(); } catch {}
 })();
