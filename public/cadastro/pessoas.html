@@ -394,8 +394,12 @@
           tipo: String(v.tipo||'').trim(),
         })).filter(v => v.nome || v.cpf || v.tipo);
         const empresasVinc = (vinculosEmpresas || [])
-          .map(n => ({ nome: String(n||'').trim() }))
-          .filter(e => e.nome);
+          .map(e => {
+            const nome = String(e?.nome || '').trim();
+            const observacoes = String(e?.observacoes || '').trim();
+            return (nome || observacoes) ? { nome, observacoes } : null;
+          })
+          .filter(Boolean);
         const vinculosObj = {};
         if (pessoasVinc.length) vinculosObj.pessoas = pessoasVinc;
         if (empresasVinc.length) vinculosObj.empresas = empresasVinc;
@@ -818,27 +822,34 @@
           lista.innerHTML = '<p style="color: var(--muted); font-size: 0.85rem; margin: 0;">Nenhum vínculo de empresa adicionado. Clique para adicionar.</p>';
           return;
         }
-        vinculosEmpresas.forEach((nome, i) => {
+        vinculosEmpresas.forEach((emp, i) => {
           const linha = document.createElement('div');
-          linha.style.cssText = 'display:grid; grid-template-columns: 1fr auto; gap:0.5rem; align-items:end;';
+          linha.style.cssText = 'display:grid; grid-template-columns: 1fr 1fr auto; gap:0.5rem; align-items:end;';
           linha.innerHTML = `
             <label class="form__field">
               <span class="form__label">Nome da Empresa</span>
               <input class="form__input vem-nome" type="text" data-index="${i}" placeholder="Digite o nome da empresa" />
             </label>
+            <label class="form__field">
+              <span class="form__label">Observações</span>
+              <input class="form__input vem-obs" type="text" data-index="${i}" placeholder="Observações sobre o vínculo" />
+            </label>
             <button class="button button--danger" type="button" title="Excluir" aria-label="Remover vínculo">−</button>
           `;
           const nomeEl = linha.querySelector('.vem-nome');
+          const obsEl = linha.querySelector('.vem-obs');
           const btn = linha.querySelector('button');
-          nomeEl.value = String(nome || '');
-          nomeEl.addEventListener('input', (e) => { vinculosEmpresas[i] = e.target.value; });
+          nomeEl.value = String(emp?.nome || '');
+          obsEl.value = String(emp?.observacoes || '');
+          nomeEl.addEventListener('input', (e) => { if (!vinculosEmpresas[i]) vinculosEmpresas[i] = { nome: '', observacoes: '' }; vinculosEmpresas[i].nome = e.target.value; });
+          obsEl.addEventListener('input', (e) => { if (!vinculosEmpresas[i]) vinculosEmpresas[i] = { nome: '', observacoes: '' }; vinculosEmpresas[i].observacoes = e.target.value; });
           btn.addEventListener('click', () => { vinculosEmpresas.splice(i,1); renderizarVinculosEmpresas(); });
           lista.appendChild(linha);
         });
       };
 
       const adicionarVinculoEmpresa = () => {
-        vinculosEmpresas.push('');
+        vinculosEmpresas.push({ nome: '', observacoes: '' });
         renderizarVinculosEmpresas();
       };
 
@@ -880,21 +891,21 @@
           const grid = document.createElement('div');
           grid.className = 'form__grid form__grid--4';
           grid.innerHTML = `
-            <label class=\"form__field form__field--wide\">
-              <span class=\"form__label\">Marca/Modelo</span>
-              <input class=\"form__input veic-marcaModelo\" type=\"text\" data-index=\"${indice}\" placeholder=\"Ex: VW Gol 1.6\" />
+            <label class="form__field form__field--wide">
+              <span class="form__label">Marca/Modelo</span>
+              <input class="form__input veic-marcaModelo" type="text" data-index="${indice}" placeholder="Ex: VW Gol 1.6" />
             </label>
-            <label class=\"form__field\">
-              <span class=\"form__label\">Placa</span>
-              <input class=\"form__input veic-placa\" type=\"text\" data-index=\"${indice}\" placeholder=\"ABC1D23\" />
+            <label class="form__field">
+              <span class="form__label">Placa</span>
+              <input class="form__input veic-placa" type="text" data-index="${indice}" placeholder="ABC1D23" />
             </label>
-            <label class=\"form__field\">
-              <span class=\"form__label\">Cor</span>
-              <input class=\"form__input veic-cor\" type=\"text\" data-index=\"${indice}\" placeholder=\"Cor\" />
+            <label class="form__field">
+              <span class="form__label">Cor</span>
+              <input class="form__input veic-cor" type="text" data-index="${indice}" placeholder="Cor" />
             </label>
-            <label class=\"form__field\">
-              <span class=\"form__label\">Ano/Modelo</span>
-              <input class=\"form__input veic-anoModelo\" type=\"text\" inputmode=\"numeric\" data-index=\"${indice}\" placeholder=\"AAAA\" />
+            <label class="form__field">
+              <span class="form__label">Ano/Modelo</span>
+              <input class="form__input veic-anoModelo" type="text" inputmode="numeric" data-index="${indice}" placeholder="AAAA" />
             </label>
           `;
 
@@ -1258,7 +1269,11 @@
 
         // Carrega vínculos de empresa (múltiplos) se existirem
         if (pessoa.vinculos && Array.isArray(pessoa.vinculos.empresas)) {
-          vinculosEmpresas = pessoa.vinculos.empresas.map(e => (typeof e === 'string' ? e : (e?.nome || '')));
+          vinculosEmpresas = pessoa.vinculos.empresas.map(e =>
+            typeof e === 'string'
+              ? { nome: e, observacoes: '' }
+              : { nome: String(e?.nome || ''), observacoes: String(e?.observacoes || '') }
+          );
         } else {
           vinculosEmpresas = [];
         }
