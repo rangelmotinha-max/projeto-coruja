@@ -917,7 +917,8 @@
                 const erro = data?.mensagem || data?.message || 'Erro ao excluir o registro.';
                 throw new Error(erro);
               }
-              exibirMensagem('Registro excluído com sucesso.', 'success');
+              exibirMensagem('Pessoa excluída com sucesso!', 'success');
+              alert('Pessoa excluída com sucesso!');
               carregarPessoas();
             } catch (error) {
               exibirMensagem(error?.message || 'Não foi possível excluir o registro.', 'error');
@@ -1016,7 +1017,13 @@
           }
 
           const foiEdicao = Boolean(pessoaEmEdicao);
-          exibirMensagemForm(foiEdicao ? 'Alteração realizada com sucesso!' : 'Registro incluído com sucesso!', 'success');
+          if (foiEdicao) {
+            exibirMensagemForm('Aterações realizadas com sucesso!', 'success');
+            alert('Aterações realizadas com sucesso!');
+          } else {
+            exibirMensagemForm('Pessoa cadastrada com sucesso!', 'success');
+            alert('Pessoa cadastrada com sucesso!');
+          }
           ultimaAcaoFoiEdicao = foiEdicao;
           pessoaForm.reset();
           pessoaEmEdicao = null;
