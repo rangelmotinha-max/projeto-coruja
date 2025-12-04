@@ -252,8 +252,11 @@
                 <div id="lista-vinculos-veiculos" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
               </div>
               <div class="form__subsection">
-                <h4 class="form__section-title" style="font-size: 1rem; margin: 0;">Entidades</h4>
-                <p style="color: var(--muted); font-size: 0.85rem; margin: 0.5rem 0;">Sem campos definidos ainda.</p>
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin: 0.75rem 0;">
+                  <h4 class="form__section-title" style="font-size: 1rem; margin: 0;">Entidades</h4>
+                  <button class="button button--secondary" id="adicionar-vinculo-entidade" type="button" aria-label="Adicionar vínculo de entidade" title="Adicionar">+</button>
+                </div>
+                <div id="lista-vinculos-entidades" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
               </div>
             </div>
 
@@ -406,6 +409,14 @@
         const vinculosObj = {};
         if (pessoasVinc.length) vinculosObj.pessoas = pessoasVinc;
         if (empresasVinc.length) vinculosObj.empresas = empresasVinc;
+        const entidadesVinc = (vinculosEntidades || [])
+          .map(e => {
+            const nome = String(e?.nome || '').trim();
+            const observacoes = String(e?.observacoes || '').trim();
+            return (nome || observacoes) ? { nome, observacoes } : null;
+          })
+          .filter(Boolean);
+        if (entidadesVinc.length) vinculosObj.entidades = entidadesVinc;
         const vincVeic = (vinculosVeiculos || [])
           .map(v => {
             const mm = String(v?.marcaModelo || '').trim();
@@ -506,6 +517,7 @@
       let socios = [];
       let vinculosPessoas = [];
       let vinculosEmpresas = [];
+      let vinculosEntidades = [];
       let vinculosVeiculos = [];
 
       const renderizarTelefones = () => {
@@ -865,6 +877,45 @@
       const adicionarVinculoEmpresa = () => {
         vinculosEmpresas.push({ nome: '', observacoes: '' });
         renderizarVinculosEmpresas();
+      };
+
+      const renderizarVinculosEntidades = () => {
+        const lista = document.getElementById('lista-vinculos-entidades');
+        if (!lista) return;
+        lista.innerHTML = '';
+        if (vinculosEntidades.length === 0) {
+          lista.innerHTML = '<p style="color: var(--muted); font-size: 0.85rem; margin: 0;">Nenhuma entidade adicionada. Clique para adicionar.</p>';
+          return;
+        }
+        vinculosEntidades.forEach((ent, i) => {
+          const linha = document.createElement('div');
+          linha.style.cssText = 'display:grid; grid-template-columns: 1fr 1fr auto; gap:0.5rem; align-items:end;';
+          linha.innerHTML = `
+            <label class="form__field">
+              <span class="form__label">Nome</span>
+              <input class="form__input ven-nome" type="text" data-index="${i}" placeholder="Digite o nome" />
+            </label>
+            <label class="form__field">
+              <span class="form__label">Observações</span>
+              <textarea class="form__input ven-obs" data-index="${i}" placeholder="Observações" rows="3" style="resize: vertical;"></textarea>
+            </label>
+            <button class="button button--danger" type="button" title="Excluir" aria-label="Remover entidade">−</button>
+          `;
+          const nomeEl = linha.querySelector('.ven-nome');
+          const obsEl = linha.querySelector('.ven-obs');
+          const btn = linha.querySelector('button');
+          nomeEl.value = String(ent?.nome || '');
+          obsEl.value = String(ent?.observacoes || '');
+          nomeEl.addEventListener('input', (e) => { if (!vinculosEntidades[i]) vinculosEntidades[i] = { nome: '', observacoes: '' }; vinculosEntidades[i].nome = e.target.value; });
+          obsEl.addEventListener('input', (e) => { if (!vinculosEntidades[i]) vinculosEntidades[i] = { nome: '', observacoes: '' }; vinculosEntidades[i].observacoes = e.target.value; });
+          btn.addEventListener('click', () => { vinculosEntidades.splice(i,1); renderizarVinculosEntidades(); });
+          lista.appendChild(linha);
+        });
+      };
+
+      const adicionarVinculoEntidade = () => {
+        vinculosEntidades.push({ nome: '', observacoes: '' });
+        renderizarVinculosEntidades();
       };
 
       const renderizarVeiculos = () => {
@@ -1361,6 +1412,17 @@
         }
         renderizarVinculosEmpresas();
 
+        // Carrega vínculos de entidades se existirem
+        if (pessoa.vinculos && Array.isArray(pessoa.vinculos.entidades)) {
+          vinculosEntidades = pessoa.vinculos.entidades.map(e => ({
+            nome: String(e?.nome || ''),
+            observacoes: String(e?.observacoes || ''),
+          }));
+        } else {
+          vinculosEntidades = [];
+        }
+        renderizarVinculosEntidades();
+
         // Carrega vínculos de veículos
         if (pessoa.vinculos && Array.isArray(pessoa.vinculos.veiculos)) {
           vinculosVeiculos = JSON.parse(JSON.stringify(pessoa.vinculos.veiculos));
@@ -1662,6 +1724,8 @@
           renderizarVinculosPessoas();
           vinculosEmpresas = [];
           renderizarVinculosEmpresas();
+          vinculosEntidades = [];
+          renderizarVinculosEntidades();
           vinculosVeiculos = [];
           renderizarVinculosVeiculos();
         });
@@ -1697,6 +1761,10 @@
         const addVincEmpresaBtn = document.getElementById('adicionar-vinculo-empresa');
         addVincEmpresaBtn?.addEventListener('click', adicionarVinculoEmpresa);
 
+        // Event listener para adicionar vínculo entidade
+        const addVincEntBtn = document.getElementById('adicionar-vinculo-entidade');
+        addVincEntBtn?.addEventListener('click', adicionarVinculoEntidade);
+
         // Event listener para adicionar vínculo veículo
         const addVincVeicBtn = document.getElementById('adicionar-vinculo-veiculo');
         addVincVeicBtn?.addEventListener('click', adicionarVinculoVeiculo);
@@ -1719,6 +1787,7 @@
         renderizarVeiculos();
         renderizarVinculosPessoas();
         renderizarVinculosEmpresas();
+        renderizarVinculosEntidades();
         renderizarVinculosVeiculos();
         // Lista fica oculta até o usuário clicar em "Listar"
       };
