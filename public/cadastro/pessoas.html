@@ -236,10 +236,13 @@
                 <div id="lista-vinculos-pessoas" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
               </div>
 
-              <!-- Sub-seções em branco (Empresa, Veículos, Entidades) -->
+              <!-- Sub-seções: Empresa (múltiplo), Veículos, Entidades -->
               <div class="form__subsection">
-                <h4 class="form__section-title" style="font-size: 1rem; margin: 0;">Empresa</h4>
-                <p style="color: var(--muted); font-size: 0.85rem; margin: 0.5rem 0;">Sem campos definidos ainda.</p>
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin: 0.75rem 0;">
+                  <h4 class="form__section-title" style="font-size: 1rem; margin: 0;">Empresa</h4>
+                  <button class="button button--secondary" id="adicionar-vinculo-empresa" type="button" aria-label="Adicionar vínculo de empresa" title="Adicionar">+</button>
+                </div>
+                <div id="lista-vinculos-empresas" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
               </div>
               <div class="form__subsection">
                 <h4 class="form__section-title" style="font-size: 1rem; margin: 0;">Veículos</h4>
@@ -390,7 +393,13 @@
           cpf: String(v.cpf||'').trim(),
           tipo: String(v.tipo||'').trim(),
         })).filter(v => v.nome || v.cpf || v.tipo);
-        dados.vinculos = pessoasVinc.length ? { pessoas: pessoasVinc } : undefined;
+        const empresasVinc = (vinculosEmpresas || [])
+          .map(n => ({ nome: String(n||'').trim() }))
+          .filter(e => e.nome);
+        const vinculosObj = {};
+        if (pessoasVinc.length) vinculosObj.pessoas = pessoasVinc;
+        if (empresasVinc.length) vinculosObj.empresas = empresasVinc;
+        dados.vinculos = Object.keys(vinculosObj).length ? vinculosObj : undefined;
         
         return dados;
       };
@@ -479,6 +488,7 @@
       let veiculos = [];
       let socios = [];
       let vinculosPessoas = [];
+      let vinculosEmpresas = [];
 
       const renderizarTelefones = () => {
         const listaTelefonesEl = document.getElementById('lista-telefones');
@@ -798,6 +808,38 @@
       const adicionarVinculoPessoa = () => {
         vinculosPessoas.push({ nome: '', cpf: '', tipo: '' });
         renderizarVinculosPessoas();
+      };
+
+      const renderizarVinculosEmpresas = () => {
+        const lista = document.getElementById('lista-vinculos-empresas');
+        if (!lista) return;
+        lista.innerHTML = '';
+        if (vinculosEmpresas.length === 0) {
+          lista.innerHTML = '<p style="color: var(--muted); font-size: 0.85rem; margin: 0;">Nenhum vínculo de empresa adicionado. Clique para adicionar.</p>';
+          return;
+        }
+        vinculosEmpresas.forEach((nome, i) => {
+          const linha = document.createElement('div');
+          linha.style.cssText = 'display:grid; grid-template-columns: 1fr auto; gap:0.5rem; align-items:end;';
+          linha.innerHTML = `
+            <label class="form__field">
+              <span class="form__label">Nome da Empresa</span>
+              <input class="form__input vem-nome" type="text" data-index="${i}" placeholder="Digite o nome da empresa" />
+            </label>
+            <button class="button button--danger" type="button" title="Excluir" aria-label="Remover vínculo">−</button>
+          `;
+          const nomeEl = linha.querySelector('.vem-nome');
+          const btn = linha.querySelector('button');
+          nomeEl.value = String(nome || '');
+          nomeEl.addEventListener('input', (e) => { vinculosEmpresas[i] = e.target.value; });
+          btn.addEventListener('click', () => { vinculosEmpresas.splice(i,1); renderizarVinculosEmpresas(); });
+          lista.appendChild(linha);
+        });
+      };
+
+      const adicionarVinculoEmpresa = () => {
+        vinculosEmpresas.push('');
+        renderizarVinculosEmpresas();
       };
 
       const renderizarVeiculos = () => {
@@ -1213,6 +1255,14 @@
           socios = [];
         }
         renderizarSocios();
+
+        // Carrega vínculos de empresa (múltiplos) se existirem
+        if (pessoa.vinculos && Array.isArray(pessoa.vinculos.empresas)) {
+          vinculosEmpresas = pessoa.vinculos.empresas.map(e => (typeof e === 'string' ? e : (e?.nome || '')));
+        } else {
+          vinculosEmpresas = [];
+        }
+        renderizarVinculosEmpresas();
       };
 
 
@@ -1505,6 +1555,8 @@
           renderizarSocios();
           vinculosPessoas = [];
           renderizarVinculosPessoas();
+          vinculosEmpresas = [];
+          renderizarVinculosEmpresas();
         });
         cpfInput?.addEventListener('input', aplicarMascaraCpf);
 
@@ -1534,6 +1586,10 @@
         const addVincPessoaBtn = document.getElementById('adicionar-vinculo-pessoa');
         addVincPessoaBtn?.addEventListener('click', adicionarVinculoPessoa);
 
+        // Event listener para adicionar vínculo empresa
+        const addVincEmpresaBtn = document.getElementById('adicionar-vinculo-empresa');
+        addVincEmpresaBtn?.addEventListener('click', adicionarVinculoEmpresa);
+
         // Máscara CNPJ
         const cnpjInput = document.getElementById('empresa-cnpj');
         cnpjInput?.addEventListener('input', (e) => { e.target.value = aplicarMascaraCnpj(e.target.value); });
@@ -1551,6 +1607,7 @@
         renderizarRedes();
         renderizarVeiculos();
         renderizarVinculosPessoas();
+        renderizarVinculosEmpresas();
         // Lista fica oculta até o usuário clicar em "Listar"
       };
 
