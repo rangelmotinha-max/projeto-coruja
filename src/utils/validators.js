@@ -77,6 +77,7 @@ function validarCadastroPessoa(payload) {
   const redesSociaisArray = limparListaStrings(payload.redesSociais || []);
   const veiculosArray = validarVeiculos(payload.veiculos || []);
   const empresaObj = validarEmpresa(payload.empresa);
+  const vinculosObj = validarVinculos(payload.vinculos);
 
   const primeiroTelefone = payload.telefone ? normalizarOpcional(payload.telefone) : (telefonesArray[0] || null);
 
@@ -97,6 +98,7 @@ function validarCadastroPessoa(payload) {
     redesSociais: redesSociaisArray,
     veiculos: veiculosArray,
     empresa: empresaObj,
+    vinculos: vinculosObj,
   };
 }
 
@@ -166,6 +168,17 @@ function validarEmpresa(empresa) {
   return obj;
 }
 
+function validarVinculos(vinculos) {
+  if (!vinculos || typeof vinculos !== 'object') return undefined;
+  const pessoas = Array.isArray(vinculos.pessoas) ? vinculos.pessoas.map(p => ({
+    nome: normalizarOpcional(p.nome),
+    cpf: normalizarOpcional((p.cpf || '').replace(/\D/g, '')),
+    tipo: normalizarOpcional(p.tipo),
+  })).filter(p => p.nome || p.cpf || p.tipo) : [];
+  if (pessoas.length === 0) return undefined;
+  return { pessoas };
+}
+
 // Validação de atualização de pessoa garantindo ao menos um campo.
 function validarAtualizacaoPessoa(payload) {
   const atualizacoes = {};
@@ -213,6 +226,9 @@ function validarAtualizacaoPessoa(payload) {
   }
   if (payload.empresa !== undefined) {
     atualizacoes.empresa = validarEmpresa(payload.empresa);
+  }
+  if (payload.vinculos !== undefined) {
+    atualizacoes.vinculos = validarVinculos(payload.vinculos);
   }
 
   // Validar índice do endereço atual

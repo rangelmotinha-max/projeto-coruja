@@ -96,6 +96,15 @@ class PessoaModel {
       }
     }
 
+    // Salvar vínculos (pessoas relacionadas)
+    if (dados.vinculos && Array.isArray(dados.vinculos.pessoas)) {
+      for (const vp of dados.vinculos.pessoas) {
+        if ((vp.nome||vp.cpf||vp.tipo||'').toString().trim().length) {
+          await this.adicionarVinculoPessoa(pessoa.id, vp);
+        }
+      }
+    }
+
     return { ...pessoa, enderecos: [], telefones: [], emails: [], redesSociais: [] };
   }
 
@@ -112,6 +121,7 @@ class PessoaModel {
       pessoa.redesSociais = (await this.obterRedesPorPessoa(pessoa.id)).map(r => r.perfil);
       pessoa.veiculos = await this.obterVeiculosPorPessoa(pessoa.id);
       pessoa.empresa = await this.obterEmpresaPorPessoa(pessoa.id);
+      pessoa.vinculos = { pessoas: await this.obterVinculosPessoas(pessoa.id) };
     }
     
     return pessoas;
@@ -129,6 +139,7 @@ class PessoaModel {
       pessoa.redesSociais = (await this.obterRedesPorPessoa(id)).map(r => r.perfil);
       pessoa.veiculos = await this.obterVeiculosPorPessoa(id);
       pessoa.empresa = await this.obterEmpresaPorPessoa(id);
+      pessoa.vinculos = { pessoas: await this.obterVinculosPessoas(id) };
     }
     
     return pessoa;
@@ -367,6 +378,41 @@ class PessoaModel {
   static async removerVeiculo(veiculoId) {
     const db = await initDatabase();
     const resultado = await db.run('DELETE FROM veiculos WHERE id = ?', [veiculoId]);
+    return resultado.changes > 0;
+  }
+
+  // Vínculos > Pessoas
+  static async obterVinculosPessoas(pessoaId) {
+    const db = await initDatabase();
+    return db.all(
+      'SELECT id, nome, cpf, tipo FROM vinculos_pessoas WHERE pessoa_id = ? ORDER BY criadoEm ASC',
+      [pessoaId]
+    );
+  }
+
+  static async adicionarVinculoPessoa(pessoaId, vinc) {
+    const db = await initDatabase();
+    const agora = new Date().toISOString();
+    const novo = {
+      id: randomUUID(),
+      pessoa_id: pessoaId,
+      nome: vinc.nome || null,
+      cpf: vinc.cpf ? String(vinc.cpf).replace(/\D/g,'') : null,
+      tipo: vinc.tipo || null,
+      criadoEm: agora,
+      atualizadoEm: agora,
+    };
+    await db.run(
+      `INSERT INTO vinculos_pessoas (id, pessoa_id, nome, cpf, tipo, criadoEm, atualizadoEm)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [novo.id, novo.pessoa_id, novo.nome, novo.cpf, novo.tipo, novo.criadoEm, novo.atualizadoEm]
+    );
+    return novo;
+  }
+
+  static async removerVinculoPessoa(vinculoId) {
+    const db = await initDatabase();
+    const resultado = await db.run('DELETE FROM vinculos_pessoas WHERE id = ?', [vinculoId]);
     return resultado.changes > 0;
   }
 

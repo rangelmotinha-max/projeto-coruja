@@ -115,6 +115,19 @@ async function atualizar(id, payload) {
     }
   }
 
+  // Processar vínculos (pessoas relacionadas)
+  if (payload.vinculos && Array.isArray(payload.vinculos.pessoas)) {
+    const atuais = await PessoaModel.obterVinculosPessoas(id);
+    for (const v of atuais) {
+      await PessoaModel.removerVinculoPessoa(v.id);
+    }
+    for (const vp of payload.vinculos.pessoas) {
+      if ((vp.nome||vp.cpf||vp.tipo||'').toString().trim().length) {
+        await PessoaModel.adicionarVinculoPessoa(id, vp);
+      }
+    }
+  }
+
   // Atualizar dados da pessoa e índice do endereço atual
   if (payload.endereco_atual_index !== undefined) {
     atualizacoes.endereco_atual_index = payload.endereco_atual_index;
