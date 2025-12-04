@@ -75,6 +75,10 @@
                   <input class="form__input" type="text" name="nomeCompleto" required />
                 </label>
                 <label class="form__field">
+                  <span class="form__label">Apelido/Vulgo</span>
+                  <input class="form__input" type="text" name="apelido" />
+                </label>
+                <label class="form__field">
                   <span class="form__label">CPF</span>
                   <input class="form__input" type="text" name="cpf" inputmode="numeric" />
                   <span id="erro-cpf" class="form__error" style="display: none;">CPF inválido!</span>
@@ -134,6 +138,17 @@
                 </div>
                 <div id="lista-redes" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
               </div>
+            </div>
+
+            <!-- Seção 2.1: Veículos -->
+            <div class="form__section">
+              <div class="form__section-header">
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                  <h3 class="form__section-title" style="text-align: center; width: 100%;">Veículos</h3>
+                  <button class="button button--secondary" id="adicionar-veiculo" type="button" aria-label="Adicionar veículo" title="Adicionar">+</button>
+                </div>
+              </div>
+              <div id="lista-veiculos" class="veiculos-lista"></div>
             </div>
 
             <!-- Seção 3: Endereços -->
@@ -251,6 +266,14 @@
         // Adiciona emails e redes sociais múltiplos ao payload
         dados.emails = emails.filter(e => e.trim() !== '');
         dados.redesSociais = redes.filter(r => r.trim() !== '');
+        // Adiciona veículos (ignora itens totalmente vazios)
+        dados.veiculos = veiculos.filter(v => {
+          const p = String(v.placa || '').trim();
+          const m = String(v.modelo || '').trim();
+          const c = String(v.cor || '').trim();
+          const a = String(v.ano || '').trim();
+          return p || m || c || a;
+        });
         
         return dados;
       };
@@ -336,6 +359,7 @@
       let telefones = [];
       let emails = [];
       let redes = [];
+      let veiculos = [];
 
       const renderizarTelefones = () => {
         const listaTelefonesEl = document.getElementById('lista-telefones');
@@ -514,6 +538,92 @@
       const adicionarRede = () => {
         redes.push('|');
         renderizarRedes();
+      };
+
+      const renderizarVeiculos = () => {
+        const listaVeiculosEl = document.getElementById('lista-veiculos');
+        if (!listaVeiculosEl) return;
+        listaVeiculosEl.innerHTML = '';
+
+        if (veiculos.length === 0) {
+          listaVeiculosEl.innerHTML = '<p style="color: var(--muted); margin: 1rem 0;">Nenhum veículo adicionado. Clique no botão para adicionar.</p>';
+          return;
+        }
+
+        veiculos.forEach((veiculo, indice) => {
+          const div = document.createElement('div');
+          div.className = 'veiculo-item';
+          div.style.cssText = 'border: 1px solid var(--border); border-radius: 0.5rem; padding: 1rem; margin-bottom: 0.75rem; background: var(--surface-muted);';
+
+          const header = document.createElement('div');
+          header.style.cssText = 'display:flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;';
+          const titulo = document.createElement('span');
+          titulo.style.cssText = 'font-weight:600; color: var(--text);';
+          titulo.textContent = `Veículo ${indice + 1}`;
+          const removerBtn = document.createElement('button');
+          removerBtn.type = 'button';
+          removerBtn.className = 'button button--danger';
+          removerBtn.textContent = '−';
+          removerBtn.title = 'Excluir';
+          removerBtn.setAttribute('aria-label', 'Remover veículo');
+          removerBtn.style.cssText = 'padding: 0.25rem 0.5rem; font-size: 0.75rem; min-width: fit-content;';
+          removerBtn.addEventListener('click', () => {
+            veiculos.splice(indice, 1);
+            renderizarVeiculos();
+          });
+          header.appendChild(titulo);
+          header.appendChild(removerBtn);
+          div.appendChild(header);
+
+          const grid = document.createElement('div');
+          grid.className = 'form__grid form__grid--4';
+          grid.innerHTML = `
+            <label class=\"form__field\">
+              <span class=\"form__label\">Placa</span>
+              <input class=\"form__input veic-placa\" type=\"text\" data-index=\"${indice}\" placeholder=\"ABC1D23\" />
+            </label>
+            <label class=\"form__field form__field--wide\">
+              <span class=\"form__label\">Modelo</span>
+              <input class=\"form__input veic-modelo\" type=\"text\" data-index=\"${indice}\" placeholder=\"Modelo\" />
+            </label>
+            <label class=\"form__field\">
+              <span class=\"form__label\">Cor</span>
+              <input class=\"form__input veic-cor\" type=\"text\" data-index=\"${indice}\" placeholder=\"Cor\" />
+            </label>
+            <label class=\"form__field\">
+              <span class=\"form__label\">Ano</span>
+              <input class=\"form__input veic-ano\" type=\"text\" inputmode=\"numeric\" data-index=\"${indice}\" placeholder=\"AAAA\" />
+            </label>
+          `;
+
+          grid.querySelector('.veic-placa').value = veiculo.placa || '';
+          grid.querySelector('.veic-modelo').value = veiculo.modelo || '';
+          grid.querySelector('.veic-cor').value = veiculo.cor || '';
+          grid.querySelector('.veic-ano').value = veiculo.ano || '';
+
+          grid.querySelector('.veic-placa').addEventListener('input', (e) => {
+            veiculos[indice].placa = String(e.target.value || '').toUpperCase();
+            e.target.value = veiculos[indice].placa;
+          });
+          grid.querySelector('.veic-modelo').addEventListener('input', (e) => {
+            veiculos[indice].modelo = e.target.value;
+          });
+          grid.querySelector('.veic-cor').addEventListener('input', (e) => {
+            veiculos[indice].cor = e.target.value;
+          });
+          grid.querySelector('.veic-ano').addEventListener('input', (e) => {
+            veiculos[indice].ano = e.target.value.replace(/\D/g, '').slice(0, 4);
+            e.target.value = veiculos[indice].ano;
+          });
+
+          div.appendChild(grid);
+          listaVeiculosEl.appendChild(div);
+        });
+      };
+
+      const adicionarVeiculo = () => {
+        veiculos.push({ placa: '', modelo: '', cor: '', ano: '' });
+        renderizarVeiculos();
       };
 
       const createEstadosSelect = () => {
@@ -809,6 +919,14 @@
           redes = [];
         }
         renderizarRedes();
+
+        // Carrega veículos se existirem (opcional)
+        if (pessoa.veiculos && Array.isArray(pessoa.veiculos)) {
+          veiculos = JSON.parse(JSON.stringify(pessoa.veiculos));
+        } else {
+          veiculos = [];
+        }
+        renderizarVeiculos();
       };
 
 
@@ -1067,6 +1185,8 @@
           renderizarEmails();
           redes = [];
           renderizarRedes();
+          veiculos = [];
+          renderizarVeiculos();
         });
         cpfInput?.addEventListener('input', aplicarMascaraCpf);
 
@@ -1084,9 +1204,14 @@
         const adicionarRedeBtn = document.getElementById('adicionar-rede');
         adicionarRedeBtn?.addEventListener('click', adicionarRede);
 
+        // Event listener para adicionar novo veículo
+        const adicionarVeiculoBtn = document.getElementById('adicionar-veiculo');
+        adicionarVeiculoBtn?.addEventListener('click', adicionarVeiculo);
+
         renderizarTelefones();
         renderizarEmails();
         renderizarRedes();
+        renderizarVeiculos();
         // Lista fica oculta até o usuário clicar em "Listar"
       };
 

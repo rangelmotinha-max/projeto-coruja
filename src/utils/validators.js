@@ -80,6 +80,7 @@ function validarCadastroPessoa(payload) {
 
   return {
     nomeCompleto: validarNomeCompleto(payload.nomeCompleto),
+    apelido: normalizarOpcional(payload.apelido),
     dataNascimento: payload.dataNascimento ? validarDataNascimento(payload.dataNascimento) : '',
     cpf: normalizarOpcional(payload.cpf),
     rg: normalizarOpcional(payload.rg),
@@ -132,6 +133,7 @@ function validarAtualizacaoPessoa(payload) {
     'nomeMae',
     'nomePai',
     'telefone',
+    'apelido',
   ];
 
   camposOpcionais.forEach((campo) => {

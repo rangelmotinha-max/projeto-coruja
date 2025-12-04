@@ -10,6 +10,7 @@ class PessoaModel {
     const pessoa = {
       id: randomUUID(),
       nomeCompleto: dados.nomeCompleto,
+      apelido: dados.apelido || null,
       // Mantém string vazia quando fornecida para evitar NOT NULL em bancos antigos
       dataNascimento: dados.dataNascimento === undefined ? null : dados.dataNascimento,
       cpf: dados.cpf || null,
@@ -24,12 +25,13 @@ class PessoaModel {
 
     await db.run(
       `INSERT INTO pessoas (
-        id, nomeCompleto, dataNascimento, cpf, rg, cnh, nomeMae, nomePai,
+        id, nomeCompleto, apelido, dataNascimento, cpf, rg, cnh, nomeMae, nomePai,
         endereco_atual_index, criadoEm, atualizadoEm
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         pessoa.id,
         pessoa.nomeCompleto,
+        pessoa.apelido,
         pessoa.dataNascimento,
         pessoa.cpf,
         pessoa.rg,
@@ -309,6 +311,7 @@ class PessoaModel {
 
     const colunasPermitidas = [
       'nomeCompleto',
+      'apelido',
       'dataNascimento',
       'cpf',
       'rg',

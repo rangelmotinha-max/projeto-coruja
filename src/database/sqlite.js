@@ -57,6 +57,7 @@ async function runMigrations(db) {
     CREATE TABLE IF NOT EXISTS pessoas (
       id TEXT PRIMARY KEY,
       nomeCompleto TEXT NOT NULL,
+      apelido TEXT,
       dataNascimento TEXT,
       cpf TEXT,
       rg TEXT,
@@ -147,6 +148,17 @@ async function runMigrations(db) {
     `);
   } catch (err) {
     // Coluna já existe, ignorar erro
+    if (!err.message.includes('duplicate column name')) {
+      throw err;
+    }
+  }
+
+  // Tentar adicionar coluna apelido, caso o banco já exista sem ela
+  try {
+    await db.run(`
+      ALTER TABLE pessoas ADD COLUMN apelido TEXT
+    `);
+  } catch (err) {
     if (!err.message.includes('duplicate column name')) {
       throw err;
     }
