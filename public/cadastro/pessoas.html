@@ -236,10 +236,13 @@
                 <div id="lista-vinculos-pessoas" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
               </div>
 
-              <!-- Sub-seções em branco (Empresa, Veículos, Entidades) -->
+              <!-- Sub-seção: Empresa -->
               <div class="form__subsection">
-                <h4 class="form__section-title" style="font-size: 1rem; margin: 0;">Empresa</h4>
-                <p style="color: var(--muted); font-size: 0.85rem; margin: 0.5rem 0;">Sem campos definidos ainda.</p>
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin: 0.75rem 0;">
+                  <h4 class="form__section-title" style="font-size: 1rem; margin: 0;">Empresa</h4>
+                  <button class="button button--secondary" id="adicionar-vinculo-empresa" type="button" aria-label="Adicionar vínculo de empresa" title="Adicionar">+</button>
+                </div>
+                <div id="lista-vinculos-empresas" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
               </div>
               <div class="form__subsection">
                 <h4 class="form__section-title" style="font-size: 1rem; margin: 0;">Veículos</h4>
@@ -390,7 +393,11 @@
           cpf: String(v.cpf||'').trim(),
           tipo: String(v.tipo||'').trim(),
         })).filter(v => v.nome || v.cpf || v.tipo);
-        dados.vinculos = pessoasVinc.length ? { pessoas: pessoasVinc } : undefined;
+        const empresasVinc = (vinculosEmpresas || []).map(v => ({
+          nome: String(v.nome||'').trim(),
+          cnpj: String(v.cnpj||'').trim(),
+        })).filter(v => v.nome || v.cnpj);
+        dados.vinculos = (pessoasVinc.length || empresasVinc.length) ? { pessoas: pessoasVinc, empresas: empresasVinc } : undefined;
         
         return dados;
       };
@@ -763,6 +770,7 @@
             <label class="form__field">
               <span class="form__label">CPF</span>
               <input class="form__input vpc-cpf" type="text" data-index="${i}" placeholder="000.000.000-00" />
+              <span class="form__error vpc-erro-cpf" style="display:none;">CPF inválido</span>
             </label>
             <label class="form__field">
               <span class="form__label">Tipo</span>
@@ -770,6 +778,7 @@
                 <option value="">Selecione</option>
                 <option>Esposa(o)</option>
                 <option>Filho(a)</option>
+                ion>Amigo(a)</option>
                 <option>Irmão(a)</option>
                 <option>Sócio(a)</option>
                 <option>Namorado(a)</option>
@@ -784,11 +793,22 @@
           const cpfEl = linha.querySelector('.vpc-cpf');
           const tipoEl = linha.querySelector('.vpc-tipo');
           const btn = linha.querySelector('button');
+          const erroCpfEl = linha.querySelector('.vpc-erro-cpf');
           nomeEl.value = v.nome || '';
           cpfEl.value = aplicarMascaraCpfInline(v.cpf || '');
           tipoEl.value = v.tipo || '';
           nomeEl.addEventListener('input', (e) => { vinculosPessoas[i].nome = e.target.value; });
-          cpfEl.addEventListener('input', (e) => { vinculosPessoas[i].cpf = aplicarMascaraCpfInline(e.target.value); e.target.value = vinculosPessoas[i].cpf; });
+          const validarInline = () => {
+            const r = validarCpf(cpfEl.value || '');
+            const apenasNum = String(cpfEl.value || '').replace(/\D/g,'');
+            if (apenasNum.length === 11 && !r.valido) {
+              erroCpfEl.style.display = 'block';
+            } else {
+              erroCpfEl.style.display = 'none';
+            }
+          };
+          cpfEl.addEventListener('input', (e) => { vinculosPessoas[i].cpf = aplicarMascaraCpfInline(e.target.value); e.target.value = vinculosPessoas[i].cpf; validarInline(); });
+          cpfEl.addEventListener('blur', validarInline);
           tipoEl.addEventListener('change', (e) => { vinculosPessoas[i].tipo = e.target.value; });
           btn.addEventListener('click', () => { vinculosPessoas.splice(i,1); renderizarVinculosPessoas(); });
           lista.appendChild(linha);
@@ -798,6 +818,45 @@
       const adicionarVinculoPessoa = () => {
         vinculosPessoas.push({ nome: '', cpf: '', tipo: '' });
         renderizarVinculosPessoas();
+      };
+
+      const renderizarVinculosEmpresas = () => {
+        const lista = document.getElementById('lista-vinculos-empresas');
+        if (!lista) return;
+        lista.innerHTML = '';
+        if (vinculosEmpresas.length === 0) {
+          lista.innerHTML = '<p style="color: var(--muted); font-size: 0.85rem; margin: 0;">Nenhum vínculo de empresa adicionado. Clique para adicionar.</p>';
+          return;
+        }
+        vinculosEmpresas.forEach((v, i) => {
+          const linha = document.createElement('div');
+          linha.style.cssText = 'display:grid; grid-template-columns: 1fr 20rem auto; gap:0.5rem; align-items:end;';
+          linha.innerHTML = `
+            <label class="form__field">
+              <span class="form__label">Nome da Empresa</span>
+              <input class="form__input vemp-nome" type="text" data-index="${i}" />
+            </label>
+            <label class="form__field">
+              <span class="form__label">CNPJ</span>
+              <input class="form__input vemp-cnpj" type="text" data-index="${i}" placeholder="00.000.000/0000-00" />
+            </label>
+            <button class="button button--danger" type="button" title="Excluir" aria-label="Remover vínculo empresa">−</button>
+          `;
+          const nomeEl = linha.querySelector('.vemp-nome');
+          const cnpjEl = linha.querySelector('.vemp-cnpj');
+          const btn = linha.querySelector('button');
+          nomeEl.value = v.nome || '';
+          cnpjEl.value = aplicarMascaraCnpj(v.cnpj || '');
+          nomeEl.addEventListener('input', (e) => { vinculosEmpresas[i].nome = e.target.value; });
+          cnpjEl.addEventListener('input', (e) => { vinculosEmpresas[i].cnpj = aplicarMascaraCnpj(e.target.value); e.target.value = vinculosEmpresas[i].cnpj; });
+          btn.addEventListener('click', () => { vinculosEmpresas.splice(i,1); renderizarVinculosEmpresas(); });
+          lista.appendChild(linha);
+        });
+      };
+
+      const adicionarVinculoEmpresa = () => {
+        vinculosEmpresas.push({ nome: '', cnpj: '' });
+        renderizarVinculosEmpresas();
       };
 
       const renderizarVeiculos = () => {
