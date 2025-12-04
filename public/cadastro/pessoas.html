@@ -155,11 +155,10 @@
           </form>
         </section>
 
-        <section class="panel" aria-label="Lista de pessoas cadastradas">
+        <section class="panel" aria-label="Lista de pessoas cadastradas" id="pessoas-panel" hidden>
           <div class="panel__header panel__header--stacked">
             <div>
               <h2 class="panel__title">Lista de pessoas cadastradas</h2>
-              <p class="panel__meta">Gerencie as edições ou exclusões diretamente na listagem</p>
             </div>
           </div>
 
@@ -948,6 +947,28 @@
         }
       };
 
+      // Carrega e exibe sempre os 10 registros mais recentes (por atualizadoEm/criadoEm)
+      const carregarPessoasRecentes = async () => {
+        try {
+          exibirMensagem('Carregando últimos registros...', 'info');
+          const response = await fetchAutenticado(API_PESSOAS_URL);
+          const data = await response.json().catch(() => []);
+          if (!response.ok) {
+            const erro = data?.mensagem || data?.message || 'Erro ao buscar registros.';
+            throw new Error(erro);
+          }
+          const lista = Array.isArray(data) ? data : data?.data || [];
+          const ordenada = lista
+            .slice()
+            .sort((a, b) => new Date(b.atualizadoEm || b.criadoEm || 0) - new Date(a.atualizadoEm || a.criadoEm || 0))
+            .slice(0, 10);
+          renderizarLista(ordenada);
+          exibirMensagem('Exibindo os 10 registros mais recentes.', 'success');
+        } catch (error) {
+          exibirMensagem(error?.message || 'Não foi possível carregar a lista.', 'error');
+        }
+      };
+
       const salvarPessoa = async (event) => {
         event.preventDefault();
 
@@ -1010,7 +1031,11 @@
 
         atualizarRotuloSubmit();
         pessoaForm.addEventListener('submit', salvarPessoa);
-        listarButton.addEventListener('click', carregarPessoas);
+        listarButton.addEventListener('click', () => {
+          const painel = document.getElementById('pessoas-panel');
+          if (painel) painel.hidden = false;
+          carregarPessoasRecentes();
+        });
         pessoaForm.addEventListener('reset', () => {
           pessoaEmEdicao = null;
           atualizarRotuloSubmit();
@@ -1044,7 +1069,7 @@
         renderizarTelefones();
         renderizarEmails();
         renderizarRedes();
-        carregarPessoas();
+        // Lista fica oculta até o usuário clicar em "Listar"
       };
 
       document.addEventListener('DOMContentLoaded', inicializarCadastro);
