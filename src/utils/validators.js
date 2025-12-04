@@ -80,7 +80,7 @@ function validarCadastroPessoa(payload) {
 
   return {
     nomeCompleto: validarNomeCompleto(payload.nomeCompleto),
-    dataNascimento: payload.dataNascimento ? validarDataNascimento(payload.dataNascimento) : null,
+    dataNascimento: payload.dataNascimento ? validarDataNascimento(payload.dataNascimento) : '',
     cpf: normalizarOpcional(payload.cpf),
     rg: normalizarOpcional(payload.rg),
     cnh: normalizarOpcional(payload.cnh),
@@ -122,7 +122,7 @@ function validarAtualizacaoPessoa(payload) {
     atualizacoes.nomeCompleto = validarNomeCompleto(payload.nomeCompleto);
   }
   if (payload.dataNascimento !== undefined) {
-    atualizacoes.dataNascimento = payload.dataNascimento ? validarDataNascimento(payload.dataNascimento) : null;
+    atualizacoes.dataNascimento = payload.dataNascimento ? validarDataNascimento(payload.dataNascimento) : '';
   }
 
   const camposOpcionais = [

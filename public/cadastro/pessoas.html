@@ -63,6 +63,8 @@
           <div class="panel__header panel__header--stacked">
           </div>
 
+          <div id="pessoa-form-message" class="message" role="status" aria-live="polite"></div>
+
           <form class="form" id="pessoa-form" action="#" method="post">
             <!-- Seção 1: Identificação -->
             <div class="form__section">
@@ -198,6 +200,7 @@
       const listarButton = document.getElementById('listar-pessoas');
       const listaPessoasEl = document.getElementById('pessoas-lista');
       const messageEl = document.getElementById('pessoas-message');
+      const formMessageEl = document.getElementById('pessoa-form-message');
       const cpfInput = pessoaForm?.elements['cpf'];
       let pessoaEmEdicao = null;
       let ultimaAcaoFoiEdicao = false;
@@ -228,6 +231,13 @@
         messageEl.textContent = texto || '';
         messageEl.className = 'message';
         if (texto) messageEl.classList.add(`message--${tipo}`);
+      };
+
+      const exibirMensagemForm = (texto, tipo = 'info') => {
+        if (!formMessageEl) return;
+        formMessageEl.textContent = texto || '';
+        formMessageEl.className = 'message';
+        if (texto) formMessageEl.classList.add(`message--${tipo}`);
       };
 
       const obterDadosFormulario = () => {
@@ -991,7 +1001,7 @@
         const url = pessoaEmEdicao ? `${API_PESSOAS_URL}/${pessoaEmEdicao}` : API_PESSOAS_URL;
 
         try {
-          exibirMensagem('Enviando dados...', 'info');
+          exibirMensagemForm('Enviando dados...', 'info');
           submitButton.disabled = true;
 
           const response = await fetchAutenticado(url, {
@@ -1006,14 +1016,17 @@
           }
 
           const foiEdicao = Boolean(pessoaEmEdicao);
-          exibirMensagem(foiEdicao ? 'Alteração realizada com sucesso!' : 'Registro incluído com sucesso!', 'success');
+          exibirMensagemForm(foiEdicao ? 'Alteração realizada com sucesso!' : 'Registro incluído com sucesso!', 'success');
           ultimaAcaoFoiEdicao = foiEdicao;
           pessoaForm.reset();
           pessoaEmEdicao = null;
           atualizarRotuloSubmit();
-          carregarPessoas();
+          // Atualiza lista se o painel estiver visível
+          if (!document.getElementById('pessoas-panel')?.hidden) {
+            carregarPessoasRecentes();
+          }
         } catch (error) {
-          exibirMensagem(error?.message || 'Não foi possível salvar o registro.', 'error');
+          exibirMensagemForm(error?.message || 'Não foi possível salvar o registro.', 'error');
         } finally {
           submitButton.disabled = false;
         }
@@ -1039,7 +1052,7 @@
         pessoaForm.addEventListener('reset', () => {
           pessoaEmEdicao = null;
           atualizarRotuloSubmit();
-          exibirMensagem('Formulário limpo. Pronto para novo cadastro.', 'info');
+          exibirMensagemForm('Formulário limpo. Pronto para novo cadastro.', 'info');
           enderecos = [];
           indicadorEnderecoAtual = null;
           renderizarEnderecos();

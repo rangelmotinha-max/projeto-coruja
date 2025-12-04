@@ -10,7 +10,8 @@ class PessoaModel {
     const pessoa = {
       id: randomUUID(),
       nomeCompleto: dados.nomeCompleto,
-      dataNascimento: dados.dataNascimento || null,
+      // Mantém string vazia quando fornecida para evitar NOT NULL em bancos antigos
+      dataNascimento: dados.dataNascimento === undefined ? null : dados.dataNascimento,
       cpf: dados.cpf || null,
       rg: dados.rg || null,
       cnh: dados.cnh || null,
