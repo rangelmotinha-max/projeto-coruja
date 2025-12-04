@@ -441,4 +441,22 @@
   if (profilePage) {
     carregarPerfil();
   }
+
+  // Recolhe submenus (details) ao clicar em Home;
+  // se já estiver na Home, evita recarregar a página.
+  const collapseSidebarSubmenus = () => {
+    document
+      .querySelectorAll('details.sidebar__section[open]')
+      .forEach((d) => d.removeAttribute('open'));
+  };
+
+  const homeLink = document.querySelector('.sidebar__nav a.sidebar__link[href="/home"]');
+  if (homeLink) {
+    homeLink.addEventListener('click', (e) => {
+      collapseSidebarSubmenus();
+      if (window.location?.pathname === '/home') {
+        e.preventDefault();
+      }
+    });
+  }
 })();

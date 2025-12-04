@@ -198,6 +198,18 @@ body {
   cursor: pointer;
 }
 
+/* Indicador de seta para menus com subitens */
+.sidebar__link--parent::after {
+  content: '▸';
+  opacity: 0.8;
+  font-size: 0.9rem;
+  transition: transform 0.2s ease;
+}
+
+.sidebar__section[open] .sidebar__link--parent::after {
+  content: '▾';
+}
+
 .sidebar__subnav {
   display: flex;
   flex-direction: column;
