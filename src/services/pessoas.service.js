@@ -133,6 +133,14 @@ async function atualizar(id, payload) {
     atualizacoes.endereco_atual_index = payload.endereco_atual_index;
   }
 
+  // Persistir estruturas complexas via JSON
+  if (payload.vinculos) {
+    atualizacoes.vinculos_json = JSON.stringify(payload.vinculos);
+  }
+  if (payload.ocorrencias) {
+    atualizacoes.ocorrencias_json = JSON.stringify(payload.ocorrencias);
+  }
+
   const atualizada = await PessoaModel.update(id, atualizacoes);
   return atualizada;
 }

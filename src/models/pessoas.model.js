@@ -19,6 +19,8 @@ class PessoaModel {
       nomeMae: dados.nomeMae || null,
       nomePai: dados.nomePai || null,
       endereco_atual_index: dados.endereco_atual_index || 0,
+      vinculos_json: dados.vinculos ? JSON.stringify(dados.vinculos) : null,
+      ocorrencias_json: dados.ocorrencias ? JSON.stringify(dados.ocorrencias) : null,
       criadoEm: agora,
       atualizadoEm: agora,
     };
@@ -26,8 +28,8 @@ class PessoaModel {
     await db.run(
       `INSERT INTO pessoas (
         id, nomeCompleto, apelido, dataNascimento, cpf, rg, cnh, nomeMae, nomePai,
-        endereco_atual_index, criadoEm, atualizadoEm
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        endereco_atual_index, vinculos_json, ocorrencias_json, criadoEm, atualizadoEm
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         pessoa.id,
         pessoa.nomeCompleto,
@@ -39,6 +41,8 @@ class PessoaModel {
         pessoa.nomeMae,
         pessoa.nomePai,
         pessoa.endereco_atual_index,
+        pessoa.vinculos_json,
+        pessoa.ocorrencias_json,
         pessoa.criadoEm,
         pessoa.atualizadoEm,
       ]
@@ -121,7 +125,27 @@ class PessoaModel {
       pessoa.redesSociais = (await this.obterRedesPorPessoa(pessoa.id)).map(r => r.perfil);
       pessoa.veiculos = await this.obterVeiculosPorPessoa(pessoa.id);
       pessoa.empresa = await this.obterEmpresaPorPessoa(pessoa.id);
-      pessoa.vinculos = { pessoas: await this.obterVinculosPessoas(pessoa.id) };
+      // Vinculos: preferir JSON quando existir, mas manter compatibilidade com tabela vinculos_pessoas
+      let vinculosFromJson = {};
+      if (pessoa.vinculos_json) {
+        try {
+          vinculosFromJson = JSON.parse(pessoa.vinculos_json) || {};
+        } catch (_) {
+          vinculosFromJson = {};
+        }
+      }
+      const vinculosPessoas = await this.obterVinculosPessoas(pessoa.id);
+      pessoa.vinculos = { pessoas: vinculosPessoas, ...vinculosFromJson };
+      // Ocorrencias via JSON
+      if (pessoa.ocorrencias_json) {
+        try {
+          pessoa.ocorrencias = JSON.parse(pessoa.ocorrencias_json) || {};
+        } catch (_) {
+          pessoa.ocorrencias = {};
+        }
+      } else {
+        pessoa.ocorrencias = {};
+      }
     }
     
     return pessoas;
@@ -139,7 +163,27 @@ class PessoaModel {
       pessoa.redesSociais = (await this.obterRedesPorPessoa(id)).map(r => r.perfil);
       pessoa.veiculos = await this.obterVeiculosPorPessoa(id);
       pessoa.empresa = await this.obterEmpresaPorPessoa(id);
-      pessoa.vinculos = { pessoas: await this.obterVinculosPessoas(id) };
+      // Vinculos: preferir JSON quando existir, mas manter compatibilidade com tabela vinculos_pessoas
+      let vinculosFromJson = {};
+      if (pessoa.vinculos_json) {
+        try {
+          vinculosFromJson = JSON.parse(pessoa.vinculos_json) || {};
+        } catch (_) {
+          vinculosFromJson = {};
+        }
+      }
+      const vinculosPessoas = await this.obterVinculosPessoas(id);
+      pessoa.vinculos = { pessoas: vinculosPessoas, ...vinculosFromJson };
+      // Ocorrencias via JSON
+      if (pessoa.ocorrencias_json) {
+        try {
+          pessoa.ocorrencias = JSON.parse(pessoa.ocorrencias_json) || {};
+        } catch (_) {
+          pessoa.ocorrencias = {};
+        }
+      } else {
+        pessoa.ocorrencias = {};
+      }
     }
     
     return pessoa;
@@ -517,6 +561,8 @@ class PessoaModel {
       'nomeMae',
       'nomePai',
       'endereco_atual_index',
+      'vinculos_json',
+      'ocorrencias_json',
     ];
 
     colunasPermitidas.forEach((coluna) => {
