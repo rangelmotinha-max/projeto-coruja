@@ -76,6 +76,7 @@ function validarCadastroPessoa(payload) {
   const emailsArray = limparListaStrings(payload.emails || [], normalizarEmail);
   const redesSociaisArray = limparListaStrings(payload.redesSociais || []);
   const veiculosArray = validarVeiculos(payload.veiculos || []);
+  const empresaObj = validarEmpresa(payload.empresa);
 
   const primeiroTelefone = payload.telefone ? normalizarOpcional(payload.telefone) : (telefonesArray[0] || null);
 
@@ -95,6 +96,7 @@ function validarCadastroPessoa(payload) {
     emails: emailsArray,
     redesSociais: redesSociaisArray,
     veiculos: veiculosArray,
+    empresa: empresaObj,
   };
 }
 
@@ -129,6 +131,39 @@ function validarVeiculos(veiculos) {
     cor: normalizarOpcional(v.cor),
     anoModelo: normalizarOpcional(v.anoModelo ? String(v.anoModelo).replace(/\D/g, '').slice(0,4) : v.anoModelo),
   }));
+}
+
+function validarEmpresa(empresa) {
+  if (!empresa || typeof empresa !== 'object') return undefined;
+  const normalizarNum = (txt) => (txt == null ? '' : String(txt).replace(/\D/g, ''));
+  const cnpjNums = normalizarNum(empresa.cnpj || '');
+  const cpfSocio = (txt) => normalizarOpcional(normalizarNum(txt || ''));
+  const data = empresa.dataInicioAtividade ? new Date(empresa.dataInicioAtividade) : null;
+  const dataIso = data && !Number.isNaN(data.getTime()) ? data.toISOString().split('T')[0] : null;
+  const situacao = empresa.situacaoCadastral && ['Ativo','Inativo','Inapta'].includes(String(empresa.situacaoCadastral))
+    ? empresa.situacaoCadastral : null;
+
+  const socios = Array.isArray(empresa.socios) ? empresa.socios.map(s => ({
+    nome: normalizarOpcional(s.nome),
+    cpf: cpfSocio(s.cpf),
+  })).filter(s => s.nome || s.cpf) : [];
+
+  const obj = {
+    cnpj: cnpjNums ? cnpjNums : null,
+    razaoSocial: normalizarOpcional(empresa.razaoSocial),
+    nomeFantasia: normalizarOpcional(empresa.nomeFantasia),
+    naturezaJuridica: normalizarOpcional(empresa.naturezaJuridica),
+    dataInicioAtividade: dataIso || null,
+    situacaoCadastral: situacao,
+    cep: normalizarOpcional(normalizarNum(empresa.cep || '')),
+    endereco: normalizarOpcional(empresa.endereco),
+    telefone: normalizarOpcional(empresa.telefone),
+    socios,
+  };
+
+  const temCampo = Object.values({ ...obj, socios: undefined }).some(v => v);
+  if (!temCampo && socios.length === 0) return undefined;
+  return obj;
 }
 
 // Validação de atualização de pessoa garantindo ao menos um campo.
@@ -175,6 +210,9 @@ function validarAtualizacaoPessoa(payload) {
   }
   if (payload.veiculos !== undefined) {
     atualizacoes.veiculos = validarVeiculos(payload.veiculos || []);
+  }
+  if (payload.empresa !== undefined) {
+    atualizacoes.empresa = validarEmpresa(payload.empresa);
   }
 
   // Validar índice do endereço atual
@@ -236,4 +274,5 @@ module.exports = {
   validarAtualizacaoPessoa,
   validarEnderecos,
   validarVeiculos,
+  validarEmpresa,
 };

@@ -78,6 +78,11 @@ class PessoaModel {
       }
     }
 
+    // Salvar empresa e sócios se fornecidos
+    if (dados.empresa && typeof dados.empresa === 'object') {
+      await this.upsertEmpresa(pessoa.id, dados.empresa);
+    }
+
     // Salvar veículos se fornecidos
     if (dados.veiculos && Array.isArray(dados.veiculos)) {
       for (const v of dados.veiculos) {
@@ -106,6 +111,7 @@ class PessoaModel {
       pessoa.emails = (await this.obterEmailsPorPessoa(pessoa.id)).map(e => e.email);
       pessoa.redesSociais = (await this.obterRedesPorPessoa(pessoa.id)).map(r => r.perfil);
       pessoa.veiculos = await this.obterVeiculosPorPessoa(pessoa.id);
+      pessoa.empresa = await this.obterEmpresaPorPessoa(pessoa.id);
     }
     
     return pessoas;
@@ -122,6 +128,7 @@ class PessoaModel {
       pessoa.emails = (await this.obterEmailsPorPessoa(id)).map(e => e.email);
       pessoa.redesSociais = (await this.obterRedesPorPessoa(id)).map(r => r.perfil);
       pessoa.veiculos = await this.obterVeiculosPorPessoa(id);
+      pessoa.empresa = await this.obterEmpresaPorPessoa(id);
     }
     
     return pessoa;
@@ -361,6 +368,91 @@ class PessoaModel {
     const db = await initDatabase();
     const resultado = await db.run('DELETE FROM veiculos WHERE id = ?', [veiculoId]);
     return resultado.changes > 0;
+  }
+
+  // Empresa e Sócios
+  static async obterEmpresaPorPessoa(pessoaId) {
+    const db = await initDatabase();
+    const empresa = await db.get('SELECT * FROM empresas WHERE pessoa_id = ?', [pessoaId]);
+    if (!empresa) return null;
+    const socios = await db.all('SELECT id, nome, cpf FROM socios WHERE empresa_id = ? ORDER BY criadoEm ASC', [empresa.id]);
+    return {
+      id: empresa.id,
+      cnpj: empresa.cnpj,
+      razaoSocial: empresa.razaoSocial,
+      nomeFantasia: empresa.nomeFantasia,
+      naturezaJuridica: empresa.naturezaJuridica,
+      dataInicioAtividade: empresa.dataInicioAtividade,
+      situacaoCadastral: empresa.situacaoCadastral,
+      cep: empresa.cep,
+      endereco: empresa.endereco,
+      telefone: empresa.telefone,
+      socios
+    };
+  }
+
+  static async upsertEmpresa(pessoaId, empresa) {
+    const db = await initDatabase();
+    const existente = await db.get('SELECT * FROM empresas WHERE pessoa_id = ?', [pessoaId]);
+    const agora = new Date().toISOString();
+    let empresaId;
+    if (!existente) {
+      empresaId = randomUUID();
+      await db.run(
+        `INSERT INTO empresas (id, pessoa_id, cnpj, razaoSocial, nomeFantasia, naturezaJuridica, dataInicioAtividade, situacaoCadastral, cep, endereco, telefone, criadoEm, atualizadoEm)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          empresaId,
+          pessoaId,
+          empresa.cnpj || null,
+          empresa.razaoSocial || null,
+          empresa.nomeFantasia || null,
+          empresa.naturezaJuridica || null,
+          empresa.dataInicioAtividade || null,
+          empresa.situacaoCadastral || null,
+          empresa.cep || null,
+          empresa.endereco || null,
+          empresa.telefone || null,
+          agora,
+          agora,
+        ]
+      );
+    } else {
+      empresaId = existente.id;
+      await db.run(
+        `UPDATE empresas SET cnpj = ?, razaoSocial = ?, nomeFantasia = ?, naturezaJuridica = ?, dataInicioAtividade = ?, situacaoCadastral = ?, cep = ?, endereco = ?, telefone = ?, atualizadoEm = ? WHERE id = ?`,
+        [
+          empresa.cnpj || null,
+          empresa.razaoSocial || null,
+          empresa.nomeFantasia || null,
+          empresa.naturezaJuridica || null,
+          empresa.dataInicioAtividade || null,
+          empresa.situacaoCadastral || null,
+          empresa.cep || null,
+          empresa.endereco || null,
+          empresa.telefone || null,
+          agora,
+          empresaId,
+        ]
+      );
+    }
+
+    // Substituir sócios
+    const sociosAtuais = await db.all('SELECT id FROM socios WHERE empresa_id = ?', [empresaId]);
+    for (const s of sociosAtuais) {
+      await db.run('DELETE FROM socios WHERE id = ?', [s.id]);
+    }
+    if (Array.isArray(empresa.socios)) {
+      for (const s of empresa.socios) {
+        const novoId = randomUUID();
+        await db.run(
+          `INSERT INTO socios (id, empresa_id, nome, cpf, criadoEm, atualizadoEm) VALUES (?, ?, ?, ?, ?, ?)`,
+          [novoId, empresaId, s.nome || null, s.cpf || null, agora, agora]
+        );
+      }
+    }
+
+    return this.obterEmpresaPorPessoa(pessoaId);
   }
 
   // Atualiza campos da pessoa (dados pessoais)

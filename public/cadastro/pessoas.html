@@ -203,8 +203,12 @@
                   <input class="form__input" type="text" name="empresa_endereco" />
                 </label>
                 <label class="form__field">
+                  <span class="form__label">CEP</span>
+                  <input class="form__input" type="text" name="empresa_cep" id="empresa-cep" inputmode="numeric" placeholder="00000-000" />
+                </label>
+                <label class="form__field">
                   <span class="form__label">Telefone</span>
-                  <input class="form__input" type="tel" name="empresa_telefone" />
+                  <input class="form__input" type="tel" name="empresa_telefone" id="empresa-telefone" placeholder="(00) 00000-0000" />
                 </label>
               </div>
 
@@ -339,6 +343,7 @@
           dataInicioAtividade: String(dados['empresa_dataInicioAtividade'] || '').trim(),
           situacaoCadastral: String(dados['empresa_situacaoCadastral'] || '').trim(),
           endereco: String(dados['empresa_endereco'] || '').trim(),
+          cep: String(dados['empresa_cep'] || '').trim(),
           telefone: String(dados['empresa_telefone'] || '').trim(),
           socios: (socios || []).map(s => ({ nome: String(s.nome||'').trim(), cpf: String(s.cpf||'').trim() }))
         };
@@ -632,6 +637,33 @@
         if (dig.length > 6) v = v.slice(0,7) + '.' + dig.slice(6);
         if (dig.length > 9) v = v.slice(0,11) + '-' + dig.slice(9);
         return v;
+      };
+
+      const aplicarMascaraTelefone = (valor) => {
+        const dig = String(valor || '').replace(/\D/g, '').slice(0, 11);
+        if (dig.length <= 10) {
+          return dig.replace(/(\d{0,2})(\d{0,4})(\d{0,4}).*/, function(_, a,b,c){
+            let r = '';
+            if (a) r += `(${a}` + (a.length===2?') ':'');
+            if (b) r += b + (b.length===4?'-':'');
+            if (c) r += c;
+            return r;
+          });
+        } else {
+          return dig.replace(/(\d{0,2})(\d{0,5})(\d{0,4}).*/, function(_, a,b,c){
+            let r = '';
+            if (a) r += `(${a}` + (a.length===2?') ':'');
+            if (b) r += b + (b.length===5?'-':'');
+            if (c) r += c;
+            return r;
+          });
+        }
+      };
+
+      const aplicarMascaraCep = (valor) => {
+        const dig = String(valor || '').replace(/\D/g, '').slice(0,8);
+        if (dig.length <= 5) return dig;
+        return dig.slice(0,5) + '-' + dig.slice(5);
       };
 
       const renderizarSocios = () => {
@@ -1060,6 +1092,32 @@
           veiculos = [];
         }
         renderizarVeiculos();
+
+        // Carrega empresa se existir
+        const cnpjEl = document.getElementById('empresa-cnpj');
+        if (pessoa.empresa) {
+          if (pessoaForm.elements['empresa_cnpj']) pessoaForm.elements['empresa_cnpj'].value = pessoa.empresa.cnpj || '';
+          if (pessoaForm.elements['empresa_razaoSocial']) pessoaForm.elements['empresa_razaoSocial'].value = pessoa.empresa.razaoSocial || '';
+          if (pessoaForm.elements['empresa_nomeFantasia']) pessoaForm.elements['empresa_nomeFantasia'].value = pessoa.empresa.nomeFantasia || '';
+          if (pessoaForm.elements['empresa_naturezaJuridica']) pessoaForm.elements['empresa_naturezaJuridica'].value = pessoa.empresa.naturezaJuridica || '';
+          if (pessoaForm.elements['empresa_dataInicioAtividade']) pessoaForm.elements['empresa_dataInicioAtividade'].value = pessoa.empresa.dataInicioAtividade || '';
+          if (pessoaForm.elements['empresa_situacaoCadastral']) pessoaForm.elements['empresa_situacaoCadastral'].value = pessoa.empresa.situacaoCadastral || '';
+          if (pessoaForm.elements['empresa_endereco']) pessoaForm.elements['empresa_endereco'].value = pessoa.empresa.endereco || '';
+          if (pessoaForm.elements['empresa_cep']) pessoaForm.elements['empresa_cep'].value = aplicarMascaraCep(pessoa.empresa.cep || '');
+          if (pessoaForm.elements['empresa_telefone']) pessoaForm.elements['empresa_telefone'].value = aplicarMascaraTelefone(pessoa.empresa.telefone || '');
+          socios = Array.isArray(pessoa.empresa.socios) ? JSON.parse(JSON.stringify(pessoa.empresa.socios)) : [];
+        } else {
+          if (pessoaForm.elements['empresa_cnpj']) pessoaForm.elements['empresa_cnpj'].value = '';
+          if (pessoaForm.elements['empresa_razaoSocial']) pessoaForm.elements['empresa_razaoSocial'].value = '';
+          if (pessoaForm.elements['empresa_nomeFantasia']) pessoaForm.elements['empresa_nomeFantasia'].value = '';
+          if (pessoaForm.elements['empresa_naturezaJuridica']) pessoaForm.elements['empresa_naturezaJuridica'].value = '';
+          if (pessoaForm.elements['empresa_dataInicioAtividade']) pessoaForm.elements['empresa_dataInicioAtividade'].value = '';
+          if (pessoaForm.elements['empresa_situacaoCadastral']) pessoaForm.elements['empresa_situacaoCadastral'].value = '';
+          if (pessoaForm.elements['empresa_endereco']) pessoaForm.elements['empresa_endereco'].value = '';
+          if (pessoaForm.elements['empresa_telefone']) pessoaForm.elements['empresa_telefone'].value = '';
+          socios = [];
+        }
+        renderizarSocios();
       };
 
 
@@ -1247,6 +1305,20 @@
           }
         }
 
+        // Valida CPFs dos sócios, se informados
+        if (payload.empresa && Array.isArray(payload.empresa.socios)) {
+          for (const s of payload.empresa.socios) {
+            const cpfSocio = (s.cpf || '').trim();
+            if (cpfSocio) {
+              const v = validarCpf(cpfSocio);
+              if (!v.valido) {
+                exibirMensagemForm(`CPF de sócio inválido: ${cpfSocio}`, 'error');
+                return;
+              }
+            }
+          }
+        }
+
         const metodo = pessoaEmEdicao ? 'PUT' : 'POST';
         const url = pessoaEmEdicao ? `${API_PESSOAS_URL}/${pessoaEmEdicao}` : API_PESSOAS_URL;
 
@@ -1320,6 +1392,8 @@
           renderizarRedes();
           veiculos = [];
           renderizarVeiculos();
+          socios = [];
+          renderizarSocios();
         });
         cpfInput?.addEventListener('input', aplicarMascaraCpf);
 
@@ -1340,6 +1414,22 @@
         // Event listener para adicionar novo veículo
         const adicionarVeiculoBtn = document.getElementById('adicionar-veiculo');
         adicionarVeiculoBtn?.addEventListener('click', adicionarVeiculo);
+
+        // Event listener para adicionar sócio
+        const adicionarSocioBtn = document.getElementById('adicionar-socio');
+        adicionarSocioBtn?.addEventListener('click', adicionarSocio);
+
+        // Máscara CNPJ
+        const cnpjInput = document.getElementById('empresa-cnpj');
+        cnpjInput?.addEventListener('input', (e) => { e.target.value = aplicarMascaraCnpj(e.target.value); });
+
+        // Máscara telefone empresa
+        const empTel = document.getElementById('empresa-telefone');
+        empTel?.addEventListener('input', (e) => { e.target.value = aplicarMascaraTelefone(e.target.value); });
+
+        // Máscara CEP empresa
+        const empCep = document.getElementById('empresa-cep');
+        empCep?.addEventListener('input', (e) => { e.target.value = aplicarMascaraCep(e.target.value); });
 
         renderizarTelefones();
         renderizarEmails();

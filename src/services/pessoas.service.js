@@ -93,6 +93,11 @@ async function atualizar(id, payload) {
     }
   }
 
+  // Processar empresa se fornecida no payload
+  if (payload.empresa && typeof payload.empresa === 'object') {
+    await PessoaModel.upsertEmpresa(id, payload.empresa);
+  }
+
   // Processar veículos se fornecidos no payload
   if (payload.veiculos && Array.isArray(payload.veiculos)) {
     const veiculosAtuais = await PessoaModel.obterVeiculosPorPessoa(id);

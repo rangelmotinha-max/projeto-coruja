@@ -141,6 +141,43 @@ async function runMigrations(db) {
     CREATE INDEX IF NOT EXISTS idx_redes_pessoa_id ON redes_sociais(pessoa_id)
   `);
 
+  // Tabela de dados de empresa (1:1) com pessoa
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS empresas (
+      id TEXT PRIMARY KEY,
+      pessoa_id TEXT NOT NULL UNIQUE,
+      cnpj TEXT,
+      razaoSocial TEXT,
+      nomeFantasia TEXT,
+      naturezaJuridica TEXT,
+      dataInicioAtividade TEXT,
+      situacaoCadastral TEXT,
+      cep TEXT,
+      endereco TEXT,
+      telefone TEXT,
+      criadoEm TEXT NOT NULL,
+      atualizadoEm TEXT NOT NULL,
+      FOREIGN KEY (pessoa_id) REFERENCES pessoas(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Sócios da empresa (1:N)
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS socios (
+      id TEXT PRIMARY KEY,
+      empresa_id TEXT NOT NULL,
+      nome TEXT,
+      cpf TEXT,
+      criadoEm TEXT NOT NULL,
+      atualizadoEm TEXT NOT NULL,
+      FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE
+    )
+  `);
+
+  await db.run(`
+    CREATE INDEX IF NOT EXISTS idx_socios_empresa_id ON socios(empresa_id)
+  `);
+
   // Tabela de veículos com relacionamento 1:N com pessoas
   await db.run(`
     CREATE TABLE IF NOT EXISTS veiculos (
@@ -190,6 +227,17 @@ async function runMigrations(db) {
     `);
   } catch (err) {
     // Coluna já existe, ignorar erro
+    if (!err.message.includes('duplicate column name')) {
+      throw err;
+    }
+  }
+
+  // Adicionar coluna cep na tabela empresas caso não exista
+  try {
+    await db.run(`
+      ALTER TABLE empresas ADD COLUMN cep TEXT
+    `);
+  } catch (err) {
     if (!err.message.includes('duplicate column name')) {
       throw err;
     }
