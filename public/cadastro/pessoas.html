@@ -260,6 +260,40 @@
               </div>
             </div>
 
+            <!-- Seção 6: Ocorrências -->
+            <div class="form__section">
+              <div class="form__section-header">
+                <h3 class="form__section-title" style="text-align: center; width: 100%;">Ocorrências</h3>
+              </div>
+
+              <!-- Sub-seção: Ocorrências Policiais -->
+              <div class="form__subsection">
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin: 0.75rem 0;">
+                  <h4 class="form__section-title" style="font-size: 1rem; margin: 0;">Ocorrências Policiais</h4>
+                  <button class="button button--secondary" id="adicionar-ocorrencia-policial" type="button" aria-label="Adicionar ocorrência policial" title="Adicionar">+</button>
+                </div>
+                <div id="lista-ocorrencias-policiais" style="display:flex; flex-direction:column; gap:0.5rem;"></div>
+              </div>
+
+              <!-- Sub-seção: Processos -->
+              <div class="form__subsection">
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin: 0.75rem 0;">
+                  <h4 class="form__section-title" style="font-size: 1rem; margin: 0;">Processos</h4>
+                  <button class="button button--secondary" id="adicionar-processo" type="button" aria-label="Adicionar processo" title="Adicionar">+</button>
+                </div>
+                <div id="lista-processos" style="display:flex; flex-direction:column; gap:0.5rem;"></div>
+              </div>
+
+              <!-- Sub-seção: Abordagens -->
+              <div class="form__subsection">
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin: 0.75rem 0;">
+                  <h4 class="form__section-title" style="font-size: 1rem; margin: 0;">Abordagens</h4>
+                  <button class="button button--secondary" id="adicionar-abordagem" type="button" aria-label="Adicionar abordagem" title="Adicionar">+</button>
+                </div>
+                <div id="lista-abordagens" style="display:flex; flex-direction:column; gap:0.5rem;"></div>
+              </div>
+            </div>
+
             <div class="form__actions">
               <button class="button button--secondary" type="reset">Limpar</button>
               <button class="button button--ghost" id="listar-pessoas" type="button">Listar</button>
@@ -428,6 +462,28 @@
           .filter(Boolean);
         if (vincVeic.length) vinculosObj.veiculos = vincVeic;
         dados.vinculos = Object.keys(vinculosObj).length ? vinculosObj : undefined;
+
+        // Montar ocorrências
+        const ocorrenciasObj = {};
+        const occPol = (ocorrenciasPoliciais || []).map(o => {
+          const data = String(o?.data || '').trim();
+          const info = String(o?.info || '').trim();
+          return (data || info) ? { data, info } : null;
+        }).filter(Boolean);
+        const procList = (processos || []).map(p => {
+          const data = String(p?.data || '').trim();
+          const info = String(p?.info || '').trim();
+          return (data || info) ? { data, info } : null;
+        }).filter(Boolean);
+        const abordList = (abordagens || []).map(a => {
+          const data = String(a?.data || '').trim();
+          const info = String(a?.info || '').trim();
+          return (data || info) ? { data, info } : null;
+        }).filter(Boolean);
+        if (occPol.length) ocorrenciasObj.policiais = occPol;
+        if (procList.length) ocorrenciasObj.processos = procList;
+        if (abordList.length) ocorrenciasObj.abordagens = abordList;
+        dados.ocorrencias = Object.keys(ocorrenciasObj).length ? ocorrenciasObj : undefined;
         
         return dados;
       };
@@ -519,6 +575,9 @@
       let vinculosEmpresas = [];
       let vinculosEntidades = [];
       let vinculosVeiculos = [];
+      let ocorrenciasPoliciais = [];
+      let processos = [];
+      let abordagens = [];
 
       const renderizarTelefones = () => {
         const listaTelefonesEl = document.getElementById('lista-telefones');
@@ -1072,6 +1131,48 @@
         renderizarVinculosVeiculos();
       };
 
+      const renderizarLinhaDataInfo = (arrRef, listaElId, labelData = 'Data', placeholderInfo = 'Informação') => {
+        const lista = document.getElementById(listaElId);
+        if (!lista) return;
+        lista.innerHTML = '';
+        if (arrRef.length === 0) {
+          lista.innerHTML = '<p style="color: var(--muted); font-size: 0.85rem; margin: 0;">Nenhum item adicionado. Clique para adicionar.</p>';
+          return;
+        }
+        arrRef.forEach((item, i) => {
+          const linha = document.createElement('div');
+          linha.style.cssText = 'display:grid; grid-template-columns: 12rem 1fr auto; gap:0.5rem; align-items:end;';
+          linha.innerHTML = `
+            <label class="form__field">
+              <span class="form__label">${labelData}</span>
+              <input class="form__input occ-data" type="date" data-index="${i}" />
+            </label>
+            <label class="form__field">
+              <span class="form__label">${placeholderInfo}</span>
+              <input class="form__input occ-info" type="text" data-index="${i}" placeholder="${placeholderInfo}" />
+            </label>
+            <button class="button button--danger" type="button" title="Excluir" aria-label="Remover">−</button>
+          `;
+          const dataEl = linha.querySelector('.occ-data');
+          const infoEl = linha.querySelector('.occ-info');
+          const btn = linha.querySelector('button');
+          dataEl.value = String(item?.data || '');
+          infoEl.value = String(item?.info || '');
+          dataEl.addEventListener('input', (e) => { arrRef[i].data = e.target.value; });
+          infoEl.addEventListener('input', (e) => { arrRef[i].info = e.target.value; });
+          btn.addEventListener('click', () => { arrRef.splice(i,1); renderizarLinhaDataInfo(arrRef, listaElId, labelData, placeholderInfo); });
+          lista.appendChild(linha);
+        });
+      };
+
+      const renderizarOcorrenciasPoliciais = () => renderizarLinhaDataInfo(ocorrenciasPoliciais, 'lista-ocorrencias-policiais', 'Data', 'Informação');
+      const renderizarProcessos = () => renderizarLinhaDataInfo(processos, 'lista-processos', 'Data', 'Informação');
+      const renderizarAbordagens = () => renderizarLinhaDataInfo(abordagens, 'lista-abordagens', 'Data', 'Informação');
+
+      const adicionarOcorrenciaPolicial = () => { ocorrenciasPoliciais.push({ data: '', info: '' }); renderizarOcorrenciasPoliciais(); };
+      const adicionarProcesso = () => { processos.push({ data: '', info: '' }); renderizarProcessos(); };
+      const adicionarAbordagem = () => { abordagens.push({ data: '', info: '' }); renderizarAbordagens(); };
+
       const createEstadosSelect = () => {
         return `<option value="">Selecione</option>
                     <option value="AC">Acre (AC)</option>
@@ -1430,6 +1531,20 @@
           vinculosVeiculos = [];
         }
         renderizarVinculosVeiculos();
+
+        // Carrega ocorrências
+        if (pessoa.ocorrencias) {
+          ocorrenciasPoliciais = Array.isArray(pessoa.ocorrencias.policiais) ? JSON.parse(JSON.stringify(pessoa.ocorrencias.policiais)) : [];
+          processos = Array.isArray(pessoa.ocorrencias.processos) ? JSON.parse(JSON.stringify(pessoa.ocorrencias.processos)) : [];
+          abordagens = Array.isArray(pessoa.ocorrencias.abordagens) ? JSON.parse(JSON.stringify(pessoa.ocorrencias.abordagens)) : [];
+        } else {
+          ocorrenciasPoliciais = [];
+          processos = [];
+          abordagens = [];
+        }
+        renderizarOcorrenciasPoliciais();
+        renderizarProcessos();
+        renderizarAbordagens();
       };
 
 
@@ -1728,6 +1843,12 @@
           renderizarVinculosEntidades();
           vinculosVeiculos = [];
           renderizarVinculosVeiculos();
+          ocorrenciasPoliciais = [];
+          renderizarOcorrenciasPoliciais();
+          processos = [];
+          renderizarProcessos();
+          abordagens = [];
+          renderizarAbordagens();
         });
         cpfInput?.addEventListener('input', aplicarMascaraCpf);
 
@@ -1769,6 +1890,14 @@
         const addVincVeicBtn = document.getElementById('adicionar-vinculo-veiculo');
         addVincVeicBtn?.addEventListener('click', adicionarVinculoVeiculo);
 
+        // Event listeners para Ocorrências
+        const addOccPolBtn = document.getElementById('adicionar-ocorrencia-policial');
+        addOccPolBtn?.addEventListener('click', adicionarOcorrenciaPolicial);
+        const addProcBtn = document.getElementById('adicionar-processo');
+        addProcBtn?.addEventListener('click', adicionarProcesso);
+        const addAbordBtn = document.getElementById('adicionar-abordagem');
+        addAbordBtn?.addEventListener('click', adicionarAbordagem);
+
         // Máscara CNPJ
         const cnpjInput = document.getElementById('empresa-cnpj');
         cnpjInput?.addEventListener('input', (e) => { e.target.value = aplicarMascaraCnpj(e.target.value); });
@@ -1789,6 +1918,9 @@
         renderizarVinculosEmpresas();
         renderizarVinculosEntidades();
         renderizarVinculosVeiculos();
+        renderizarOcorrenciasPoliciais();
+        renderizarProcessos();
+        renderizarAbordagens();
         // Lista fica oculta até o usuário clicar em "Listar"
       };
 
