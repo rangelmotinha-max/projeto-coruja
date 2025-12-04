@@ -22,7 +22,7 @@ app.get('/home', authMiddleware, (req, res) => {
 });
 
 app.get('/perfil', authMiddleware, (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'perfil.html'));
+  res.redirect('/home');
 });
 
 // Rota protegida garantindo acesso autenticado à página de Usuários
