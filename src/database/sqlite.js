@@ -260,6 +260,26 @@ async function runMigrations(db) {
       throw err;
     }
   }
+
+  // Adicionar colunas JSON para vinculos e ocorrencias na tabela pessoas
+  try {
+    await db.run(`
+      ALTER TABLE pessoas ADD COLUMN vinculos_json TEXT
+    `);
+  } catch (err) {
+    if (!err.message.includes('duplicate column name')) {
+      throw err;
+    }
+  }
+  try {
+    await db.run(`
+      ALTER TABLE pessoas ADD COLUMN ocorrencias_json TEXT
+    `);
+  } catch (err) {
+    if (!err.message.includes('duplicate column name')) {
+      throw err;
+    }
+  }
 }
 
 async function initDatabase() {
