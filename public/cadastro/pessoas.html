@@ -98,7 +98,7 @@
               <div class="form__subsection">
                 <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 0.5rem;">
                   <h4 class="form__section-title" style="font-size: 1rem; margin: 0; text-align: left; width: 100%;">Telefone</h4>
-                  <button class="button button--secondary" id="adicionar-telefone" type="button">+ Adicionar telefone</button>
+                  <button class="button button--secondary" id="adicionar-telefone" type="button" aria-label="Adicionar telefone" title="Adicionar">+</button>
                 </div>
                 <div id="lista-telefones" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
               </div>
@@ -107,7 +107,7 @@
               <div class="form__subsection">
                 <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin: 0.75rem 0;">
                   <h4 class="form__section-title" style="font-size: 1rem; margin: 0; text-align: left; width: 100%;">Email</h4>
-                  <button class="button button--secondary" id="adicionar-email" type="button">+ Adicionar email</button>
+                  <button class="button button--secondary" id="adicionar-email" type="button" aria-label="Adicionar email" title="Adicionar">+</button>
                 </div>
                 <div id="lista-emails" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
               </div>
@@ -116,7 +116,7 @@
               <div class="form__subsection">
                 <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin: 0.75rem 0;">
                   <h4 class="form__section-title" style="font-size: 1rem; margin: 0; text-align: left; width: 100%;">Redes Sociais</h4>
-                  <button class="button button--secondary" id="adicionar-rede" type="button">+ Adicionar rede</button>
+                  <button class="button button--secondary" id="adicionar-rede" type="button" aria-label="Adicionar rede social" title="Adicionar">+</button>
                 </div>
                 <div id="lista-redes" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
               </div>
@@ -127,7 +127,7 @@
               <div class="form__section-header">
                 <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                   <h3 class="form__section-title" style="text-align: center; width: 100%;">Endereços</h3>
-                  <button class="button button--secondary" id="adicionar-endereco" type="button">+ Adicionar endereço</button>
+                  <button class="button button--secondary" id="adicionar-endereco" type="button" aria-label="Adicionar endereço" title="Adicionar">+</button>
                 </div>
               </div>
               <div id="lista-enderecos" class="enderecos-lista"></div>
@@ -323,7 +323,9 @@
           const btnRemover = document.createElement('button');
           btnRemover.type = 'button';
           btnRemover.className = 'button button--danger';
-          btnRemover.textContent = 'Remover';
+          btnRemover.textContent = '−';
+          btnRemover.setAttribute('aria-label', 'Remover telefone');
+          btnRemover.title = 'Excluir';
           btnRemover.style.padding = '0.25rem 0.5rem';
           btnRemover.style.fontSize = '0.75rem';
           btnRemover.style.minWidth = 'fit-content';
@@ -371,7 +373,9 @@
           const btnRemover = document.createElement('button');
           btnRemover.type = 'button';
           btnRemover.className = 'button button--danger';
-          btnRemover.textContent = 'Remover';
+          btnRemover.textContent = '−';
+          btnRemover.setAttribute('aria-label', 'Remover email');
+          btnRemover.title = 'Excluir';
           btnRemover.style.padding = '0.25rem 0.5rem';
           btnRemover.style.fontSize = '0.75rem';
           btnRemover.style.minWidth = 'fit-content';
@@ -419,7 +423,9 @@
           const btnRemover = document.createElement('button');
           btnRemover.type = 'button';
           btnRemover.className = 'button button--danger';
-          btnRemover.textContent = 'Remover';
+          btnRemover.textContent = '−';
+          btnRemover.setAttribute('aria-label', 'Remover rede social');
+          btnRemover.title = 'Excluir';
           btnRemover.style.padding = '0.25rem 0.5rem';
           btnRemover.style.fontSize = '0.75rem';
           btnRemover.style.minWidth = 'fit-content';
@@ -515,8 +521,10 @@
           const removerBtn = document.createElement('button');
           removerBtn.type = 'button';
           removerBtn.className = 'button button--danger';
-          removerBtn.textContent = 'Remover';
-          removerBtn.style.cssText = 'padding: 0.5rem 1rem; font-size: 0.875rem;';
+          removerBtn.textContent = '−';
+          removerBtn.setAttribute('aria-label', 'Remover endereço');
+          removerBtn.title = 'Excluir';
+          removerBtn.style.cssText = 'padding: 0.25rem 0.5rem; font-size: 0.75rem; min-width: fit-content;';
           removerBtn.addEventListener('click', () => {
             enderecos.splice(indiceOrdenado, 1);
             if (indicadorEnderecoAtual === indiceOrdenado) {
@@ -820,7 +828,9 @@
           const excluirBtn = document.createElement('button');
           excluirBtn.type = 'button';
           excluirBtn.className = 'button button--danger';
-          excluirBtn.textContent = 'Excluir';
+          excluirBtn.textContent = '−';
+          excluirBtn.title = 'Excluir';
+          excluirBtn.setAttribute('aria-label', 'Excluir');
           excluirBtn.addEventListener('click', async () => {
             if (!confirm('Deseja realmente excluir este registro?')) return;
             try {
