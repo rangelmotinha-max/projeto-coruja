@@ -34,6 +34,7 @@
 
   let usuarioEmEdicao = null;
   let ultimaAcaoFoiEdicao = false;
+  let ultimaAcaoFoiInclusao = false;
 
   const setMessage = (text, type = 'info') => {
     if (!alertContainer) return;
@@ -319,8 +320,11 @@
       paginaAtual = 1;
       renderizarPaginaAtual();
       if (ultimaAcaoFoiEdicao) {
-        setMessage('Alteração realizada com sucesso!', 'success');
+        setMessage('Alterações realizadas com sucesso!', 'success');
         ultimaAcaoFoiEdicao = false;
+      } else if (ultimaAcaoFoiInclusao) {
+        setMessage('usuário incluido com sucesso', 'success');
+        ultimaAcaoFoiInclusao = false;
       } else {
         setMessage('Lista atualizada.', 'success');
       }
@@ -385,8 +389,9 @@
       try {
         document.dispatchEvent(new Event('usuario:salvo'));
       } catch (e) {}
-      setMessage(usuarioEmEdicao ? 'Alteração realizada com sucesso!' : 'Registro incluído com sucesso!', 'success');
+      setMessage(usuarioEmEdicao ? 'Alterações realizadas com sucesso!' : 'usuário incluido com sucesso', 'success');
       ultimaAcaoFoiEdicao = Boolean(usuarioEmEdicao);
+      ultimaAcaoFoiInclusao = !usuarioEmEdicao;
       resetarFormulario();
       await carregarUsuarios();
     } catch (error) {
