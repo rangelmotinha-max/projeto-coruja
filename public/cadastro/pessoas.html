@@ -392,12 +392,15 @@
           nome: String(v.nome||'').trim(),
           cpf: String(v.cpf||'').trim(),
           tipo: String(v.tipo||'').trim(),
-        })).filter(v => v.nome || v.cpf || v.tipo);
+          obs: String(v.obs||'').trim(),
+        })).filter(v => v.nome || v.cpf || v.tipo || v.obs);
         const empresasVinc = (vinculosEmpresas || []).map(v => ({
           nome: String(v.nome||'').trim(),
           cnpj: String(v.cnpj||'').trim(),
-        })).filter(v => v.nome || v.cnpj);
-        dados.vinculos = (pessoasVinc.length || empresasVinc.length) ? { pessoas: pessoasVinc, empresas: empresasVinc } : undefined;
+          obs: String(v.obs||'').trim(),
+        })).filter(v => v.nome || v.cnpj || v.obs);
+        const entidadesObsVal = (document.getElementById('vinculos-entidades-obs')?.value || '').trim();
+        dados.vinculos = (pessoasVinc.length || empresasVinc.length || entidadesObsVal.length) ? { pessoas: pessoasVinc, empresas: empresasVinc, entidadesObs: entidadesObsVal || undefined } : undefined;
         
         return dados;
       };
@@ -486,6 +489,8 @@
       let veiculos = [];
       let socios = [];
       let vinculosPessoas = [];
+      let vinculosEmpresas = [];
+      let vinculosEntidadesObs = '';
 
       const renderizarTelefones = () => {
         const listaTelefonesEl = document.getElementById('lista-telefones');
@@ -537,74 +542,93 @@
         renderizarTelefones();
       };
 
-      const renderizarEmails = () => {
-        const listaEmailsEl = document.getElementById('lista-emails');
-        if (!listaEmailsEl) return;
-        listaEmailsEl.innerHTML = '';
+      const renderizarVeiculos = () => {
+        const listaVeiculosEl = document.getElementById('lista-veiculos');
+        if (!listaVeiculosEl) return;
+        listaVeiculosEl.innerHTML = '';
 
-        if (emails.length === 0) {
-          listaEmailsEl.innerHTML = '<p style="color: var(--muted); font-size: 0.85rem; margin: 0;">Nenhum email adicionado. Clique para adicionar.</p>';
+        if (veiculos.length === 0) {
+          listaVeiculosEl.innerHTML = '<p style="color: var(--muted); margin: 1rem 0;">Nenhum veículo adicionado. Clique no botão para adicionar.</p>';
           return;
         }
 
-        emails.forEach((email, indice) => {
-          const linha = document.createElement('div');
-          linha.style.display = 'flex';
-          linha.style.gap = '0.5rem';
-          linha.style.alignItems = 'center';
+        veiculos.forEach((veiculo, indice) => {
+          const div = document.createElement('div');
+          div.style.cssText = 'border: 1px solid var(--border); border-radius: 0.5rem; padding: 1rem; margin-bottom: 0.75rem; background: var(--surface-muted);';
 
-          const input = document.createElement('input');
-          input.type = 'email';
-          input.className = 'form__input';
-          input.value = email;
-          input.placeholder = 'seuemail@exemplo.com';
-          input.addEventListener('input', (e) => {
-            emails[indice] = e.target.value;
+          const header = document.createElement('div');
+          header.style.cssText = 'display:flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;';
+          const titulo = document.createElement('span');
+          titulo.style.cssText = 'font-weight:600; color: var(--text);';
+          titulo.textContent = `Veículo ${indice + 1}`;
+          const removerBtn = document.createElement('button');
+          removerBtn.type = 'button';
+          removerBtn.className = 'button button--danger';
+          removerBtn.textContent = '−';
+          removerBtn.title = 'Excluir';
+          removerBtn.setAttribute('aria-label', 'Remover veículo');
+          removerBtn.style.cssText = 'padding: 0.25rem 0.5rem; font-size: 0.75rem; min-width: fit-content;';
+          removerBtn.addEventListener('click', () => {
+            veiculos.splice(indice, 1);
+            renderizarVeiculos();
           });
-          linha.appendChild(input);
+          header.appendChild(titulo);
+          header.appendChild(removerBtn);
+          div.appendChild(header);
 
-          const btnRemover = document.createElement('button');
-          btnRemover.type = 'button';
-          btnRemover.className = 'button button--danger';
-          btnRemover.textContent = '−';
-          btnRemover.setAttribute('aria-label', 'Remover email');
-          btnRemover.title = 'Excluir';
-          btnRemover.style.padding = '0.25rem 0.5rem';
-          btnRemover.style.fontSize = '0.75rem';
-          btnRemover.style.minWidth = 'fit-content';
-          btnRemover.addEventListener('click', () => {
-            emails.splice(indice, 1);
-            renderizarEmails();
+          const grid = document.createElement('div');
+          grid.className = 'form__grid form__grid--4';
+          grid.innerHTML = `
+            <label class="form__field form__field--wide">
+              <span class="form__label">Marca/Modelo</span>
+              <input class="form__input veic-marcaModelo" type="text" data-index="${indice}" placeholder="Ex: VW Gol 1.6" />
+            </label>
+            <label class="form__field">
+              <span class="form__label">Placa</span>
+              <input class="form__input veic-placa" type="text" data-index="${indice}" placeholder="ABC1D23" />
+            </label>
+            <label class="form__field">
+              <span class="form__label">Cor</span>
+              <input class="form__input veic-cor" type="text" data-index="${indice}" placeholder="Cor" />
+            </label>
+            <label class="form__field">
+              <span class="form__label">Ano/Modelo</span>
+              <input class="form__input veic-anoModelo" type="text" inputmode="numeric" data-index="${indice}" placeholder="AAAA" />
+            </label>
+            <label class="form__field form__field--wide">
+              <span class="form__label">Obs:</span>
+              <input class="form__input veic-obs" type="text" data-index="${indice}" placeholder="Observações sobre o veículo" />
+            </label>
+          `;
+
+          grid.querySelector('.veic-marcaModelo').value = veiculo.marcaModelo || '';
+          grid.querySelector('.veic-placa').value = veiculo.placa || '';
+          grid.querySelector('.veic-cor').value = veiculo.cor || '';
+          grid.querySelector('.veic-anoModelo').value = veiculo.anoModelo || '';
+          grid.querySelector('.veic-obs').value = veiculo.obs || '';
+
+          grid.querySelector('.veic-marcaModelo').addEventListener('input', (e) => {
+            veiculos[indice].marcaModelo = e.target.value;
           });
-          linha.appendChild(btnRemover);
+          grid.querySelector('.veic-placa').addEventListener('input', (e) => {
+            veiculos[indice].placa = String(e.target.value || '').toUpperCase();
+            e.target.value = veiculos[indice].placa;
+          });
+          grid.querySelector('.veic-cor').addEventListener('input', (e) => {
+            veiculos[indice].cor = e.target.value;
+          });
+          grid.querySelector('.veic-anoModelo').addEventListener('input', (e) => {
+            veiculos[indice].anoModelo = e.target.value.replace(/\D/g, '').slice(0, 4);
+            e.target.value = veiculos[indice].anoModelo;
+          });
+          grid.querySelector('.veic-obs').addEventListener('input', (e) => {
+            veiculos[indice].obs = e.target.value;
+          });
 
-          listaEmailsEl.appendChild(linha);
+          div.appendChild(grid);
+          listaVeiculosEl.appendChild(div);
         });
       };
-
-      const adicionarEmail = () => {
-        emails.push('');
-        renderizarEmails();
-      };
-
-      const renderizarRedes = () => {
-        const listaRedesEl = document.getElementById('lista-redes');
-        if (!listaRedesEl) return;
-        listaRedesEl.innerHTML = '';
-
-        if (redes.length === 0) {
-          listaRedesEl.innerHTML = '<p style="color: var(--muted); font-size: 0.85rem; margin: 0;">Nenhuma rede adicionada. Clique para adicionar.</p>';
-          return;
-        }
-
-        redes.forEach((rede, indice) => {
-          const linha = document.createElement('div');
-          linha.style.display = 'flex';
-          linha.style.gap = '0.5rem';
-          linha.style.alignItems = 'center';
-
-          const partes = String(rede).split('|');
-          const valorTipo = (partes[0] || '').trim();
           const valorPerfil = (partes[1] || '').trim();
 
           const select = document.createElement('select');
@@ -772,22 +796,26 @@
               <input class="form__input vpc-cpf" type="text" data-index="${i}" placeholder="000.000.000-00" />
               <span class="form__error vpc-erro-cpf" style="display:none;">CPF inválido</span>
             </label>
-            <label class="form__field">
-              <span class="form__label">Tipo</span>
-              <select class="form__input vpc-tipo" data-index="${i}">
-                <option value="">Selecione</option>
-                <option>Esposa(o)</option>
-                <option>Filho(a)</option>
-                ion>Amigo(a)</option>
-                <option>Irmão(a)</option>
-                <option>Sócio(a)</option>
-                <option>Namorado(a)</option>
-                <option>Primo(a)</option>
-                <option>Tio(a)</option>
-                <option>Avô(ó)</option>
-              </select>
-            </label>
-            <button class="button button--danger" type="button" title="Excluir" aria-label="Remover vínculo">−</button>
+              <label class="form__field">
+                <span class="form__label">Tipo</span>
+                <select class="form__input vpc-tipo" data-index="${i}">
+                  <option value="">Selecione</option>
+                  <option>Esposa(o)</option>
+                  <option>Filho(a)</option>
+                  <option>Amigo</option>
+                  <option>Irmão(a)</option>
+                  <option>Sócio(a)</option>
+                  <option>Namorado(a)</option>
+                  <option>Primo(a)</option>
+                  <option>Tio(a)</option>
+                  <option>Avô(ó)</option>
+                </select>
+              </label>
+              <button class="button button--danger" type="button" title="Excluir" aria-label="Remover vínculo">−</button>
+              <label class="form__field" style="grid-column: 1 / -1;">
+                <span class="form__label">Obs:</span>
+                <input class="form__input vpc-obs" type="text" data-index="${i}" />
+              </label>
           `;
           const nomeEl = linha.querySelector('.vpc-nome');
           const cpfEl = linha.querySelector('.vpc-cpf');
@@ -810,13 +838,16 @@
           cpfEl.addEventListener('input', (e) => { vinculosPessoas[i].cpf = aplicarMascaraCpfInline(e.target.value); e.target.value = vinculosPessoas[i].cpf; validarInline(); });
           cpfEl.addEventListener('blur', validarInline);
           tipoEl.addEventListener('change', (e) => { vinculosPessoas[i].tipo = e.target.value; });
+          const obsEl = linha.querySelector('.vpc-obs');
+          obsEl.value = v.obs || '';
+          obsEl.addEventListener('input', (e) => { vinculosPessoas[i].obs = e.target.value; });
           btn.addEventListener('click', () => { vinculosPessoas.splice(i,1); renderizarVinculosPessoas(); });
           lista.appendChild(linha);
         });
       };
 
       const adicionarVinculoPessoa = () => {
-        vinculosPessoas.push({ nome: '', cpf: '', tipo: '' });
+        vinculosPessoas.push({ nome: '', cpf: '', tipo: '', obs: '' });
         renderizarVinculosPessoas();
       };
 
@@ -836,11 +867,15 @@
               <span class="form__label">Nome da Empresa</span>
               <input class="form__input vemp-nome" type="text" data-index="${i}" />
             </label>
-            <label class="form__field">
-              <span class="form__label">CNPJ</span>
-              <input class="form__input vemp-cnpj" type="text" data-index="${i}" placeholder="00.000.000/0000-00" />
-            </label>
-            <button class="button button--danger" type="button" title="Excluir" aria-label="Remover vínculo empresa">−</button>
+              <label class="form__field">
+                <span class="form__label">CNPJ</span>
+                <input class="form__input vemp-cnpj" type="text" data-index="${i}" placeholder="00.000.000/0000-00" />
+              </label>
+              <button class="button button--danger" type="button" title="Excluir" aria-label="Remover vínculo empresa">−</button>
+              <label class="form__field" style="grid-column: 1 / -1;">
+                <span class="form__label">Obs:</span>
+                <input class="form__input vemp-obs" type="text" data-index="${i}" />
+              </label>
           `;
           const nomeEl = linha.querySelector('.vemp-nome');
           const cnpjEl = linha.querySelector('.vemp-cnpj');
@@ -849,13 +884,16 @@
           cnpjEl.value = aplicarMascaraCnpj(v.cnpj || '');
           nomeEl.addEventListener('input', (e) => { vinculosEmpresas[i].nome = e.target.value; });
           cnpjEl.addEventListener('input', (e) => { vinculosEmpresas[i].cnpj = aplicarMascaraCnpj(e.target.value); e.target.value = vinculosEmpresas[i].cnpj; });
+          const obsEmpEl = linha.querySelector('.vemp-obs');
+          obsEmpEl.value = v.obs || '';
+          obsEmpEl.addEventListener('input', (e) => { vinculosEmpresas[i].obs = e.target.value; });
           btn.addEventListener('click', () => { vinculosEmpresas.splice(i,1); renderizarVinculosEmpresas(); });
           lista.appendChild(linha);
         });
       };
 
       const adicionarVinculoEmpresa = () => {
-        vinculosEmpresas.push({ nome: '', cnpj: '' });
+        vinculosEmpresas.push({ nome: '', cnpj: '', obs: '' });
         renderizarVinculosEmpresas();
       };
 
@@ -871,16 +909,20 @@
 
         veiculos.forEach((veiculo, indice) => {
           const div = document.createElement('div');
-          div.className = 'veiculo-item';
+            const grid = document.createElement('div');
           div.style.cssText = 'border: 1px solid var(--border); border-radius: 0.5rem; padding: 1rem; margin-bottom: 0.75rem; background: var(--surface-muted);';
 
           const header = document.createElement('div');
           header.style.cssText = 'display:flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;';
-          const titulo = document.createElement('span');
+            grid.querySelector('.veic-anoModelo').value = veiculo.anoModelo || '';
+            grid.querySelector('.veic-obs').value = veiculo.obs || '';
           titulo.style.cssText = 'font-weight:600; color: var(--text);';
           titulo.textContent = `Veículo ${indice + 1}`;
           const removerBtn = document.createElement('button');
           removerBtn.type = 'button';
+            grid.querySelector('.veic-obs').addEventListener('input', (e) => {
+              veiculos[indice].obs = e.target.value;
+            });
           removerBtn.className = 'button button--danger';
           removerBtn.textContent = '−';
           removerBtn.title = 'Excluir';
