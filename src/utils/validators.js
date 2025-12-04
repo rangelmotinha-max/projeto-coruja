@@ -78,6 +78,7 @@ function validarCadastroPessoa(payload) {
   const veiculosArray = validarVeiculos(payload.veiculos || []);
   const empresaObj = validarEmpresa(payload.empresa);
   const vinculosObj = validarVinculos(payload.vinculos);
+  const ocorrenciasObj = validarOcorrencias(payload.ocorrencias);
 
   const primeiroTelefone = payload.telefone ? normalizarOpcional(payload.telefone) : (telefonesArray[0] || null);
 
@@ -99,6 +100,7 @@ function validarCadastroPessoa(payload) {
     veiculos: veiculosArray,
     empresa: empresaObj,
     vinculos: vinculosObj,
+    ocorrencias: ocorrenciasObj,
   };
 }
 
@@ -175,8 +177,41 @@ function validarVinculos(vinculos) {
     cpf: normalizarOpcional((p.cpf || '').replace(/\D/g, '')),
     tipo: normalizarOpcional(p.tipo),
   })).filter(p => p.nome || p.cpf || p.tipo) : [];
-  if (pessoas.length === 0) return undefined;
-  return { pessoas };
+  const empresas = Array.isArray(vinculos.empresas) ? vinculos.empresas.map(e => ({
+    nome: normalizarOpcional(e.nome),
+    observacoes: normalizarOpcional(e.observacoes),
+  })).filter(e => e.nome || e.observacoes) : [];
+  const entidades = Array.isArray(vinculos.entidades) ? vinculos.entidades.map(e => ({
+    nome: normalizarOpcional(e.nome),
+    observacoes: normalizarOpcional(e.observacoes),
+  })).filter(e => e.nome || e.observacoes) : [];
+  const veiculos = Array.isArray(vinculos.veiculos) ? vinculos.veiculos.map(v => ({
+    marcaModelo: normalizarOpcional(v.marcaModelo),
+    placa: normalizarOpcional(v.placa ? String(v.placa).toUpperCase() : v.placa),
+    cor: normalizarOpcional(v.cor),
+    anoModelo: normalizarOpcional(v.anoModelo ? String(v.anoModelo).replace(/\D/g, '').slice(0,4) : v.anoModelo),
+  })).filter(v => v.marcaModelo || v.placa || v.cor || v.anoModelo) : [];
+  const empregaticio = Array.isArray(vinculos.empregaticio) ? vinculos.empregaticio.map(e => ({
+    info: normalizarOpcional(e.info),
+  })).filter(e => e.info) : [];
+  const temAlgum = pessoas.length || empresas.length || entidades.length || veiculos.length || empregaticio.length;
+  if (!temAlgum) return undefined;
+  return { pessoas, empresas, entidades, veiculos, empregaticio };
+}
+
+function validarOcorrencias(ocorrencias) {
+  if (!ocorrencias || typeof ocorrencias !== 'object') return undefined;
+  const normalizarItens = (lista) => Array.isArray(lista) ? lista.map(i => ({
+    data: normalizarOpcional(i.data),
+    info: normalizarOpcional(i.info),
+  })).filter(i => i.data || i.info) : [];
+  const policiais = normalizarItens(ocorrencias.policiais);
+  const processos = normalizarItens(ocorrencias.processos);
+  const abordagens = normalizarItens(ocorrencias.abordagens);
+  const prisoes = normalizarItens(ocorrencias.prisoes);
+  const temAlgum = policiais.length || processos.length || abordagens.length || prisoes.length;
+  if (!temAlgum) return undefined;
+  return { policiais, processos, abordagens, prisoes };
 }
 
 // Validação de atualização de pessoa garantindo ao menos um campo.
@@ -229,6 +264,9 @@ function validarAtualizacaoPessoa(payload) {
   }
   if (payload.vinculos !== undefined) {
     atualizacoes.vinculos = validarVinculos(payload.vinculos);
+  }
+  if (payload.ocorrencias !== undefined) {
+    atualizacoes.ocorrencias = validarOcorrencias(payload.ocorrencias);
   }
 
   // Validar índice do endereço atual
@@ -291,4 +329,6 @@ module.exports = {
   validarEnderecos,
   validarVeiculos,
   validarEmpresa,
+  validarVinculos,
+  validarOcorrencias,
 };
