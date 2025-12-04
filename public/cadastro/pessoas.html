@@ -134,38 +134,7 @@
               </div>
             </div>
 
-            <!-- Seção 5: Vínculos -->
-            <div class="form__section">
-              <div class="form__section-header">
-                <h3 class="form__section-title" style="text-align: center; width: 100%;">Vínculos</h3>
-              </div>
-
-              <!-- Sub-seção: Pessoas -->
-              <div class="form__subsection">
-                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin: 0.75rem 0;">
-                  <h4 class="form__section-title" style="font-size: 1rem; margin: 0;">Pessoas</h4>
-                  <button class="button button--secondary" id="adicionar-vinculo-pessoa" type="button" aria-label="Adicionar vínculo de pessoa" title="Adicionar">+</button>
-                </div>
-                <div id="lista-vinculos-pessoas" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
-              </div>
-
-              <!-- Sub-seção: Empresa -->
-              <div class="form__subsection">
-                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin: 0.75rem 0;">
-                  <h4 class="form__section-title" style="font-size: 1rem; margin: 0;">Empresa</h4>
-                  <button class="button button--secondary" id="adicionar-vinculo-empresa" type="button" aria-label="Adicionar vínculo de empresa" title="Adicionar">+</button>
-                </div>
-                <div id="lista-vinculos-empresas" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
-              </div>
-              <div class="form__subsection">
-                <h4 class="form__section-title" style="font-size: 1rem; margin: 0;">Veículos</h4>
-                <p style="color: var(--muted); font-size: 0.85rem; margin: 0.5rem 0;">Sem campos definidos ainda.</p>
-              </div>
-              <div class="form__subsection">
-                <h4 class="form__section-title" style="font-size: 1rem; margin: 0;">Entidades</h4>
-                <p style="color: var(--muted); font-size: 0.85rem; margin: 0.5rem 0;">Sem campos definidos ainda.</p>
-              </div>
-            </div>
+            
 
             <div class="form__actions">
               <button class="button button--secondary" type="reset">Limpar</button>
@@ -300,26 +269,6 @@
         }).some(v => v && v.length);
         dados.empresa = algumaInfoEmpresa || (empresa.socios && empresa.socios.length) ? empresa : undefined;
         
-        // Montar vínculos
-        const pessoasVinc = (vinculosPessoas || []).map(v => ({
-          nome: String(v.nome||'').trim(),
-          cpf: String(v.cpf||'').trim(),
-          tipo: String(v.tipo||'').trim(),
-          obs: String(v.obs||'').trim(),
-        }));
-
-        const empresasVinc = (vinculosEmpresas || []).map(v => ({
-          nome: String(v.nome||'').trim(),
-          cnpj: String(v.cnpj||'').trim(),
-          obs: String(v.obs||'').trim(),
-        }));
-
-        dados.vinculos = {
-          pessoas: pessoasVinc,
-          empresas: empresasVinc,
-          entidadesObs: String(vinculosEntidadesObs || '').trim(),
-        };
-
         return dados;
       };
 
@@ -330,9 +279,7 @@
       let redes = [];
       let veiculos = [];
       let socios = [];
-      let vinculosPessoas = [];
-      let vinculosEmpresas = [];
-      let vinculosEntidadesObs = '';
+      
 
       const renderizarTelefones = () => {
         const listaTelefonesEl = document.getElementById('lista-telefones');
@@ -597,134 +544,7 @@
         renderizarSocios();
       };
 
-      const renderizarVinculosPessoas = () => {
-        const lista = document.getElementById('lista-vinculos-pessoas');
-        if (!lista) return;
-        lista.innerHTML = '';
-        if (vinculosPessoas.length === 0) {
-          lista.innerHTML = '<p style="color: var(--muted); font-size: 0.85rem; margin: 0;">Nenhum vínculo adicionado. Clique para adicionar.</p>';
-          return;
-        }
-        vinculosPessoas.forEach((v, i) => {
-          const linha = document.createElement('div');
-          linha.style.cssText = 'display:grid; grid-template-columns: 1fr 16rem 16rem auto; gap:0.5rem; align-items:end;';
-          linha.innerHTML = `
-            <label class="form__field">
-              <span class="form__label">Nome</span>
-              <input class="form__input vpc-nome" type="text" data-index="${i}" />
-            </label>
-            <label class="form__field">
-              <span class="form__label">CPF</span>
-              <input class="form__input vpc-cpf" type="text" data-index="${i}" placeholder="000.000.000-00" />
-              <span class="form__error vpc-erro-cpf" style="display:none;">CPF inválido</span>
-            </label>
-              <label class="form__field">
-                <span class="form__label">Tipo</span>
-                <select class="form__input vpc-tipo" data-index="${i}">
-                  <option value="">Selecione</option>
-                  <option>Esposa(o)</option>
-                  <option>Filho(a)</option>
-                  <option>Amigo</option>
-                  <option>Irmão(a)</option>
-                  <option>Sócio(a)</option>
-                  <option>Namorado(a)</option>
-                  <option>Primo(a)</option>
-                  <option>Tio(a)</option>
-                  <option>Avô(ó)</option>
-                </select>
-              </label>
-              <button class="button button--danger" type="button" title="Excluir" aria-label="Remover vínculo">−</button>
-              <label class="form__field" style="grid-column: 1 / -1;">
-                <span class="form__label">Obs:</span>
-                <input class="form__input vpc-obs" type="text" data-index="${i}" />
-              </label>
-          `;
-          const nomeEl = linha.querySelector('.vpc-nome');
-          const cpfEl = linha.querySelector('.vpc-cpf');
-          const tipoEl = linha.querySelector('.vpc-tipo');
-          const btn = linha.querySelector('button');
-          const erroCpfEl = linha.querySelector('.vpc-erro-cpf');
-          nomeEl.value = v.nome || '';
-          cpfEl.value = aplicarMascaraCpfInline(v.cpf || '');
-          tipoEl.value = v.tipo || '';
-          nomeEl.addEventListener('input', (e) => { vinculosPessoas[i].nome = e.target.value; });
-          const validarInline = () => {
-            const r = validarCpf(cpfEl.value || '');
-            const apenasNum = String(cpfEl.value || '').replace(/\D/g,'');
-            if (apenasNum.length >= 11 && !r.valido) {
-              erroCpfEl.textContent = r.mensagem || 'CPF inválido';
-              erroCpfEl.style.display = 'block';
-            } else {
-              erroCpfEl.style.display = 'none';
-            }
-          };
-          cpfEl.addEventListener('input', (e) => {
-            const masked = aplicarMascaraCpfInline(e.target.value);
-            vinculosPessoas[i].cpf = masked;
-            e.target.value = masked;
-            validarInline();
-            setTimeout(validarInline, 0);
-          });
-          cpfEl.addEventListener('blur', validarInline);
-          tipoEl.addEventListener('change', (e) => { vinculosPessoas[i].tipo = e.target.value; });
-          const obsEl = linha.querySelector('.vpc-obs');
-          obsEl.value = v.obs || '';
-          obsEl.addEventListener('input', (e) => { vinculosPessoas[i].obs = e.target.value; });
-          btn.addEventListener('click', () => { vinculosPessoas.splice(i,1); renderizarVinculosPessoas(); });
-          lista.appendChild(linha);
-        });
-      };
-
-      const adicionarVinculoPessoa = () => {
-        vinculosPessoas.push({ nome: '', cpf: '', tipo: '', obs: '' });
-        renderizarVinculosPessoas();
-      };
-
-      const renderizarVinculosEmpresas = () => {
-        const lista = document.getElementById('lista-vinculos-empresas');
-        if (!lista) return;
-        lista.innerHTML = '';
-        if (vinculosEmpresas.length === 0) {
-          lista.innerHTML = '<p style="color: var(--muted); font-size: 0.85rem; margin: 0;">Nenhum vínculo de empresa adicionado. Clique para adicionar.</p>';
-          return;
-        }
-        vinculosEmpresas.forEach((v, i) => {
-          const linha = document.createElement('div');
-          linha.style.cssText = 'display:grid; grid-template-columns: 1fr 20rem auto; gap:0.5rem; align-items:end;';
-          linha.innerHTML = `
-            <label class="form__field">
-              <span class="form__label">Nome da Empresa</span>
-              <input class="form__input vemp-nome" type="text" data-index="${i}" />
-            </label>
-              <label class="form__field">
-                <span class="form__label">CNPJ</span>
-                <input class="form__input vemp-cnpj" type="text" data-index="${i}" placeholder="00.000.000/0000-00" />
-              </label>
-              <button class="button button--danger" type="button" title="Excluir" aria-label="Remover vínculo empresa">−</button>
-              <label class="form__field" style="grid-column: 1 / -1;">
-                <span class="form__label">Obs:</span>
-                <input class="form__input vemp-obs" type="text" data-index="${i}" />
-              </label>
-          `;
-          const nomeEl = linha.querySelector('.vemp-nome');
-          const cnpjEl = linha.querySelector('.vemp-cnpj');
-          const btn = linha.querySelector('button');
-          nomeEl.value = v.nome || '';
-          cnpjEl.value = aplicarMascaraCnpj(v.cnpj || '');
-          nomeEl.addEventListener('input', (e) => { vinculosEmpresas[i].nome = e.target.value; });
-          cnpjEl.addEventListener('input', (e) => { vinculosEmpresas[i].cnpj = aplicarMascaraCnpj(e.target.value); e.target.value = vinculosEmpresas[i].cnpj; });
-          const obsEmpEl = linha.querySelector('.vemp-obs');
-          obsEmpEl.value = v.obs || '';
-          obsEmpEl.addEventListener('input', (e) => { vinculosEmpresas[i].obs = e.target.value; });
-          btn.addEventListener('click', () => { vinculosEmpresas.splice(i,1); renderizarVinculosEmpresas(); });
-          lista.appendChild(linha);
-        });
-      };
-
-      const adicionarVinculoEmpresa = () => {
-        vinculosEmpresas.push({ nome: '', cnpj: '', obs: '' });
-        renderizarVinculosEmpresas();
-      };
+      
 
       
 
@@ -1193,19 +1013,7 @@
           }
         }
 
-        // Valida CPFs dos vínculos (pessoas)
-        if (payload.vinculos && Array.isArray(payload.vinculos.pessoas)) {
-          for (const v of payload.vinculos.pessoas) {
-            const cpf = (v.cpf || '').trim();
-            if (cpf) {
-              const r = validarCpf(cpf);
-              if (!r.valido) {
-                exibirMensagemForm(`CPF de vínculo inválido: ${cpf}`, 'error');
-                return;
-              }
-            }
-          }
-        }
+        
 
         const metodo = pessoaEmEdicao ? 'PUT' : 'POST';
         const url = pessoaEmEdicao ? `${API_PESSOAS_URL}/${pessoaEmEdicao}` : API_PESSOAS_URL;
@@ -1282,8 +1090,7 @@
           renderizarVeiculos();
           socios = [];
           renderizarSocios();
-          vinculosPessoas = [];
-          renderizarVinculosPessoas();
+          
         });
         cpfInput?.addEventListener('input', (e) => {
           const masked = aplicarMascaraCpfInline(e.target.value);
@@ -1312,9 +1119,7 @@
         const adicionarSocioBtn = document.getElementById('adicionar-socio');
         adicionarSocioBtn?.addEventListener('click', adicionarSocio);
 
-        // Event listener para adicionar vínculo pessoa
-        const addVincPessoaBtn = document.getElementById('adicionar-vinculo-pessoa');
-        addVincPessoaBtn?.addEventListener('click', adicionarVinculoPessoa);
+        
 
         // Máscara CNPJ
         const cnpjInput = document.getElementById('empresa-cnpj');
