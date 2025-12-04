@@ -35,6 +35,11 @@ function wrapDatabase(db) {
 }
 
 async function runMigrations(db) {
+  // Garantir integridade referencial
+  try {
+    await db.run('PRAGMA foreign_keys = ON');
+  } catch (_) {}
+
   await db.run(`
     CREATE TABLE IF NOT EXISTS usuarios (
       id TEXT PRIMARY KEY,
@@ -101,6 +106,38 @@ async function runMigrations(db) {
   // Criar índice para queries de telefones por pessoa
   await db.run(`
     CREATE INDEX IF NOT EXISTS idx_telefones_pessoa_id ON telefones(pessoa_id)
+  `);
+
+  // Tabela de emails com relacionamento 1:N com pessoas
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS emails (
+      id TEXT PRIMARY KEY,
+      pessoa_id TEXT NOT NULL,
+      email TEXT NOT NULL,
+      criadoEm TEXT NOT NULL,
+      atualizadoEm TEXT NOT NULL,
+      FOREIGN KEY (pessoa_id) REFERENCES pessoas(id) ON DELETE CASCADE
+    )
+  `);
+
+  await db.run(`
+    CREATE INDEX IF NOT EXISTS idx_emails_pessoa_id ON emails(pessoa_id)
+  `);
+
+  // Tabela de redes sociais com relacionamento 1:N com pessoas
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS redes_sociais (
+      id TEXT PRIMARY KEY,
+      pessoa_id TEXT NOT NULL,
+      perfil TEXT NOT NULL,
+      criadoEm TEXT NOT NULL,
+      atualizadoEm TEXT NOT NULL,
+      FOREIGN KEY (pessoa_id) REFERENCES pessoas(id) ON DELETE CASCADE
+    )
+  `);
+
+  await db.run(`
+    CREATE INDEX IF NOT EXISTS idx_redes_pessoa_id ON redes_sociais(pessoa_id)
   `);
 
   // Tentar adicionar coluna endereco_atual_index se ela não existir (para bancos existentes)

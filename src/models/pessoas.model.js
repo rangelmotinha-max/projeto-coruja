@@ -57,7 +57,25 @@ class PessoaModel {
       }
     }
 
-    return { ...pessoa, enderecos: [], telefones: [] };
+    // Salvar emails se fornecidos
+    if (dados.emails && Array.isArray(dados.emails)) {
+      for (const email of dados.emails) {
+        if (email.trim()) {
+          await this.adicionarEmail(pessoa.id, email);
+        }
+      }
+    }
+
+    // Salvar redes sociais se fornecidas
+    if (dados.redesSociais && Array.isArray(dados.redesSociais)) {
+      for (const perfil of dados.redesSociais) {
+        if (perfil.trim()) {
+          await this.adicionarRedeSocial(pessoa.id, perfil);
+        }
+      }
+    }
+
+    return { ...pessoa, enderecos: [], telefones: [], emails: [], redesSociais: [] };
   }
 
   // Retorna todas as pessoas cadastradas com seus endereços e telefones.
@@ -69,6 +87,8 @@ class PessoaModel {
     for (const pessoa of pessoas) {
       pessoa.enderecos = await this.obterEnderecosPorPessoa(pessoa.id);
       pessoa.telefones = (await this.obterTelefonesPorPessoa(pessoa.id)).map(t => t.numero);
+      pessoa.emails = (await this.obterEmailsPorPessoa(pessoa.id)).map(e => e.email);
+      pessoa.redesSociais = (await this.obterRedesPorPessoa(pessoa.id)).map(r => r.perfil);
     }
     
     return pessoas;
@@ -82,6 +102,8 @@ class PessoaModel {
     if (pessoa) {
       pessoa.enderecos = await this.obterEnderecosPorPessoa(id);
       pessoa.telefones = (await this.obterTelefonesPorPessoa(id)).map(t => t.numero);
+      pessoa.emails = (await this.obterEmailsPorPessoa(id)).map(e => e.email);
+      pessoa.redesSociais = (await this.obterRedesPorPessoa(id)).map(r => r.perfil);
     }
     
     return pessoa;
@@ -211,6 +233,70 @@ class PessoaModel {
   static async removerTelefone(telefoneId) {
     const db = await initDatabase();
     const resultado = await db.run('DELETE FROM telefones WHERE id = ?', [telefoneId]);
+    return resultado.changes > 0;
+  }
+
+  // Emails
+  static async obterEmailsPorPessoa(pessoaId) {
+    const db = await initDatabase();
+    return db.all(
+      'SELECT id, email FROM emails WHERE pessoa_id = ? ORDER BY criadoEm ASC',
+      [pessoaId]
+    );
+  }
+
+  static async adicionarEmail(pessoaId, email) {
+    const db = await initDatabase();
+    const agora = new Date().toISOString();
+    const novo = {
+      id: randomUUID(),
+      pessoa_id: pessoaId,
+      email,
+      criadoEm: agora,
+      atualizadoEm: agora,
+    };
+    await db.run(
+      `INSERT INTO emails (id, pessoa_id, email, criadoEm, atualizadoEm) VALUES (?, ?, ?, ?, ?)` ,
+      [novo.id, novo.pessoa_id, novo.email, novo.criadoEm, novo.atualizadoEm]
+    );
+    return novo;
+  }
+
+  static async removerEmail(emailId) {
+    const db = await initDatabase();
+    const resultado = await db.run('DELETE FROM emails WHERE id = ?', [emailId]);
+    return resultado.changes > 0;
+  }
+
+  // Redes sociais
+  static async obterRedesPorPessoa(pessoaId) {
+    const db = await initDatabase();
+    return db.all(
+      'SELECT id, perfil FROM redes_sociais WHERE pessoa_id = ? ORDER BY criadoEm ASC',
+      [pessoaId]
+    );
+  }
+
+  static async adicionarRedeSocial(pessoaId, perfil) {
+    const db = await initDatabase();
+    const agora = new Date().toISOString();
+    const novo = {
+      id: randomUUID(),
+      pessoa_id: pessoaId,
+      perfil,
+      criadoEm: agora,
+      atualizadoEm: agora,
+    };
+    await db.run(
+      `INSERT INTO redes_sociais (id, pessoa_id, perfil, criadoEm, atualizadoEm) VALUES (?, ?, ?, ?, ?)` ,
+      [novo.id, novo.pessoa_id, novo.perfil, novo.criadoEm, novo.atualizadoEm]
+    );
+    return novo;
+  }
+
+  static async removerRedeSocial(redeId) {
+    const db = await initDatabase();
+    const resultado = await db.run('DELETE FROM redes_sociais WHERE id = ?', [redeId]);
     return resultado.changes > 0;
   }
 

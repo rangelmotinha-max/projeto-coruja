@@ -60,7 +60,24 @@ function normalizarOpcional(texto) {
 }
 
 // Validação de criação de pessoa com campos obrigatórios e opcionais.
+function limparListaStrings(lista, transform = (v) => v) {
+  if (!lista) return [];
+  if (!Array.isArray(lista)) {
+    throw criarErro('O campo deve ser uma lista', 400);
+  }
+  return lista
+    .map((v) => (v == null ? '' : String(v).trim()))
+    .filter((v) => v.length > 0)
+    .map(transform);
+}
+
 function validarCadastroPessoa(payload) {
+  const telefonesArray = limparListaStrings(payload.telefones || []);
+  const emailsArray = limparListaStrings(payload.emails || [], normalizarEmail);
+  const redesSociaisArray = limparListaStrings(payload.redesSociais || []);
+
+  const primeiroTelefone = payload.telefone ? normalizarOpcional(payload.telefone) : (telefonesArray[0] || null);
+
   return {
     nomeCompleto: validarNomeCompleto(payload.nomeCompleto),
     dataNascimento: payload.dataNascimento ? validarDataNascimento(payload.dataNascimento) : null,
@@ -69,9 +86,12 @@ function validarCadastroPessoa(payload) {
     cnh: normalizarOpcional(payload.cnh),
     nomeMae: normalizarOpcional(payload.nomeMae),
     nomePai: normalizarOpcional(payload.nomePai),
-    telefone: normalizarOpcional(payload.telefone),
+    telefone: primeiroTelefone,
     endereco_atual_index: payload.endereco_atual_index || 0,
     enderecos: validarEnderecos(payload.enderecos),
+    telefones: telefonesArray,
+    emails: emailsArray,
+    redesSociais: redesSociaisArray,
   };
 }
 
@@ -123,6 +143,17 @@ function validarAtualizacaoPessoa(payload) {
   // Validar endereços se fornecidos
   if (payload.enderecos !== undefined) {
     atualizacoes.enderecos = validarEnderecos(payload.enderecos);
+  }
+
+  // Validar listas se fornecidas (telefones, emails, redes)
+  if (payload.telefones !== undefined) {
+    atualizacoes.telefones = limparListaStrings(payload.telefones || []);
+  }
+  if (payload.emails !== undefined) {
+    atualizacoes.emails = limparListaStrings(payload.emails || [], normalizarEmail);
+  }
+  if (payload.redesSociais !== undefined) {
+    atualizacoes.redesSociais = limparListaStrings(payload.redesSociais || []);
   }
 
   // Validar índice do endereço atual

@@ -53,7 +53,7 @@
             <!-- Seção 1: Identificação -->
             <div class="form__section">
               <div class="form__section-header">
-                <h3 class="form__section-title">Identificação</h3>
+                <h3 class="form__section-title" style="text-align: center; width: 100%;">Identificação</h3>
               </div>
               <div class="form__grid form__grid--1">
                 <label class="form__field">
@@ -91,30 +91,34 @@
             <!-- Seção 2: Contatos -->
             <div class="form__section">
               <div class="form__section-header">
-                <h3 class="form__section-title">Contatos</h3>
+                <h3 class="form__section-title" style="text-align: center; width: 100%;">Contatos</h3>
               </div>
 
               <!-- Sub-seção: Telefone -->
               <div class="form__subsection">
                 <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 0.5rem;">
-                  <h4 class="form__section-title" style="font-size: 1rem; margin: 0;">Telefone</h4>
+                  <h4 class="form__section-title" style="font-size: 1rem; margin: 0; text-align: left; width: 100%;">Telefone</h4>
                   <button class="button button--secondary" id="adicionar-telefone" type="button">+ Adicionar telefone</button>
                 </div>
                 <div id="lista-telefones" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
               </div>
 
-              <!-- Sub-seção: Email e Rede Social -->
+              <!-- Sub-seção: Emails -->
               <div class="form__subsection">
-                <div class="form__grid form__grid--2">
-                  <label class="form__field">
-                    <span class="form__label">Email</span>
-                    <input class="form__input" type="email" name="email" placeholder="seuemail@exemplo.com" />
-                  </label>
-                  <label class="form__field">
-                    <span class="form__label">Rede Social</span>
-                    <input class="form__input" type="text" name="redeSocial" placeholder="@usuario ou URL" />
-                  </label>
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin: 0.75rem 0;">
+                  <h4 class="form__section-title" style="font-size: 1rem; margin: 0; text-align: left; width: 100%;">Email</h4>
+                  <button class="button button--secondary" id="adicionar-email" type="button">+ Adicionar email</button>
                 </div>
+                <div id="lista-emails" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
+              </div>
+
+              <!-- Sub-seção: Redes Sociais (linha abaixo) -->
+              <div class="form__subsection">
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin: 0.75rem 0;">
+                  <h4 class="form__section-title" style="font-size: 1rem; margin: 0; text-align: left; width: 100%;">Redes Sociais</h4>
+                  <button class="button button--secondary" id="adicionar-rede" type="button">+ Adicionar rede</button>
+                </div>
+                <div id="lista-redes" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
               </div>
             </div>
 
@@ -122,7 +126,7 @@
             <div class="form__section">
               <div class="form__section-header">
                 <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                  <h3 class="form__section-title">Endereços</h3>
+                  <h3 class="form__section-title" style="text-align: center; width: 100%;">Endereços</h3>
                   <button class="button button--secondary" id="adicionar-endereco" type="button">+ Adicionar endereço</button>
                 </div>
               </div>
@@ -201,6 +205,9 @@
         
         // Adiciona os telefones múltiplos ao payload
         dados.telefones = telefones.filter(tel => tel.trim() !== '');
+        // Adiciona emails e redes sociais múltiplos ao payload
+        dados.emails = emails.filter(e => e.trim() !== '');
+        dados.redesSociais = redes.filter(r => r.trim() !== '');
         
         return dados;
       };
@@ -284,6 +291,8 @@
       let enderecos = [];
       let indicadorEnderecoAtual = null;
       let telefones = [];
+      let emails = [];
+      let redes = [];
 
       const renderizarTelefones = () => {
         const listaTelefonesEl = document.getElementById('lista-telefones');
@@ -331,6 +340,102 @@
       const adicionarTelefone = () => {
         telefones.push('');
         renderizarTelefones();
+      };
+
+      const renderizarEmails = () => {
+        const listaEmailsEl = document.getElementById('lista-emails');
+        if (!listaEmailsEl) return;
+        listaEmailsEl.innerHTML = '';
+
+        if (emails.length === 0) {
+          listaEmailsEl.innerHTML = '<p style="color: var(--muted); font-size: 0.85rem; margin: 0;">Nenhum email adicionado. Clique para adicionar.</p>';
+          return;
+        }
+
+        emails.forEach((email, indice) => {
+          const linha = document.createElement('div');
+          linha.style.display = 'flex';
+          linha.style.gap = '0.5rem';
+          linha.style.alignItems = 'center';
+
+          const input = document.createElement('input');
+          input.type = 'email';
+          input.className = 'form__input';
+          input.value = email;
+          input.placeholder = 'seuemail@exemplo.com';
+          input.addEventListener('input', (e) => {
+            emails[indice] = e.target.value;
+          });
+          linha.appendChild(input);
+
+          const btnRemover = document.createElement('button');
+          btnRemover.type = 'button';
+          btnRemover.className = 'button button--danger';
+          btnRemover.textContent = 'Remover';
+          btnRemover.style.padding = '0.25rem 0.5rem';
+          btnRemover.style.fontSize = '0.75rem';
+          btnRemover.style.minWidth = 'fit-content';
+          btnRemover.addEventListener('click', () => {
+            emails.splice(indice, 1);
+            renderizarEmails();
+          });
+          linha.appendChild(btnRemover);
+
+          listaEmailsEl.appendChild(linha);
+        });
+      };
+
+      const adicionarEmail = () => {
+        emails.push('');
+        renderizarEmails();
+      };
+
+      const renderizarRedes = () => {
+        const listaRedesEl = document.getElementById('lista-redes');
+        if (!listaRedesEl) return;
+        listaRedesEl.innerHTML = '';
+
+        if (redes.length === 0) {
+          listaRedesEl.innerHTML = '<p style="color: var(--muted); font-size: 0.85rem; margin: 0;">Nenhuma rede adicionada. Clique para adicionar.</p>';
+          return;
+        }
+
+        redes.forEach((rede, indice) => {
+          const linha = document.createElement('div');
+          linha.style.display = 'flex';
+          linha.style.gap = '0.5rem';
+          linha.style.alignItems = 'center';
+
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.className = 'form__input';
+          input.value = rede;
+          input.placeholder = '@usuario ou URL';
+          input.addEventListener('input', (e) => {
+            redes[indice] = e.target.value;
+          });
+          linha.appendChild(input);
+
+          const btnRemover = document.createElement('button');
+          btnRemover.type = 'button';
+          btnRemover.className = 'button button--danger';
+          btnRemover.textContent = 'Remover';
+          btnRemover.style.padding = '0.25rem 0.5rem';
+          btnRemover.style.fontSize = '0.75rem';
+          btnRemover.style.minWidth = 'fit-content';
+          btnRemover.addEventListener('click', () => {
+            redes.splice(indice, 1);
+            renderizarRedes();
+          });
+          linha.appendChild(btnRemover);
+
+          listaRedesEl.appendChild(linha);
+        });
+      };
+
+      const adicionarRede = () => {
+        redes.push('');
+        renderizarRedes();
       };
 
       const createEstadosSelect = () => {
@@ -608,6 +713,22 @@
           telefones = [];
         }
         renderizarTelefones();
+
+        // Carrega emails se existirem
+        if (pessoa.emails && Array.isArray(pessoa.emails)) {
+          emails = JSON.parse(JSON.stringify(pessoa.emails));
+        } else {
+          emails = [];
+        }
+        renderizarEmails();
+
+        // Carrega redes sociais se existirem
+        if (pessoa.redesSociais && Array.isArray(pessoa.redesSociais)) {
+          redes = JSON.parse(JSON.stringify(pessoa.redesSociais));
+        } else {
+          redes = [];
+        }
+        renderizarRedes();
       };
 
 
@@ -820,6 +941,10 @@
           renderizarEnderecos();
           telefones = [];
           renderizarTelefones();
+          emails = [];
+          renderizarEmails();
+          redes = [];
+          renderizarRedes();
         });
         cpfInput?.addEventListener('input', aplicarMascaraCpf);
 
@@ -831,7 +956,15 @@
         const adicionarTelefoneBtn = document.getElementById('adicionar-telefone');
         adicionarTelefoneBtn?.addEventListener('click', adicionarTelefone);
 
+        // Event listeners para adicionar email e rede social
+        const adicionarEmailBtn = document.getElementById('adicionar-email');
+        adicionarEmailBtn?.addEventListener('click', adicionarEmail);
+        const adicionarRedeBtn = document.getElementById('adicionar-rede');
+        adicionarRedeBtn?.addEventListener('click', adicionarRede);
+
         renderizarTelefones();
+        renderizarEmails();
+        renderizarRedes();
         carregarPessoas();
       };
 

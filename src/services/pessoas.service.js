@@ -67,6 +67,32 @@ async function atualizar(id, payload) {
     }
   }
 
+  // Processar emails se fornecidos no payload
+  if (payload.emails && Array.isArray(payload.emails)) {
+    const emailsAtuais = await PessoaModel.obterEmailsPorPessoa(id);
+    for (const emailAtual of emailsAtuais) {
+      await PessoaModel.removerEmail(emailAtual.id);
+    }
+    for (const email of payload.emails) {
+      if (String(email).trim()) {
+        await PessoaModel.adicionarEmail(id, email);
+      }
+    }
+  }
+
+  // Processar redes sociais se fornecidas no payload
+  if (payload.redesSociais && Array.isArray(payload.redesSociais)) {
+    const redesAtuais = await PessoaModel.obterRedesPorPessoa(id);
+    for (const redeAtual of redesAtuais) {
+      await PessoaModel.removerRedeSocial(redeAtual.id);
+    }
+    for (const perfil of payload.redesSociais) {
+      if (String(perfil).trim()) {
+        await PessoaModel.adicionarRedeSocial(id, perfil);
+      }
+    }
+  }
+
   // Atualizar dados da pessoa e índice do endereço atual
   if (payload.endereco_atual_index !== undefined) {
     atualizacoes.endereco_atual_index = payload.endereco_atual_index;
