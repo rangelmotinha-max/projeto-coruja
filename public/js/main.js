@@ -618,4 +618,15 @@
   });
 
   try { initUserMenu(); } catch {}
+
+  // Oculta item "Usuários" no menu da Home para não-admin
+  (function hideAdminOnlyMenuOnHome() {
+    try {
+      if (window.location?.pathname !== '/home') return;
+      const role = (getCurrentRole() || '').toLowerCase();
+      if (role === 'admin') return;
+      const usuariosLink = document.querySelector('.sidebar__nav a.sidebar__link[href="/usuarios"]');
+      if (usuariosLink) usuariosLink.style.display = 'none';
+    } catch {}
+  })();
 })();
