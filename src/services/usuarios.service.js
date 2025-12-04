@@ -58,7 +58,16 @@ async function buscarPorId(id) {
 }
 
 async function atualizar(id, payload, solicitante) {
-  const atualizacoes = validarAtualizacao(payload);
+  // Suporte a troca de senha com verificação de senha atual (self-service)
+  const wantsPasswordChange = payload?.senhaNova !== undefined || payload?.senha !== undefined;
+  const basePayload = { ...payload };
+  if (payload?.senhaNova !== undefined) {
+    basePayload.senha = payload.senhaNova;
+  }
+  delete basePayload.senhaNova;
+  delete basePayload.senhaAtual;
+
+  const atualizacoes = validarAtualizacao(basePayload);
   const usuario = await UsuarioModel.findById(id);
 
   if (!usuario) {
@@ -79,6 +88,21 @@ async function atualizar(id, payload, solicitante) {
   // Marca se e-mail ou senha foram alterados para decidir sobre renovação do token
   const alterouEmail = Boolean(atualizacoes.email && atualizacoes.email !== usuario.email);
   const alterouSenha = Boolean(atualizacoes.senha);
+
+  // Se solicitou troca de senha via senhaAtual/senhaNova, valida quando não for admin atuando em outro usuário
+  if (wantsPasswordChange && payload?.senhaNova !== undefined) {
+    const isAdminChangingOther = solicitante && solicitante.id !== id && solicitante.role === 'admin';
+    if (!isAdminChangingOther) {
+      const senhaAtual = String(payload?.senhaAtual || '');
+      if (!senhaAtual) {
+        throw criarErro('Senha atual é obrigatória para alterar a senha', 400);
+      }
+      const confere = await bcrypt.compare(senhaAtual, usuario.senhaHash);
+      if (!confere) {
+        throw criarErro('Senha atual incorreta', 400);
+      }
+    }
+  }
 
   if (atualizacoes.senha) {
     atualizacoes.senhaHash = await bcrypt.hash(atualizacoes.senha, 10);

@@ -510,4 +510,112 @@
 
   // Aplica as restrições após carregar a página
   try { enforceRoleRestrictions(); } catch {}
+
+  // ==== User Menu (top-right) ====
+  const userMenu = document.getElementById('user-menu');
+  const userMenuBtn = document.getElementById('user-menu-button');
+  const userMenuDropdown = document.getElementById('user-menu-dropdown');
+  const userButtonName = document.getElementById('user-button-name');
+  const userAvatar = document.getElementById('user-avatar');
+  const umNome = document.getElementById('um-nome');
+  const umEmail = document.getElementById('um-email');
+  const umPerfil = document.getElementById('um-perfil');
+  const umAlterarSenha = document.getElementById('um-alterar-senha');
+  const umSair = document.getElementById('um-sair');
+
+  const roleLabel = (role) => {
+    const r = String(role || '').toLowerCase();
+    if (r === 'admin') return 'Administrador';
+    if (r === 'editor') return 'Editor';
+    if (r === 'viewer' || r === 'leitor' || r === 'reader') return 'Leitor';
+    return role || '—';
+  };
+
+  const initUserMenu = () => {
+    const user = getStoredUser();
+    if (!userMenu || !user) return;
+
+    const nome = user?.nome || 'Usuário';
+    if (userButtonName) userButtonName.textContent = nome.split(' ')[0] || nome;
+    if (userAvatar) userAvatar.textContent = (nome[0] || 'U').toUpperCase();
+
+    if (umNome) umNome.textContent = nome;
+    if (umEmail) umEmail.textContent = user?.email || '—';
+    if (umPerfil) umPerfil.textContent = roleLabel(user?.role);
+
+    const toggle = () => {
+      const expanded = userMenu.getAttribute('aria-expanded') === 'true';
+      userMenu.setAttribute('aria-expanded', String(!expanded));
+      userMenuBtn?.setAttribute('aria-expanded', String(!expanded));
+    };
+
+    userMenuBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggle();
+    });
+    document.addEventListener('click', (e) => {
+      if (!userMenu.contains(e.target)) {
+        userMenu.setAttribute('aria-expanded', 'false');
+        userMenuBtn?.setAttribute('aria-expanded', 'false');
+      }
+    });
+
+    umSair?.addEventListener('click', () => handleLogout());
+  };
+
+  // ==== Alterar Senha Modal ====
+  const senhaModal = document.getElementById('alterar-senha-modal');
+  const senhaClose = document.getElementById('alterar-senha-close');
+  const senhaCancelar = document.getElementById('alterar-senha-cancelar');
+  const senhaForm = document.getElementById('alterar-senha-form');
+  const senhaAtualInput = document.getElementById('senha-atual');
+  const senhaNovaInput = document.getElementById('senha-nova');
+
+  const openSenhaModal = () => {
+    if (!senhaModal) return;
+    senhaModal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+    setTimeout(() => senhaAtualInput?.focus(), 50);
+  };
+  const closeSenhaModal = () => {
+    if (!senhaModal) return;
+    senhaModal.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+    if (senhaForm) senhaForm.reset();
+  };
+
+  document.querySelector('#alterar-senha-modal [data-modal-close]')?.addEventListener('click', closeSenhaModal);
+  senhaClose?.addEventListener('click', closeSenhaModal);
+  senhaCancelar?.addEventListener('click', closeSenhaModal);
+
+  umAlterarSenha?.addEventListener('click', () => openSenhaModal());
+
+  senhaForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const atual = senhaAtualInput?.value.trim();
+    const nova = senhaNovaInput?.value.trim();
+    if (!atual || !nova) return;
+    const userId = getStoredUser()?.id || getUserIdFromToken();
+    if (!userId) return;
+    try {
+      const response = await authorizedFetch(`${USERS_API_BASE}/${userId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ senhaAtual: atual, senhaNova: nova }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const msg = data?.mensagem || data?.message || 'Não foi possível alterar a senha.';
+        throw new Error(msg);
+      }
+      if (data?.token) persistToken(data.token);
+      if (data?.usuario) persistUser(data.usuario);
+      alert('Senha alterada com sucesso!');
+      closeSenhaModal();
+    } catch (err) {
+      alert(err?.message || 'Falha ao alterar a senha.');
+    }
+  });
+
+  try { initUserMenu(); } catch {}
 })();
