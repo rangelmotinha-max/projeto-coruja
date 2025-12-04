@@ -7,94 +7,7 @@
     <link rel="stylesheet" href="/css/main.css" />
   </head>
   <body class="theme-dark">
-    <div class="app">
-      <div class="user-menu" id="user-menu" aria-expanded="false">
-        <button class="user-menu__button" type="button" id="user-menu-button" aria-haspopup="true" aria-expanded="false">
-          <span class="user-menu__avatar" id="user-avatar" aria-hidden="true">U</span>
-          <span id="user-button-name">Usuário</span>
-        </button>
-        <div class="user-menu__dropdown" id="user-menu-dropdown" role="menu" aria-label="Menu do usuário">
-          <div class="user-menu__item"><span class="user-menu__label">Nome Completo:</span><span class="user-menu__value" id="um-nome">—</span></div>
-          <div class="user-menu__item"><span class="user-menu__label">Email:</span><span class="user-menu__value" id="um-email">—</span></div>
-          <div class="user-menu__item"><span class="user-menu__label">Perfil:</span><span class="user-menu__value" id="um-perfil">—</span></div>
-          <div class="user-menu__separator"></div>
-          <div class="user-menu__item"><span class="user-menu__label">Senha:</span><span class="user-menu__link" id="um-alterar-senha">Alterar senha</span></div>
-          <div class="user-menu__separator"></div>
-          <div class="user-menu__item"><span class="user-menu__link" id="um-sair">Sair</span></div>
-        </div>
-      </div>
-      <aside class="sidebar">
-        <div class="sidebar__header">
-          <div class="sidebar__brand">Projeto Coruja</div>
-          <!-- Botão dedicado para alternar entre tema claro e escuro -->
-          <button
-            class="theme-toggle"
-            type="button"
-            data-theme-toggle
-            aria-pressed="false"
-            aria-label="Alternar tema visual"
-          >
-            <span class="theme-toggle__icon" aria-hidden="true" data-theme-icon>🌙</span>
-            <span class="theme-toggle__label" data-theme-label>Modo escuro</span>
-          </button>
-        </div>
-        <nav class="sidebar__nav" aria-label="Menu principal">
-          <a class="sidebar__link" href="/home">Home</a>
-          <a class="sidebar__link" href="/usuarios">Usuários</a>
-          <details class="sidebar__section sidebar__section--active" open>
-            <summary class="sidebar__link sidebar__link--parent" aria-label="Abrir menu Cadastro">Cadastro</summary>
-            <div class="sidebar__subnav">
-              <a class="sidebar__link sidebar__link--child sidebar__link--active" href="/cadastro/pessoas">Pessoas</a>
-              <a class="sidebar__link sidebar__link--child" href="/cadastro/empresas">Empresas</a>
-            </div>
-          </details>
-        </nav>
-        
-      </aside>
-
-      <main class="content" data-page="cadastro-pessoas">
-        <header class="content__header">
-          <p class="content__eyebrow">Cadastro</p>          
-        </header>
-
-        <section class="panel" aria-label="Formulário de dados de pessoas">
-          <div class="panel__header panel__header--stacked">
-          </div>
-
-          <div id="pessoa-form-message" class="message" role="status" aria-live="polite"></div>
-
-          <form class="form" id="pessoa-form" action="#" method="post">
-            <!-- Seção 1: Identificação -->
-            <div class="form__section">
-              <div class="form__section-header">
-                <h3 class="form__section-title" style="text-align: center; width: 100%;">Identificação</h3>
-              </div>
-              <div class="form__grid form__grid--1">
-                <label class="form__field">
-                  <span class="form__label">Nome Completo</span>
-                  <input class="form__input" type="text" name="nomeCompleto" required />
-                </label>
-                <label class="form__field">
-                  <span class="form__label">Apelido/Vulgo</span>
-                  <input class="form__input" type="text" name="apelido" />
-                </label>
-                <label class="form__field">
-                  <span class="form__label">CPF</span>
-                  <input class="form__input" type="text" name="cpf" inputmode="numeric" />
-                  <span id="erro-cpf" class="form__error" style="display: none;">CPF inválido!</span>
-                </label>
-                <label class="form__field">
-                  <span class="form__label">RG</span>
-                  <input class="form__input" type="text" name="rg" inputmode="numeric" />
-                </label>
-                <label class="form__field">
-                  <span class="form__label">CNH</span>
-                  <input class="form__input" type="text" name="cnh" inputmode="numeric" />
-                </label>
-                <label class="form__field">
-                  <span class="form__label">Data de Nascimento</span>
-                  <input class="form__input" type="date" name="dataNascimento" />
-                </label>
+          actionsDiv.appendChild(removerBtn);
                 <label class="form__field">
                   <span class="form__label">Nome da Mãe</span>
                   <input class="form__input" type="text" name="nomeMae" />
@@ -393,53 +306,6 @@
           cpf: String(v.cpf||'').trim(),
           tipo: String(v.tipo||'').trim(),
           obs: String(v.obs||'').trim(),
-        })).filter(v => v.nome || v.cpf || v.tipo || v.obs);
-        const empresasVinc = (vinculosEmpresas || []).map(v => ({
-          nome: String(v.nome||'').trim(),
-          cnpj: String(v.cnpj||'').trim(),
-          obs: String(v.obs||'').trim(),
-        })).filter(v => v.nome || v.cnpj || v.obs);
-        const entidadesObsVal = (document.getElementById('vinculos-entidades-obs')?.value || '').trim();
-        dados.vinculos = (pessoasVinc.length || empresasVinc.length || entidadesObsVal.length) ? { pessoas: pessoasVinc, empresas: empresasVinc, entidadesObs: entidadesObsVal || undefined } : undefined;
-        
-        return dados;
-      };
-
-      const aplicarMascaraCpf = (event) => {
-        // Garante que apenas números sejam digitados e aplica a máscara padrão de CPF
-        const somenteNumeros = event.target.value.replace(/\D/g, '').slice(0, 11);
-
-        let valorMascarado = somenteNumeros;
-        if (somenteNumeros.length > 3) {
-          valorMascarado = `${somenteNumeros.slice(0, 3)}.${somenteNumeros.slice(3, 6)}`;
-        }
-        if (somenteNumeros.length > 6) {
-          valorMascarado = `${valorMascarado}.${somenteNumeros.slice(6, 9)}`;
-        }
-        if (somenteNumeros.length > 9) {
-          valorMascarado = `${valorMascarado}-${somenteNumeros.slice(9, 11)}`;
-        }
-
-        event.target.value = valorMascarado;
-
-        // Valida CPF em tempo real quando completo (11 dígitos)
-        const erroEl = document.getElementById('erro-cpf');
-        if (somenteNumeros.length === 11) {
-          const validacao = validarCpf(valorMascarado);
-          if (!validacao.valido) {
-            erroEl.style.display = 'block';
-            erroEl.textContent = 'CPF inválido!';
-          } else {
-            erroEl.style.display = 'none';
-          }
-        } else if (somenteNumeros.length > 0) {
-          // Mostra erro se não está completo e o usuário parou de digitar
-          erroEl.style.display = 'none';
-        }
-      };
-
-      const validarCpf = (cpf) => {
-        // Remove caracteres não numéricos
         const somenteNumeros = cpf.replace(/\D/g, '');
 
         // Valida comprimento
@@ -1079,75 +945,93 @@
           });
           actionsDiv.appendChild(removerBtn);
 
-          headerDiv.appendChild(titleSpan);
-          headerDiv.appendChild(actionsDiv);
-          div.appendChild(headerDiv);
+              const renderizarVeiculos = () => {
+                const listaVeiculosEl = document.getElementById('lista-veiculos');
+                if (!listaVeiculosEl) return;
+                listaVeiculosEl.innerHTML = '';
 
-          // Criar campos do endereço
-          const gridDiv = document.createElement('div');
-          gridDiv.className = 'form__grid form__grid--4';
-          gridDiv.innerHTML = `
-            <label class="form__field">
-              <span class="form__label">UF</span>
-              <select class="form__input endereco-uf" data-index="${indiceOrdenado}">
-                ${createEstadosSelect()}
-              </select>
-            </label>
-            <label class="form__field form__field--wide">
-              <span class="form__label">Logradouro/Nome</span>
-              <input class="form__input endereco-logradouro" type="text" data-index="${indiceOrdenado}" />
-            </label>
-            <label class="form__field">
-              <span class="form__label">Bairro/Cidade</span>
-              <input class="form__input endereco-bairro" type="text" data-index="${indiceOrdenado}" />
-            </label>
-            <label class="form__field">
-              <span class="form__label">CEP</span>
-              <input class="form__input endereco-cep" type="text" inputmode="numeric" data-index="${indiceOrdenado}" />
-            </label>
-            <label class="form__field">
-              <span class="form__label">Complemento</span>
-              <input class="form__input endereco-complemento" type="text" data-index="${indiceOrdenado}" />
-            </label>
-          `;
+                if (veiculos.length === 0) {
+                  listaVeiculosEl.innerHTML = '<p style="color: var(--muted); margin: 1rem 0;">Nenhum veículo adicionado. Clique no botão para adicionar.</p>';
+                  return;
+                }
 
-          // Preencher valores salvos para manter sincronia com o formulário
-          gridDiv.querySelector('.endereco-uf').value = endereco.uf || '';
-          gridDiv.querySelector('.endereco-logradouro').value = endereco.logradouro || '';
-          gridDiv.querySelector('.endereco-bairro').value = endereco.bairro || '';
-          gridDiv.querySelector('.endereco-cep').value = endereco.cep || '';
-          gridDiv.querySelector('.endereco-complemento').value = endereco.complemento || '';
+                veiculos.forEach((veiculo, indice) => {
+                  const div = document.createElement('div');
+                  div.style.cssText = 'border: 1px solid var(--border); border-radius: 0.5rem; padding: 1rem; margin-bottom: 0.75rem; background: var(--surface-muted);';
 
-          // Adicionar listeners
-          gridDiv.querySelector('.endereco-uf').addEventListener('change', (e) => {
-            enderecos[indiceOrdenado].uf = e.target.value;
-          });
-          gridDiv.querySelector('.endereco-logradouro').addEventListener('input', (e) => {
-            enderecos[indiceOrdenado].logradouro = e.target.value;
-          });
-          gridDiv.querySelector('.endereco-bairro').addEventListener('input', (e) => {
-            enderecos[indiceOrdenado].bairro = e.target.value;
-          });
-          gridDiv.querySelector('.endereco-complemento').addEventListener('input', (e) => {
-            enderecos[indiceOrdenado].complemento = e.target.value;
-          });
-          const cepInput = gridDiv.querySelector('.endereco-cep');
-          cepInput.addEventListener('blur', (e) => {
-            if (e.target.value?.trim()) {
-              mostrarCarregamentoCep(indiceOrdenado, true);
-              buscarEnderecoPorCepMultiplo(e.target.value, indiceOrdenado);
-            }
-          });
+                  const header = document.createElement('div');
+                  header.style.cssText = 'display:flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;';
+                  const titulo = document.createElement('span');
+                  titulo.style.cssText = 'font-weight:600; color: var(--text);';
+                  titulo.textContent = `Veículo ${indice + 1}`;
+                  const removerBtn = document.createElement('button');
+                  removerBtn.type = 'button';
+                  removerBtn.className = 'button button--danger';
+                  removerBtn.textContent = '−';
+                  removerBtn.title = 'Excluir';
+                  removerBtn.setAttribute('aria-label', 'Remover veículo');
+                  removerBtn.style.cssText = 'padding: 0.25rem 0.5rem; font-size: 0.75rem; min-width: fit-content;';
+                  removerBtn.addEventListener('click', () => {
+                    veiculos.splice(indice, 1);
+                    renderizarVeiculos();
+                  });
+                  header.appendChild(titulo);
+                  header.appendChild(removerBtn);
+                  div.appendChild(header);
 
-          div.appendChild(gridDiv);
+                  const grid = document.createElement('div');
+                  grid.className = 'form__grid form__grid--4';
+                  grid.innerHTML = `
+                    <label class="form__field form__field--wide">
+                      <span class="form__label">Marca/Modelo</span>
+                      <input class="form__input veic-marcaModelo" type="text" data-index="${indice}" placeholder="Ex: VW Gol 1.6" />
+                    </label>
+                    <label class="form__field">
+                      <span class="form__label">Placa</span>
+                      <input class="form__input veic-placa" type="text" data-index="${indice}" placeholder="ABC1D23" />
+                    </label>
+                    <label class="form__field">
+                      <span class="form__label">Cor</span>
+                      <input class="form__input veic-cor" type="text" data-index="${indice}" placeholder="Cor" />
+                    </label>
+                    <label class="form__field">
+                      <span class="form__label">Ano/Modelo</span>
+                      <input class="form__input veic-anoModelo" type="text" inputmode="numeric" data-index="${indice}" placeholder="AAAA" />
+                    </label>
+                    <label class="form__field form__field--wide">
+                      <span class="form__label">Obs:</span>
+                      <input class="form__input veic-obs" type="text" data-index="${indice}" placeholder="Observações sobre o veículo" />
+                    </label>
+                  `;
 
-          // Adiciona elemento para exibir status de carregamento
-          const statusDiv = document.createElement('div');
-          statusDiv.className = `cep-status-${indiceOrdenado}`;
-          statusDiv.style.cssText = 'margin-top: 0.75rem; font-size: 0.85rem; display: none;';
-          div.appendChild(statusDiv);
+                  grid.querySelector('.veic-marcaModelo').value = veiculo.marcaModelo || '';
+                  grid.querySelector('.veic-placa').value = veiculo.placa || '';
+                  grid.querySelector('.veic-cor').value = veiculo.cor || '';
+                  grid.querySelector('.veic-anoModelo').value = veiculo.anoModelo || '';
+                  grid.querySelector('.veic-obs').value = veiculo.obs || '';
 
-          listaEl.appendChild(div);
+                  grid.querySelector('.veic-marcaModelo').addEventListener('input', (e) => {
+                    veiculos[indice].marcaModelo = e.target.value;
+                  });
+                  grid.querySelector('.veic-placa').addEventListener('input', (e) => {
+                    veiculos[indice].placa = String(e.target.value || '').toUpperCase();
+                    e.target.value = veiculos[indice].placa;
+                  });
+                  grid.querySelector('.veic-cor').addEventListener('input', (e) => {
+                    veiculos[indice].cor = e.target.value;
+                  });
+                  grid.querySelector('.veic-anoModelo').addEventListener('input', (e) => {
+                    veiculos[indice].anoModelo = e.target.value.replace(/\D/g, '').slice(0, 4);
+                    e.target.value = veiculos[indice].anoModelo;
+                  });
+                  grid.querySelector('.veic-obs').addEventListener('input', (e) => {
+                    veiculos[indice].obs = e.target.value;
+                  });
+
+                  div.appendChild(grid);
+                  listaVeiculosEl.appendChild(div);
+                });
+              };
         });
       };
 
