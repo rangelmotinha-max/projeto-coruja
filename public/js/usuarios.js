@@ -22,6 +22,7 @@
 
   // Campo de busca
   const campoConsulta = document.getElementById('campo-consulta');
+  const alertContainer = document.getElementById('alert-container');
 
   // Estado da paginação
   let todosUsuarios = [];
@@ -31,6 +32,14 @@
   let termoBusca = '';
 
   let usuarioEmEdicao = null;
+  let ultimaAcaoFoiEdicao = false;
+
+  const setMessage = (text, type = 'info') => {
+    if (!alertContainer) return;
+    alertContainer.textContent = text || '';
+    alertContainer.className = 'message';
+    if (text) alertContainer.classList.add(`message--${type}`);
+  };
 
   // Modal (se presente na página)
   const modalEl = document.getElementById('usuario-modal');
@@ -79,7 +88,7 @@
   const resetarFormulario = () => {
     usuarioEmEdicao = null;
     formulario?.reset();
-    botaoSubmit.textContent = 'Salvar usuário';
+    botaoSubmit.textContent = 'Incluir';
   };
 
   // Monta ações para cada linha da tabela
@@ -99,7 +108,7 @@
       campoRole.value = usuario.role || '';
       campoSenha.value = '';
       usuarioEmEdicao = usuario.id;
-      botaoSubmit.textContent = 'Atualizar usuário';
+      botaoSubmit.textContent = 'Salvar';
       // Abre o modal quando for edição, se houver modal na página
       openModal();
     });
@@ -273,8 +282,15 @@
       termoBusca = '';
       paginaAtual = 1;
       renderizarPaginaAtual();
+      if (ultimaAcaoFoiEdicao) {
+        setMessage('Alteração realizada com sucesso!', 'success');
+        ultimaAcaoFoiEdicao = false;
+      } else {
+        setMessage('Lista atualizada.', 'success');
+      }
     } catch (error) {
       console.error('Erro ao carregar usuários:', error);
+      setMessage('Não foi possível carregar a lista.', 'error');
     }
   };
 
@@ -302,7 +318,7 @@
     }
 
     botaoSubmit.disabled = true;
-    botaoSubmit.textContent = usuarioEmEdicao ? 'Atualizando...' : 'Salvando...';
+    botaoSubmit.textContent = 'Salvando...';
 
     const payload = { nome, email, role };
     if (senha) payload.senha = senha;
@@ -333,13 +349,16 @@
       try {
         document.dispatchEvent(new Event('usuario:salvo'));
       } catch (e) {}
+      setMessage(usuarioEmEdicao ? 'Alteração realizada com sucesso!' : 'Registro incluído com sucesso!', 'success');
+      ultimaAcaoFoiEdicao = Boolean(usuarioEmEdicao);
       resetarFormulario();
       await carregarUsuarios();
     } catch (error) {
       console.error('Erro ao salvar usuário:', error);
+      setMessage(error?.message || 'Não foi possível salvar o usuário.', 'error');
     } finally {
       botaoSubmit.disabled = false;
-      botaoSubmit.textContent = usuarioEmEdicao ? 'Atualizar usuário' : 'Salvar usuário';
+      botaoSubmit.textContent = usuarioEmEdicao ? 'Salvar' : 'Incluir';
     }
   };
 

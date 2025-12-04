@@ -28,6 +28,10 @@ function authMiddleware(req, res, next) {
   try {
     const token = extrairToken(req);
     if (!token) {
+      const acceptsHtml = (req.headers.accept || '').includes('text/html');
+      if (acceptsHtml && req.method === 'GET') {
+        return res.redirect('/');
+      }
       throw criarErro('Token não fornecido', 401);
     }
 
@@ -35,7 +39,11 @@ function authMiddleware(req, res, next) {
     req.user = payload;
     return next();
   } catch (error) {
+    const acceptsHtml = (req.headers.accept || '').includes('text/html');
     if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
+      if (acceptsHtml && req.method === 'GET') {
+        return res.redirect('/');
+      }
       return next(criarErro('Token inválido ou expirado', 401));
     }
     return next(error);

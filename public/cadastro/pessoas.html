@@ -166,6 +166,7 @@
       const messageEl = document.getElementById('pessoas-message');
       const cpfInput = pessoaForm?.elements['cpf'];
       let pessoaEmEdicao = null;
+      let ultimaAcaoFoiEdicao = false;
 
       const getCookie = (name) => {
         return document.cookie
@@ -770,7 +771,7 @@
 
 
       const atualizarRotuloSubmit = () => {
-        submitButton.textContent = 'Incluir';
+        submitButton.textContent = pessoaEmEdicao ? 'Salvar' : 'Incluir';
       };
 
       const renderizarLista = (pessoas = []) => {
@@ -857,7 +858,7 @@
           const excluirBtn = document.createElement('button');
           excluirBtn.type = 'button';
           excluirBtn.className = 'button button--danger';
-          excluirBtn.textContent = '−';
+          excluirBtn.textContent = 'Excluir';
           excluirBtn.title = 'Excluir';
           excluirBtn.setAttribute('aria-label', 'Excluir');
           excluirBtn.addEventListener('click', async () => {
@@ -901,7 +902,12 @@
           }
 
           renderizarLista(Array.isArray(data) ? data : data?.data || []);
-          exibirMensagem('Lista atualizada.', 'success');
+          if (ultimaAcaoFoiEdicao) {
+            exibirMensagem('Alteração realizada com sucesso!', 'success');
+            ultimaAcaoFoiEdicao = false;
+          } else {
+            exibirMensagem('Lista atualizada.', 'success');
+          }
         } catch (error) {
           exibirMensagem(error?.message || 'Não foi possível carregar a lista.', 'error');
         }
@@ -943,10 +949,9 @@
             throw new Error(erro);
           }
 
-          exibirMensagem(
-            pessoaEmEdicao ? 'Dados atualizados com sucesso.' : 'Registro criado com sucesso.',
-            'success'
-          );
+          const foiEdicao = Boolean(pessoaEmEdicao);
+          exibirMensagem(foiEdicao ? 'Alteração realizada com sucesso!' : 'Registro incluído com sucesso!', 'success');
+          ultimaAcaoFoiEdicao = foiEdicao;
           pessoaForm.reset();
           pessoaEmEdicao = null;
           atualizarRotuloSubmit();
