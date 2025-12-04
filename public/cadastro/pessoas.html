@@ -88,15 +88,34 @@
               </div>
             </div>
 
-            <!-- Seção 2: Telefones -->
+            <!-- Seção 2: Contatos -->
             <div class="form__section">
               <div class="form__section-header">
-                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                  <h3 class="form__section-title">Telefone(s)</h3>
+                <h3 class="form__section-title">Contatos</h3>
+              </div>
+
+              <!-- Sub-seção: Telefone -->
+              <div class="form__subsection">
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 0.5rem;">
+                  <h4 class="form__section-title" style="font-size: 1rem; margin: 0;">Telefone</h4>
                   <button class="button button--secondary" id="adicionar-telefone" type="button">+ Adicionar telefone</button>
                 </div>
+                <div id="lista-telefones" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
               </div>
-              <div id="lista-telefones" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
+
+              <!-- Sub-seção: Email e Rede Social -->
+              <div class="form__subsection">
+                <div class="form__grid form__grid--2">
+                  <label class="form__field">
+                    <span class="form__label">Email</span>
+                    <input class="form__input" type="email" name="email" placeholder="seuemail@exemplo.com" />
+                  </label>
+                  <label class="form__field">
+                    <span class="form__label">Rede Social</span>
+                    <input class="form__input" type="text" name="redeSocial" placeholder="@usuario ou URL" />
+                  </label>
+                </div>
+              </div>
             </div>
 
             <!-- Seção 3: Endereços -->
@@ -144,7 +163,15 @@
       const cpfInput = pessoaForm?.elements['cpf'];
       let pessoaEmEdicao = null;
 
-      const obterToken = () => localStorage.getItem('authToken');
+      const getCookie = (name) => {
+        return document.cookie
+          .split(';')
+          .map((c) => c.trim())
+          .find((c) => c.startsWith(`${name}=`))
+          ?.split('=')[1];
+      };
+
+      const obterToken = () => localStorage.getItem('authToken') || getCookie('authToken');
 
       const fetchAutenticado = (url, options = {}) => {
         const token = obterToken();
@@ -772,6 +799,15 @@
       };
 
       const inicializarCadastro = () => {
+        const token = obterToken();
+        if (!token) {
+          exibirMensagem('Sessão expirada. Faça login para continuar.', 'warning');
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 800);
+          return;
+        }
+
         atualizarRotuloSubmit();
         pessoaForm.addEventListener('submit', salvarPessoa);
         listarButton.addEventListener('click', carregarPessoas);
