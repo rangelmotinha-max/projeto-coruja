@@ -245,8 +245,11 @@
                 <div id="lista-vinculos-empresas" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
               </div>
               <div class="form__subsection">
-                <h4 class="form__section-title" style="font-size: 1rem; margin: 0;">Veículos</h4>
-                <p style="color: var(--muted); font-size: 0.85rem; margin: 0.5rem 0;">Sem campos definidos ainda.</p>
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin: 0.75rem 0;">
+                  <h4 class="form__section-title" style="font-size: 1rem; margin: 0;">Veículos</h4>
+                  <button class="button button--secondary" id="adicionar-vinculo-veiculo" type="button" aria-label="Adicionar veículo vinculado" title="Adicionar">+</button>
+                </div>
+                <div id="lista-vinculos-veiculos" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
               </div>
               <div class="form__subsection">
                 <h4 class="form__section-title" style="font-size: 1rem; margin: 0;">Entidades</h4>
@@ -403,6 +406,16 @@
         const vinculosObj = {};
         if (pessoasVinc.length) vinculosObj.pessoas = pessoasVinc;
         if (empresasVinc.length) vinculosObj.empresas = empresasVinc;
+        const vincVeic = (vinculosVeiculos || [])
+          .map(v => {
+            const mm = String(v?.marcaModelo || '').trim();
+            const p = String(v?.placa || '').trim();
+            const c = String(v?.cor || '').trim();
+            const am = String(v?.anoModelo || '').trim();
+            return (mm || p || c || am) ? { marcaModelo: mm, placa: p.toUpperCase(), cor: c, anoModelo: am } : null;
+          })
+          .filter(Boolean);
+        if (vincVeic.length) vinculosObj.veiculos = vincVeic;
         dados.vinculos = Object.keys(vinculosObj).length ? vinculosObj : undefined;
         
         return dados;
@@ -493,6 +506,7 @@
       let socios = [];
       let vinculosPessoas = [];
       let vinculosEmpresas = [];
+      let vinculosVeiculos = [];
 
       const renderizarTelefones = () => {
         const listaTelefonesEl = document.getElementById('lista-telefones');
@@ -832,7 +846,7 @@
             </label>
             <label class="form__field">
               <span class="form__label">Observações</span>
-              <input class="form__input vem-obs" type="text" data-index="${i}" placeholder="Observações sobre o vínculo" />
+              <textarea class="form__input vem-obs" data-index="${i}" placeholder="Observações sobre o vínculo" rows="3" style="resize: vertical;"></textarea>
             </label>
             <button class="button button--danger" type="button" title="Excluir" aria-label="Remover vínculo">−</button>
           `;
@@ -937,6 +951,74 @@
       const adicionarVeiculo = () => {
         veiculos.push({ marcaModelo: '', placa: '', cor: '', anoModelo: '' });
         renderizarVeiculos();
+      };
+
+      const renderizarVinculosVeiculos = () => {
+        const lista = document.getElementById('lista-vinculos-veiculos');
+        if (!lista) return;
+        lista.innerHTML = '';
+        if (vinculosVeiculos.length === 0) {
+          lista.innerHTML = '<p style="color: var(--muted); margin: 0.5rem 0; font-size: 0.85rem;">Nenhum veículo vinculado. Clique para adicionar.</p>';
+          return;
+        }
+        vinculosVeiculos.forEach((veic, i) => {
+          const div = document.createElement('div');
+          div.style.cssText = 'border: 1px solid var(--border); border-radius: 0.5rem; padding: 1rem; background: var(--surface-muted);';
+          const header = document.createElement('div');
+          header.style.cssText = 'display:flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;';
+          const titulo = document.createElement('span');
+          titulo.style.cssText = 'font-weight:600; color: var(--text);';
+          titulo.textContent = `Veículo vinculado ${i + 1}`;
+          const removerBtn = document.createElement('button');
+          removerBtn.type = 'button';
+          removerBtn.className = 'button button--danger';
+          removerBtn.textContent = '−';
+          removerBtn.title = 'Excluir';
+          removerBtn.setAttribute('aria-label', 'Remover veículo vinculado');
+          removerBtn.style.cssText = 'padding: 0.25rem 0.5rem; font-size: 0.75rem; min-width: fit-content;';
+          removerBtn.addEventListener('click', () => { vinculosVeiculos.splice(i,1); renderizarVinculosVeiculos(); });
+          header.appendChild(titulo);
+          header.appendChild(removerBtn);
+          div.appendChild(header);
+
+          const grid = document.createElement('div');
+          grid.className = 'form__grid form__grid--4';
+          grid.innerHTML = `
+            <label class="form__field form__field--wide">
+              <span class="form__label">Marca/Modelo</span>
+              <input class="form__input vvv-marcaModelo" type="text" data-index="${i}" placeholder="Ex: VW Gol 1.6" />
+            </label>
+            <label class="form__field">
+              <span class="form__label">Placa</span>
+              <input class="form__input vvv-placa" type="text" data-index="${i}" placeholder="ABC1D23" />
+            </label>
+            <label class="form__field">
+              <span class="form__label">Cor</span>
+              <input class="form__input vvv-cor" type="text" data-index="${i}" placeholder="Cor" />
+            </label>
+            <label class="form__field">
+              <span class="form__label">Ano/Modelo</span>
+              <input class="form__input vvv-anoModelo" type="text" inputmode="numeric" data-index="${i}" placeholder="AAAA" />
+            </label>
+          `;
+          grid.querySelector('.vvv-marcaModelo').value = veic.marcaModelo || '';
+          grid.querySelector('.vvv-placa').value = veic.placa || '';
+          grid.querySelector('.vvv-cor').value = veic.cor || '';
+          grid.querySelector('.vvv-anoModelo').value = veic.anoModelo || '';
+
+          grid.querySelector('.vvv-marcaModelo').addEventListener('input', (e) => { vinculosVeiculos[i].marcaModelo = e.target.value; });
+          grid.querySelector('.vvv-placa').addEventListener('input', (e) => { vinculosVeiculos[i].placa = String(e.target.value||'').toUpperCase(); e.target.value = vinculosVeiculos[i].placa; });
+          grid.querySelector('.vvv-cor').addEventListener('input', (e) => { vinculosVeiculos[i].cor = e.target.value; });
+          grid.querySelector('.vvv-anoModelo').addEventListener('input', (e) => { vinculosVeiculos[i].anoModelo = String(e.target.value||'').replace(/\D/g,'').slice(0,4); e.target.value = vinculosVeiculos[i].anoModelo; });
+
+          div.appendChild(grid);
+          lista.appendChild(div);
+        });
+      };
+
+      const adicionarVinculoVeiculo = () => {
+        vinculosVeiculos.push({ marcaModelo: '', placa: '', cor: '', anoModelo: '' });
+        renderizarVinculosVeiculos();
       };
 
       const createEstadosSelect = () => {
@@ -1278,6 +1360,14 @@
           vinculosEmpresas = [];
         }
         renderizarVinculosEmpresas();
+
+        // Carrega vínculos de veículos
+        if (pessoa.vinculos && Array.isArray(pessoa.vinculos.veiculos)) {
+          vinculosVeiculos = JSON.parse(JSON.stringify(pessoa.vinculos.veiculos));
+        } else {
+          vinculosVeiculos = [];
+        }
+        renderizarVinculosVeiculos();
       };
 
 
@@ -1572,6 +1662,8 @@
           renderizarVinculosPessoas();
           vinculosEmpresas = [];
           renderizarVinculosEmpresas();
+          vinculosVeiculos = [];
+          renderizarVinculosVeiculos();
         });
         cpfInput?.addEventListener('input', aplicarMascaraCpf);
 
@@ -1605,6 +1697,10 @@
         const addVincEmpresaBtn = document.getElementById('adicionar-vinculo-empresa');
         addVincEmpresaBtn?.addEventListener('click', adicionarVinculoEmpresa);
 
+        // Event listener para adicionar vínculo veículo
+        const addVincVeicBtn = document.getElementById('adicionar-vinculo-veiculo');
+        addVincVeicBtn?.addEventListener('click', adicionarVinculoVeiculo);
+
         // Máscara CNPJ
         const cnpjInput = document.getElementById('empresa-cnpj');
         cnpjInput?.addEventListener('input', (e) => { e.target.value = aplicarMascaraCnpj(e.target.value); });
@@ -1623,6 +1719,7 @@
         renderizarVeiculos();
         renderizarVinculosPessoas();
         renderizarVinculosEmpresas();
+        renderizarVinculosVeiculos();
         // Lista fica oculta até o usuário clicar em "Listar"
       };
 
