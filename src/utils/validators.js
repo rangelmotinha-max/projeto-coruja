@@ -75,6 +75,7 @@ function validarCadastroPessoa(payload) {
   const telefonesArray = limparListaStrings(payload.telefones || []);
   const emailsArray = limparListaStrings(payload.emails || [], normalizarEmail);
   const redesSociaisArray = limparListaStrings(payload.redesSociais || []);
+  const veiculosArray = validarVeiculos(payload.veiculos || []);
 
   const primeiroTelefone = payload.telefone ? normalizarOpcional(payload.telefone) : (telefonesArray[0] || null);
 
@@ -93,6 +94,7 @@ function validarCadastroPessoa(payload) {
     telefones: telefonesArray,
     emails: emailsArray,
     redesSociais: redesSociaisArray,
+    veiculos: veiculosArray,
   };
 }
 
@@ -112,6 +114,20 @@ function validarEnderecos(enderecos) {
     // Complemento agora é validado e normalizado para ser persistido corretamente.
     complemento: normalizarOpcional(endereco.complemento),
     cep: normalizarOpcional(endereco.cep),
+  }));
+}
+
+// Valida array de veículos
+function validarVeiculos(veiculos) {
+  if (!veiculos) return [];
+  if (!Array.isArray(veiculos)) {
+    throw criarErro('Veículos deve ser um array', 400);
+  }
+  return veiculos.map(v => ({
+    marcaModelo: normalizarOpcional(v.marcaModelo),
+    placa: normalizarOpcional(v.placa ? String(v.placa).toUpperCase() : v.placa),
+    cor: normalizarOpcional(v.cor),
+    anoModelo: normalizarOpcional(v.anoModelo ? String(v.anoModelo).replace(/\D/g, '').slice(0,4) : v.anoModelo),
   }));
 }
 
@@ -156,6 +172,9 @@ function validarAtualizacaoPessoa(payload) {
   }
   if (payload.redesSociais !== undefined) {
     atualizacoes.redesSociais = limparListaStrings(payload.redesSociais || []);
+  }
+  if (payload.veiculos !== undefined) {
+    atualizacoes.veiculos = validarVeiculos(payload.veiculos || []);
   }
 
   // Validar índice do endereço atual
@@ -216,4 +235,5 @@ module.exports = {
   validarCadastroPessoa,
   validarAtualizacaoPessoa,
   validarEnderecos,
+  validarVeiculos,
 };

@@ -93,6 +93,23 @@ async function atualizar(id, payload) {
     }
   }
 
+  // Processar veículos se fornecidos no payload
+  if (payload.veiculos && Array.isArray(payload.veiculos)) {
+    const veiculosAtuais = await PessoaModel.obterVeiculosPorPessoa(id);
+    for (const vAtual of veiculosAtuais) {
+      await PessoaModel.removerVeiculo(vAtual.id);
+    }
+    for (const v of payload.veiculos) {
+      const mm = (v.marcaModelo || '').trim();
+      const pl = (v.placa || '').trim();
+      const cr = (v.cor || '').trim();
+      const am = (v.anoModelo || '').trim();
+      if (mm || pl || cr || am) {
+        await PessoaModel.adicionarVeiculo(id, v);
+      }
+    }
+  }
+
   // Atualizar dados da pessoa e índice do endereço atual
   if (payload.endereco_atual_index !== undefined) {
     atualizacoes.endereco_atual_index = payload.endereco_atual_index;

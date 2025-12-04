@@ -162,6 +162,61 @@
               <div id="lista-enderecos" class="enderecos-lista"></div>
             </div>
 
+            <!-- Seção 4: Empresa -->
+            <div class="form__section">
+              <div class="form__section-header">
+                <h3 class="form__section-title" style="text-align: center; width: 100%;">Empresa</h3>
+              </div>
+
+              <div class="form__grid form__grid--4">
+                <label class="form__field form__field--wide">
+                  <span class="form__label">CNPJ</span>
+                  <input class="form__input" type="text" name="empresa_cnpj" id="empresa-cnpj" inputmode="numeric" placeholder="00.000.000/0000-00" />
+                </label>
+                <label class="form__field form__field--wide">
+                  <span class="form__label">Razão Social</span>
+                  <input class="form__input" type="text" name="empresa_razaoSocial" />
+                </label>
+                <label class="form__field form__field--wide">
+                  <span class="form__label">Nome Fantasia</span>
+                  <input class="form__input" type="text" name="empresa_nomeFantasia" />
+                </label>
+                <label class="form__field form__field--wide">
+                  <span class="form__label">Natureza Jurídica</span>
+                  <input class="form__input" type="text" name="empresa_naturezaJuridica" />
+                </label>
+                <label class="form__field">
+                  <span class="form__label">Data Início Atividade</span>
+                  <input class="form__input" type="date" name="empresa_dataInicioAtividade" />
+                </label>
+                <label class="form__field">
+                  <span class="form__label">Situação Cadastral</span>
+                  <select class="form__input" name="empresa_situacaoCadastral">
+                    <option value="">Selecione</option>
+                    <option value="Ativo">Ativo</option>
+                    <option value="Inativo">Inativo</option>
+                    <option value="Inapta">Inapta</option>
+                  </select>
+                </label>
+                <label class="form__field form__field--wide">
+                  <span class="form__label">Endereço</span>
+                  <input class="form__input" type="text" name="empresa_endereco" />
+                </label>
+                <label class="form__field">
+                  <span class="form__label">Telefone</span>
+                  <input class="form__input" type="tel" name="empresa_telefone" />
+                </label>
+              </div>
+
+              <div class="form__subsection">
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin: 0.75rem 0;">
+                  <h4 class="form__section-title" style="font-size: 1rem; margin: 0;">Sócios</h4>
+                  <button class="button button--secondary" id="adicionar-socio" type="button" aria-label="Adicionar sócio" title="Adicionar">+</button>
+                </div>
+                <div id="lista-socios" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
+              </div>
+            </div>
+
             <div class="form__actions">
               <button class="button button--secondary" type="reset">Limpar</button>
               <button class="button button--ghost" id="listar-pessoas" type="button">Listar</button>
@@ -268,12 +323,31 @@
         dados.redesSociais = redes.filter(r => r.trim() !== '');
         // Adiciona veículos (ignora itens totalmente vazios)
         dados.veiculos = veiculos.filter(v => {
+          const mm = String(v.marcaModelo || '').trim();
           const p = String(v.placa || '').trim();
-          const m = String(v.modelo || '').trim();
           const c = String(v.cor || '').trim();
-          const a = String(v.ano || '').trim();
-          return p || m || c || a;
+          const am = String(v.anoModelo || '').trim();
+          return mm || p || c || am;
         });
+
+        // Montar objeto empresa
+        const empresa = {
+          cnpj: String(dados['empresa_cnpj'] || '').trim(),
+          razaoSocial: String(dados['empresa_razaoSocial'] || '').trim(),
+          nomeFantasia: String(dados['empresa_nomeFantasia'] || '').trim(),
+          naturezaJuridica: String(dados['empresa_naturezaJuridica'] || '').trim(),
+          dataInicioAtividade: String(dados['empresa_dataInicioAtividade'] || '').trim(),
+          situacaoCadastral: String(dados['empresa_situacaoCadastral'] || '').trim(),
+          endereco: String(dados['empresa_endereco'] || '').trim(),
+          telefone: String(dados['empresa_telefone'] || '').trim(),
+          socios: (socios || []).map(s => ({ nome: String(s.nome||'').trim(), cpf: String(s.cpf||'').trim() }))
+        };
+        const algumaInfoEmpresa = Object.values({
+          cnpj: empresa.cnpj, razaoSocial: empresa.razaoSocial, nomeFantasia: empresa.nomeFantasia,
+          naturezaJuridica: empresa.naturezaJuridica, dataInicioAtividade: empresa.dataInicioAtividade,
+          situacaoCadastral: empresa.situacaoCadastral, endereco: empresa.endereco, telefone: empresa.telefone
+        }).some(v => v && v.length);
+        dados.empresa = algumaInfoEmpresa || (empresa.socios && empresa.socios.length) ? empresa : undefined;
         
         return dados;
       };
@@ -360,6 +434,7 @@
       let emails = [];
       let redes = [];
       let veiculos = [];
+      let socios = [];
 
       const renderizarTelefones = () => {
         const listaTelefonesEl = document.getElementById('lista-telefones');
@@ -540,6 +615,64 @@
         renderizarRedes();
       };
 
+      const aplicarMascaraCnpj = (valor) => {
+        const dig = String(valor || '').replace(/\D/g, '').slice(0, 14);
+        let v = dig;
+        if (dig.length > 2) v = dig.slice(0,2) + '.' + dig.slice(2);
+        if (dig.length > 5) v = v.slice(0,6) + '.' + dig.slice(5);
+        if (dig.length > 8) v = v.slice(0,10) + '/' + dig.slice(8);
+        if (dig.length > 12) v = v.slice(0,15) + '-' + dig.slice(12);
+        return v;
+      };
+
+      const aplicarMascaraCpfInline = (valor) => {
+        const dig = String(valor || '').replace(/\D/g, '').slice(0, 11);
+        let v = dig;
+        if (dig.length > 3) v = dig.slice(0,3) + '.' + dig.slice(3);
+        if (dig.length > 6) v = v.slice(0,7) + '.' + dig.slice(6);
+        if (dig.length > 9) v = v.slice(0,11) + '-' + dig.slice(9);
+        return v;
+      };
+
+      const renderizarSocios = () => {
+        const lista = document.getElementById('lista-socios');
+        if (!lista) return;
+        lista.innerHTML = '';
+        if (socios.length === 0) {
+          lista.innerHTML = '<p style="color: var(--muted); font-size: 0.85rem; margin: 0;">Nenhum sócio adicionado. Clique para adicionar.</p>';
+          return;
+        }
+        socios.forEach((s, i) => {
+          const linha = document.createElement('div');
+          linha.style.cssText = 'display:flex; gap:0.5rem; align-items:center;';
+          linha.innerHTML = `
+            <label class="form__field" style="flex:1;">
+              <span class="form__label">Nome</span>
+              <input class="form__input socio-nome" type="text" data-index="${i}" />
+            </label>
+            <label class="form__field" style="max-width: 16rem;">
+              <span class="form__label">CPF</span>
+              <input class="form__input socio-cpf" type="text" data-index="${i}" placeholder="000.000.000-00" />
+            </label>
+            <button class="button button--danger" type="button" title="Excluir" aria-label="Remover sócio">−</button>
+          `;
+          const nomeEl = linha.querySelector('.socio-nome');
+          const cpfEl = linha.querySelector('.socio-cpf');
+          const btn = linha.querySelector('button');
+          nomeEl.value = s.nome || '';
+          cpfEl.value = aplicarMascaraCpfInline(s.cpf || '');
+          nomeEl.addEventListener('input', (e) => { socios[i].nome = e.target.value; });
+          cpfEl.addEventListener('input', (e) => { socios[i].cpf = aplicarMascaraCpfInline(e.target.value); e.target.value = socios[i].cpf; });
+          btn.addEventListener('click', () => { socios.splice(i,1); renderizarSocios(); });
+          lista.appendChild(linha);
+        });
+      };
+
+      const adicionarSocio = () => {
+        socios.push({ nome: '', cpf: '' });
+        renderizarSocios();
+      };
+
       const renderizarVeiculos = () => {
         const listaVeiculosEl = document.getElementById('lista-veiculos');
         if (!listaVeiculosEl) return;
@@ -578,42 +711,42 @@
           const grid = document.createElement('div');
           grid.className = 'form__grid form__grid--4';
           grid.innerHTML = `
+            <label class=\"form__field form__field--wide\">
+              <span class=\"form__label\">Marca/Modelo</span>
+              <input class=\"form__input veic-marcaModelo\" type=\"text\" data-index=\"${indice}\" placeholder=\"Ex: VW Gol 1.6\" />
+            </label>
             <label class=\"form__field\">
               <span class=\"form__label\">Placa</span>
               <input class=\"form__input veic-placa\" type=\"text\" data-index=\"${indice}\" placeholder=\"ABC1D23\" />
-            </label>
-            <label class=\"form__field form__field--wide\">
-              <span class=\"form__label\">Modelo</span>
-              <input class=\"form__input veic-modelo\" type=\"text\" data-index=\"${indice}\" placeholder=\"Modelo\" />
             </label>
             <label class=\"form__field\">
               <span class=\"form__label\">Cor</span>
               <input class=\"form__input veic-cor\" type=\"text\" data-index=\"${indice}\" placeholder=\"Cor\" />
             </label>
             <label class=\"form__field\">
-              <span class=\"form__label\">Ano</span>
-              <input class=\"form__input veic-ano\" type=\"text\" inputmode=\"numeric\" data-index=\"${indice}\" placeholder=\"AAAA\" />
+              <span class=\"form__label\">Ano/Modelo</span>
+              <input class=\"form__input veic-anoModelo\" type=\"text\" inputmode=\"numeric\" data-index=\"${indice}\" placeholder=\"AAAA\" />
             </label>
           `;
 
+          grid.querySelector('.veic-marcaModelo').value = veiculo.marcaModelo || '';
           grid.querySelector('.veic-placa').value = veiculo.placa || '';
-          grid.querySelector('.veic-modelo').value = veiculo.modelo || '';
           grid.querySelector('.veic-cor').value = veiculo.cor || '';
-          grid.querySelector('.veic-ano').value = veiculo.ano || '';
+          grid.querySelector('.veic-anoModelo').value = veiculo.anoModelo || '';
 
+          grid.querySelector('.veic-marcaModelo').addEventListener('input', (e) => {
+            veiculos[indice].marcaModelo = e.target.value;
+          });
           grid.querySelector('.veic-placa').addEventListener('input', (e) => {
             veiculos[indice].placa = String(e.target.value || '').toUpperCase();
             e.target.value = veiculos[indice].placa;
           });
-          grid.querySelector('.veic-modelo').addEventListener('input', (e) => {
-            veiculos[indice].modelo = e.target.value;
-          });
           grid.querySelector('.veic-cor').addEventListener('input', (e) => {
             veiculos[indice].cor = e.target.value;
           });
-          grid.querySelector('.veic-ano').addEventListener('input', (e) => {
-            veiculos[indice].ano = e.target.value.replace(/\D/g, '').slice(0, 4);
-            e.target.value = veiculos[indice].ano;
+          grid.querySelector('.veic-anoModelo').addEventListener('input', (e) => {
+            veiculos[indice].anoModelo = e.target.value.replace(/\D/g, '').slice(0, 4);
+            e.target.value = veiculos[indice].anoModelo;
           });
 
           div.appendChild(grid);
@@ -622,7 +755,7 @@
       };
 
       const adicionarVeiculo = () => {
-        veiculos.push({ placa: '', modelo: '', cor: '', ano: '' });
+        veiculos.push({ marcaModelo: '', placa: '', cor: '', anoModelo: '' });
         renderizarVeiculos();
       };
 

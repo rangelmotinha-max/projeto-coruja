@@ -78,6 +78,19 @@ class PessoaModel {
       }
     }
 
+    // Salvar veículos se fornecidos
+    if (dados.veiculos && Array.isArray(dados.veiculos)) {
+      for (const v of dados.veiculos) {
+        const mm = (v.marcaModelo || '').trim();
+        const pl = (v.placa || '').trim();
+        const cr = (v.cor || '').trim();
+        const am = (v.anoModelo || '').trim();
+        if (mm || pl || cr || am) {
+          await this.adicionarVeiculo(pessoa.id, v);
+        }
+      }
+    }
+
     return { ...pessoa, enderecos: [], telefones: [], emails: [], redesSociais: [] };
   }
 
@@ -92,6 +105,7 @@ class PessoaModel {
       pessoa.telefones = (await this.obterTelefonesPorPessoa(pessoa.id)).map(t => t.numero);
       pessoa.emails = (await this.obterEmailsPorPessoa(pessoa.id)).map(e => e.email);
       pessoa.redesSociais = (await this.obterRedesPorPessoa(pessoa.id)).map(r => r.perfil);
+      pessoa.veiculos = await this.obterVeiculosPorPessoa(pessoa.id);
     }
     
     return pessoas;
@@ -107,6 +121,7 @@ class PessoaModel {
       pessoa.telefones = (await this.obterTelefonesPorPessoa(id)).map(t => t.numero);
       pessoa.emails = (await this.obterEmailsPorPessoa(id)).map(e => e.email);
       pessoa.redesSociais = (await this.obterRedesPorPessoa(id)).map(r => r.perfil);
+      pessoa.veiculos = await this.obterVeiculosPorPessoa(id);
     }
     
     return pessoa;
@@ -300,6 +315,51 @@ class PessoaModel {
   static async removerRedeSocial(redeId) {
     const db = await initDatabase();
     const resultado = await db.run('DELETE FROM redes_sociais WHERE id = ?', [redeId]);
+    return resultado.changes > 0;
+  }
+
+  // Veículos
+  static async obterVeiculosPorPessoa(pessoaId) {
+    const db = await initDatabase();
+    return db.all(
+      'SELECT id, marcaModelo, placa, cor, anoModelo FROM veiculos WHERE pessoa_id = ? ORDER BY criadoEm ASC',
+      [pessoaId]
+    );
+  }
+
+  static async adicionarVeiculo(pessoaId, veiculo) {
+    const db = await initDatabase();
+    const agora = new Date().toISOString();
+    const novo = {
+      id: randomUUID(),
+      pessoa_id: pessoaId,
+      marcaModelo: veiculo.marcaModelo || null,
+      placa: veiculo.placa || null,
+      cor: veiculo.cor || null,
+      anoModelo: veiculo.anoModelo || null,
+      criadoEm: agora,
+      atualizadoEm: agora,
+    };
+    await db.run(
+      `INSERT INTO veiculos (id, pessoa_id, marcaModelo, placa, cor, anoModelo, criadoEm, atualizadoEm)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        novo.id,
+        novo.pessoa_id,
+        novo.marcaModelo,
+        novo.placa,
+        novo.cor,
+        novo.anoModelo,
+        novo.criadoEm,
+        novo.atualizadoEm,
+      ]
+    );
+    return novo;
+  }
+
+  static async removerVeiculo(veiculoId) {
+    const db = await initDatabase();
+    const resultado = await db.run('DELETE FROM veiculos WHERE id = ?', [veiculoId]);
     return resultado.changes > 0;
   }
 
