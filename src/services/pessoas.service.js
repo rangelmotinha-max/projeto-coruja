@@ -93,10 +93,7 @@ async function atualizar(id, payload) {
     }
   }
 
-  // Processar empresa se fornecida no payload
-  if (payload.empresa && typeof payload.empresa === 'object') {
-    await PessoaModel.upsertEmpresa(id, payload.empresa);
-  }
+  // Empresa removida do cadastro de Pessoas; nenhum processamento aqui
 
   // Processar veículos se fornecidos no payload
   if (payload.veiculos && Array.isArray(payload.veiculos)) {

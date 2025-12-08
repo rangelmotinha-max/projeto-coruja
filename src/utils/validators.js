@@ -76,7 +76,7 @@ function validarCadastroPessoa(payload) {
   const emailsArray = limparListaStrings(payload.emails || [], normalizarEmail);
   const redesSociaisArray = limparListaStrings(payload.redesSociais || []);
   const veiculosArray = validarVeiculos(payload.veiculos || []);
-  const empresaObj = validarEmpresa(payload.empresa);
+  // Empresa removida do cadastro de Pessoas; não validar aqui
   const vinculosObj = validarVinculos(payload.vinculos);
   const ocorrenciasObj = validarOcorrencias(payload.ocorrencias);
 
@@ -98,7 +98,6 @@ function validarCadastroPessoa(payload) {
     emails: emailsArray,
     redesSociais: redesSociaisArray,
     veiculos: veiculosArray,
-    empresa: empresaObj,
     vinculos: vinculosObj,
     ocorrencias: ocorrenciasObj,
   };
@@ -259,9 +258,7 @@ function validarAtualizacaoPessoa(payload) {
   if (payload.veiculos !== undefined) {
     atualizacoes.veiculos = validarVeiculos(payload.veiculos || []);
   }
-  if (payload.empresa !== undefined) {
-    atualizacoes.empresa = validarEmpresa(payload.empresa);
-  }
+  // Empresa removida do cadastro de Pessoas; ignorar atualizações
   if (payload.vinculos !== undefined) {
     atualizacoes.vinculos = validarVinculos(payload.vinculos);
   }
