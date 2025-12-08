@@ -179,14 +179,16 @@
                 <div id="lista-vinculos-pessoas" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
               </div>
 
-              <!-- Sub-seções: Empresa (múltiplo), Veículos, Entidades -->
-              <div class="form__subsection">
+              <!-- Sub-seção Empresa removida desta tela -->
+              <!--
+              <div class="form__subsection" hidden>
                 <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin: 0.75rem 0;">
                   <h4 class="form__section-title" style="font-size: 1rem; margin: 0;">Empresa</h4>
                   <button class="button button--secondary" id="adicionar-vinculo-empresa" type="button" aria-label="Adicionar vínculo de empresa" title="Adicionar">+</button>
                 </div>
                 <div id="lista-vinculos-empresas" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
               </div>
+              -->
               <div class="form__subsection">
                 <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin: 0.75rem 0;">
                   <h4 class="form__section-title" style="font-size: 1rem; margin: 0;">Veículos</h4>
@@ -814,17 +816,7 @@
         renderizarVinculosPessoas();
       };
 
-      const renderizarVinculosEmpresas = () => {
-        const lista = document.getElementById('lista-vinculos-empresas');
-        if (!lista) return;
-        // Seção de vínculos de Empresa removida desta tela
-        lista.innerHTML = '<p style="color: var(--muted); font-size: 0.85rem; margin: 0;">Vínculo de empresas removido desta seção.</p>';
-      };
-
-      const adicionarVinculoEmpresa = () => {
-        // Sem efeito: vínculos de Empresa não são mais suportados aqui
-        renderizarVinculosEmpresas();
-      };
+      // Seção de vínculos de Empresa removida: funções excluídas
 
       const renderizarVinculosEmpregaticio = () => {
         const lista = document.getElementById('lista-vinculos-empregaticio');
@@ -1401,7 +1393,6 @@
 
         // Vínculos de empresa removidos: não carregar
         vinculosEmpresas = [];
-        renderizarVinculosEmpresas();
 
         // Carrega vínculos de entidades se existirem
         if (pessoa.vinculos && Array.isArray(pessoa.vinculos.entidades)) {
@@ -1718,7 +1709,6 @@
           vinculosPessoas = [];
           renderizarVinculosPessoas();
           vinculosEmpresas = [];
-          renderizarVinculosEmpresas();
           vinculosEntidades = [];
           renderizarVinculosEntidades();
           vinculosVeiculos = [];
@@ -1761,8 +1751,7 @@
         addVincPessoaBtn?.addEventListener('click', adicionarVinculoPessoa);
 
         // Event listener para adicionar vínculo empresa
-        const addVincEmpresaBtn = document.getElementById('adicionar-vinculo-empresa');
-        addVincEmpresaBtn?.addEventListener('click', adicionarVinculoEmpresa);
+        // Removido: botão e ação de vínculo de empresa
 
         // Event listener para adicionar vínculo entidade
         const addVincEntBtn = document.getElementById('adicionar-vinculo-entidade');
@@ -1793,7 +1782,7 @@
         renderizarRedes();
         renderizarVeiculos();
         renderizarVinculosPessoas();
-        renderizarVinculosEmpresas();
+        // Vínculo de empresas removido: não renderizar
         renderizarVinculosEntidades();
         renderizarVinculosVeiculos();
         renderizarVinculosEmpregaticio();
