@@ -139,7 +139,7 @@
           </div>
           <div id="empresas-message" class="message" role="status" aria-live="polite"></div>
           <div class="panel__body">
-            <ul id="empresas-lista" class="list" style="display:flex; flex-direction:column; gap:0.25rem;"></ul>
+            <div id="empresas-lista" class="list" style="display:block;"></div>
           </div>
         </section>
       </main>
@@ -215,21 +215,74 @@
             return;
           }
           exibirMensagem(`Exibindo ${lista.length} empresa(s).`, 'success');
+
+          // Construir tabela no estilo da listagem de Pessoas
+          const table = document.createElement('table');
+          table.style.width = '100%';
+          table.style.borderCollapse = 'collapse';
+
+          const thead = document.createElement('thead');
+          const headRow = document.createElement('tr');
+          const ths = ['CNPJ', 'Razão Social', 'Nome Fantasia', 'Situação Cadastral', 'Ações'];
+          ths.forEach(t => {
+            const th = document.createElement('th');
+            th.textContent = t;
+            th.style.textAlign = 'left';
+            th.style.padding = '0.5rem';
+            headRow.appendChild(th);
+          });
+          thead.appendChild(headRow);
+          table.appendChild(thead);
+
+          const tbody = document.createElement('tbody');
           for (const e of lista) {
-            const li = document.createElement('li');
-            li.style.display = 'flex'; li.style.justifyContent='space-between'; li.style.alignItems='center';
-            const label = document.createElement('div');
-            label.textContent = `${e.razaoSocial || e.nomeFantasia || '—'} • CNPJ: ${(e.cnpj||'').toString()}`;
+            const tr = document.createElement('tr');
+
+            const tdCnpj = document.createElement('td');
+            tdCnpj.textContent = aplicarMascaraCnpj(e.cnpj || '') || '—';
+            tdCnpj.style.padding = '0.5rem';
+
+            const tdRazao = document.createElement('td');
+            tdRazao.textContent = e.razaoSocial || '—';
+            tdRazao.style.padding = '0.5rem';
+
+            const tdFantasia = document.createElement('td');
+            tdFantasia.textContent = e.nomeFantasia || '—';
+            tdFantasia.style.padding = '0.5rem';
+
+            const tdSituacao = document.createElement('td');
+            tdSituacao.textContent = e.situacaoCadastral || '—';
+            tdSituacao.style.padding = '0.5rem';
+
+            const tdAcoes = document.createElement('td');
+            tdAcoes.style.padding = '0.5rem';
             const actions = document.createElement('div');
-            actions.style.display='flex'; actions.style.gap='0.5rem';
-            const btnEditar = document.createElement('button'); btnEditar.className='button'; btnEditar.type='button'; btnEditar.textContent='Editar';
-            const btnExcluir = document.createElement('button'); btnExcluir.className='button button--danger'; btnExcluir.type='button'; btnExcluir.textContent='Excluir';
+            actions.style.display = 'flex';
+            actions.style.gap = '0.5rem';
+            const btnEditar = document.createElement('button');
+            btnEditar.className = 'button';
+            btnEditar.type = 'button';
+            btnEditar.textContent = 'Editar';
+            const btnExcluir = document.createElement('button');
+            btnExcluir.className = 'button button--danger';
+            btnExcluir.type = 'button';
+            btnExcluir.textContent = 'Excluir';
             btnEditar.addEventListener('click', () => editarEmpresa(e));
             btnExcluir.addEventListener('click', () => excluirEmpresa(e));
-            actions.appendChild(btnEditar); actions.appendChild(btnExcluir);
-            li.appendChild(label); li.appendChild(actions);
-            listaEl.appendChild(li);
+            actions.appendChild(btnEditar);
+            actions.appendChild(btnExcluir);
+            tdAcoes.appendChild(actions);
+
+            tr.appendChild(tdCnpj);
+            tr.appendChild(tdRazao);
+            tr.appendChild(tdFantasia);
+            tr.appendChild(tdSituacao);
+            tr.appendChild(tdAcoes);
+
+            tbody.appendChild(tr);
           }
+          table.appendChild(tbody);
+          listaEl.appendChild(table);
         } catch (err) {
           exibirMensagem(err?.message || 'Erro ao listar empresas.', 'error');
         }
