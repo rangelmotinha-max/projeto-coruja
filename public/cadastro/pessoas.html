@@ -180,21 +180,23 @@
               </div>
 
               <!-- Sub-seção: Empresa vinculada (seleção única de empresas já cadastradas) -->
-              <div class="form__subsection">
-                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin: 0.75rem 0;">
-                  <h4 class="form__section-title" style="font-size: 1rem; margin: 0;">Empresa vinculada</h4>
-                  <button class="button" id="recarregar-empresas-opcoes" type="button" aria-label="Recarregar empresas" title="Recarregar">↻</button>
+                <div class="form__subsection" aria-label="Empresas vinculadas">
+                  <div style="display:flex; justify-content:space-between; align-items:center; width:100%; margin:0.75rem 0;">
+                    <h4 class="form__section-title" style="font-size:1rem; margin:0;">Empresas vinculadas</h4>
+                  </div>
+                  <div class="form__grid form__grid--3" style="align-items:end;">
+                    <label class="form__field">
+                      <span class="form__label">CNPJ da empresa</span>
+                      <input class="form__input" type="text" id="empresa-cnpj-input" placeholder="Digite o CNPJ" />
+                    </label>
+                    <div class="form__actions" style="margin:0;">
+                      <button class="button button--secondary" type="button" id="empresa-buscar-cnpj">Procuar</button>
+                    </div>
+                    <small id="empresa-vinculada-status" style="color: var(--muted);"></small>
+                  </div>
+                  <div id="empresa-busca-resultado" style="margin-top:0.75rem;"></div>
+                  <div id="empresas-vinculadas-lista" style="margin-top:0.75rem;"></div>
                 </div>
-                <div style="display: grid; grid-template-columns: 1fr; gap: 0.5rem;">
-                  <label class="form__field">
-                    <span class="form__label">Selecione a empresa</span>
-                    <select id="empresa-vinculada-select" class="form__input">
-                      <option value="">Selecione</option>
-                    </select>
-                  </label>
-                  <small id="empresa-vinculada-status" style="color: var(--muted);"></small>
-                </div>
-              </div>
 
               <!-- Sub-seção Empresa removida desta tela -->
               <!--
@@ -395,8 +397,8 @@
         })).filter(v => v.nome || v.cpf || v.tipo);
         const vinculosObj = {};
         if (pessoasVinc.length) vinculosObj.pessoas = pessoasVinc;
-        if (empresaSelecionadaId) {
-          vinculosObj.empresas = [{ id: empresaSelecionadaId }];
+        if (Array.isArray(empresasVinculadas) && empresasVinculadas.length) {
+          vinculosObj.empresas = empresasVinculadas.map((id) => ({ id }));
         }
         const entidadesVinc = (vinculosEntidades || [])
           .map(e => {
@@ -458,7 +460,7 @@
       // Empresa vinculada (seleção única)
       const API_EMPRESAS_URL = '/api/empresas';
       let empresasOpcoes = [];
-      let empresaSelecionadaId = '';
+      let empresasVinculadas = []; // array de IDs vinculados
 
       const carregarEmpresasOpcoes = async () => {
         const statusEl = document.getElementById('empresa-vinculada-status');
@@ -478,18 +480,150 @@
         }
       };
 
-      const renderizarEmpresaVinculadaSelect = () => {
-        const select = document.getElementById('empresa-vinculada-select');
-        if (!select) return;
-        const current = empresaSelecionadaId;
-        select.innerHTML = '<option value="">Selecione</option>';
-        empresasOpcoes.forEach((e) => {
-          const opt = document.createElement('option');
-          opt.value = e.id;
-          opt.textContent = `${e.razaoSocial || e.nomeFantasia || e.cnpj || e.id}`;
-          select.appendChild(opt);
+
+      const buscarEmpresaPorCnpj = (cnpj) => {
+        const d = String(cnpj || '').replace(/\D/g, '');
+        if (!d) return null;
+        return empresasOpcoes.find((e) => String(e.cnpj || '').replace(/\D/g, '') === d) || null;
+      };
+
+      const validarCnpjBasico = (cnpj) => {
+        const d = String(cnpj || '').replace(/\D/g, '');
+        return d.length === 14;
+      };
+
+      const renderizarResultadoBuscaEmpresa = (empresa) => {
+        const cont = document.getElementById('empresa-busca-resultado');
+        if (!cont) return;
+        cont.innerHTML = '';
+        if (!empresa) {
+          cont.innerHTML = '<div class="list__item">Nenhuma empresa encontrada para o CNPJ informado.</div>';
+          return;
+        }
+        const table = document.createElement('table');
+        table.style.width = '100%';
+        table.style.borderCollapse = 'collapse';
+        table.style.marginTop = '0.5rem';
+        table.innerHTML = `
+          <thead>
+            <tr style="background: var(--surface-muted);">
+              <th style="text-align:left; padding:0.5rem;">CNPJ</th>
+              <th style="text-align:left; padding:0.5rem;">Razão Social</th>
+              <th style="text-align:left; padding:0.5rem;">Nome Fantasia</th>
+              <th style="text-align:left; padding:0.5rem;">Situação Cadastral</th>
+              <th style="text-align:center; padding:0.5rem;">Confirmação</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        `;
+        const tbody = table.querySelector('tbody');
+        const tr = document.createElement('tr');
+        tr.style.borderBottom = '1px solid var(--border)';
+        const tdCnpj = document.createElement('td');
+        tdCnpj.style.padding = '0.5rem';
+        tdCnpj.textContent = aplicarMascaraCnpj(empresa.cnpj);
+        const tdRazao = document.createElement('td');
+        tdRazao.style.padding = '0.5rem';
+        tdRazao.textContent = empresa.razaoSocial || '';
+        const tdFantasia = document.createElement('td');
+        tdFantasia.style.padding = '0.5rem';
+        tdFantasia.textContent = empresa.nomeFantasia || '';
+        const tdSituacao = document.createElement('td');
+        tdSituacao.style.padding = '0.5rem';
+        tdSituacao.textContent = empresa.situacaoCadastral || '';
+        const tdConfirm = document.createElement('td');
+        tdConfirm.style.padding = '0.5rem';
+        tdConfirm.style.textAlign = 'center';
+        const msg = document.createElement('div');
+        msg.textContent = 'Deseja vincular a empresa?';
+        msg.style.marginBottom = '0.5rem';
+        const grupo = document.createElement('div');
+        grupo.style.display = 'inline-flex';
+        grupo.style.gap = '0.5rem';
+        const btnSim = document.createElement('button');
+        btnSim.type = 'button';
+        btnSim.className = 'button button--primary';
+        btnSim.textContent = 'Sim';
+        const btnNao = document.createElement('button');
+        btnNao.type = 'button';
+        btnNao.className = 'button button--ghost';
+        btnNao.textContent = 'Não';
+        btnSim.addEventListener('click', () => {
+          if (!empresasVinculadas.includes(empresa.id)) {
+            empresasVinculadas.push(empresa.id);
+            renderizarEmpresasVinculadasLista();
+          }
+          // Limpa confirmação após ação
+          document.getElementById('empresa-busca-resultado').innerHTML = '';
         });
-        select.value = current || '';
+        btnNao.addEventListener('click', () => {
+          document.getElementById('empresa-busca-resultado').innerHTML = '';
+        });
+        grupo.appendChild(btnSim);
+        grupo.appendChild(btnNao);
+        tdConfirm.appendChild(msg);
+        tdConfirm.appendChild(grupo);
+        tr.appendChild(tdCnpj);
+        tr.appendChild(tdRazao);
+        tr.appendChild(tdFantasia);
+        tr.appendChild(tdSituacao);
+        tr.appendChild(tdConfirm);
+        tbody.appendChild(tr);
+        cont.appendChild(table);
+      };
+
+      const renderizarEmpresasVinculadasLista = () => {
+        const cont = document.getElementById('empresas-vinculadas-lista');
+        if (!cont) return;
+        cont.innerHTML = '';
+        if (!empresasVinculadas.length) {
+          cont.innerHTML = '<div class="list__item">Nenhuma empresa vinculada.</div>';
+          return;
+        }
+        const table = document.createElement('table');
+        table.style.width = '100%';
+        table.style.borderCollapse = 'collapse';
+        table.style.marginTop = '0.5rem';
+        table.innerHTML = `
+          <thead>
+            <tr style="background: var(--surface-muted);">
+              <th style="text-align:left; padding:0.5rem;">CNPJ</th>
+              <th style="text-align:left; padding:0.5rem;">Razão Social</th>
+              <th style="text-align:left; padding:0.5rem;">Nome Fantasia</th>
+              <th style="text-align:left; padding:0.5rem;">Situação Cadastral</th>
+              <th style="text-align:center; padding:0.5rem;">Ações</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        `;
+        const tbody = table.querySelector('tbody');
+        empresasVinculadas.forEach((id) => {
+          const emp = empresasOpcoes.find((e) => String(e.id) === String(id));
+          if (!emp) return;
+          const tr = document.createElement('tr');
+          tr.style.borderBottom = '1px solid var(--border)';
+          const tdCnpj = document.createElement('td'); tdCnpj.style.padding = '0.5rem'; tdCnpj.textContent = aplicarMascaraCnpj(emp.cnpj);
+          const tdRazao = document.createElement('td'); tdRazao.style.padding = '0.5rem'; tdRazao.textContent = emp.razaoSocial || '';
+          const tdFantasia = document.createElement('td'); tdFantasia.style.padding = '0.5rem'; tdFantasia.textContent = emp.nomeFantasia || '';
+          const tdSituacao = document.createElement('td'); tdSituacao.style.padding = '0.5rem'; tdSituacao.textContent = emp.situacaoCadastral || '';
+          const tdAcoes = document.createElement('td'); tdAcoes.style.padding = '0.5rem'; tdAcoes.style.textAlign = 'center';
+          const btnRemover = document.createElement('button');
+          btnRemover.type = 'button';
+          btnRemover.className = 'button button--danger';
+          btnRemover.textContent = 'Remover';
+          btnRemover.addEventListener('click', () => {
+            empresasVinculadas = empresasVinculadas.filter((x) => String(x) !== String(id));
+            renderizarEmpresasVinculadasLista();
+          });
+          tdAcoes.appendChild(btnRemover);
+          tr.appendChild(tdCnpj);
+          tr.appendChild(tdRazao);
+          tr.appendChild(tdFantasia);
+          tr.appendChild(tdSituacao);
+          tr.appendChild(tdAcoes);
+          tbody.appendChild(tr);
+        });
+        cont.appendChild(table);
       };
 
       const aplicarMascaraCpf = (event) => {
@@ -1800,10 +1934,28 @@
         const adicionarVeiculoBtn = document.getElementById('adicionar-veiculo');
         adicionarVeiculoBtn?.addEventListener('click', adicionarVeiculo);
 
-        // Empresa vinculada: eventos
-        document.getElementById('recarregar-empresas-opcoes')?.addEventListener('click', carregarEmpresasOpcoes);
-        document.getElementById('empresa-vinculada-select')?.addEventListener('change', (e) => {
-          empresaSelecionadaId = String(e.target.value || '');
+        // Empresas vinculadas: busca por CNPJ e vinculação múltipla
+        const cnpjInput = document.getElementById('empresa-cnpj-input');
+        cnpjInput?.addEventListener('input', (e) => {
+          e.target.value = aplicarMascaraCnpj(e.target.value);
+        });
+        document.getElementById('empresa-buscar-cnpj')?.addEventListener('click', () => {
+          const statusEl = document.getElementById('empresa-vinculada-status');
+          const cnpjVal = cnpjInput?.value || '';
+          const valido = validarCnpjBasico(cnpjVal);
+          if (!valido) {
+            if (statusEl) statusEl.textContent = 'Informe um CNPJ completo (14 dígitos).';
+            renderizarResultadoBuscaEmpresa(null);
+            return;
+          }
+          try {
+            if (statusEl) statusEl.textContent = 'Buscando empresa...';
+            const empresa = buscarEmpresaPorCnpj(cnpjVal);
+            renderizarResultadoBuscaEmpresa(empresa);
+            if (statusEl) statusEl.textContent = empresa ? 'Empresa encontrada.' : 'Empresa não encontrada.';
+          } catch (err) {
+            if (statusEl) statusEl.textContent = 'Erro ao buscar empresa.';
+          }
         });
 
         // Event listener para adicionar vínculo pessoa
