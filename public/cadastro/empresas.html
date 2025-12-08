@@ -132,11 +132,22 @@
             </div>
           </form>
         </section>
+
+        <section class="panel" aria-label="Listagem de empresas">
+          <div class="panel__header panel__header--stacked">
+            <h3 class="panel__title">Empresas cadastradas</h3>
+          </div>
+          <div id="empresas-message" class="message" role="status" aria-live="polite"></div>
+          <div class="panel__body">
+            <ul id="empresas-lista" class="list" style="display:flex; flex-direction:column; gap:0.25rem;"></ul>
+          </div>
+        </section>
       </main>
     </div>
 
     <script src="/js/main.js"></script>
     <script>
+      const API_EMPRESAS = '/api/empresas';
       const empresaForm = document.getElementById('empresa-form');
       const formMsgEl = document.getElementById('empresa-form-message');
       const msgEl = document.getElementById('empresas-message');
@@ -146,7 +157,16 @@
       let socios = [];
       let empresaEmEdicao = null;
 
-      const exibirMensagem = (texto, tipo = 'info') => { msgEl.textContent = texto||''; msgEl.className='message'; if (texto) msgEl.classList.add(`message--${tipo}`); };
+      // Helpers de autenticação (locais desta página)
+      const getCookie = (name) => document.cookie.split(';').map(c=>c.trim()).find(c=>c.startsWith(`${name}=`))?.split('=')[1];
+      const obterToken = () => localStorage.getItem('authToken') || getCookie('authToken');
+      const fetchAutenticado = (url, options = {}) => {
+        const token = obterToken();
+        const headers = { 'Content-Type': 'application/json', ...(options.headers||{}), ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+        return fetch(url, { ...options, headers });
+      };
+
+      const exibirMensagem = (texto, tipo = 'info') => { if(!msgEl) return; msgEl.textContent = texto||''; msgEl.className='message'; if (texto) msgEl.classList.add(`message--${tipo}`); };
       const exibirMensagemForm = (texto, tipo='info') => { formMsgEl.textContent = texto||''; formMsgEl.className='message'; if (texto) formMsgEl.classList.add(`message--${tipo}`); };
       const aplicarMascaraCnpj = (v) => { const d=String(v||'').replace(/\D/g,'').slice(0,14); let r=d; if(d.length>2) r=d.slice(0,2)+'.'+d.slice(2); if(d.length>5) r=r.slice(0,6)+'.'+d.slice(5); if(d.length>8) r=r.slice(0,10)+'/'+d.slice(8); if(d.length>12) r=r.slice(0,15)+'-'+d.slice(12); return r; };
       const aplicarMascaraTelefone = (valor) => { const dig=String(valor||'').replace(/\D/g,'').slice(0,11); if(dig.length<=10){ return dig.replace(/(\d{0,2})(\d{0,4})(\d{0,4}).*/, (_,a,b,c)=>{ let r=''; if(a) r+='('+a+') '; if(b) r+=b+(c?'-':''); if(c) r+=c; return r; }); } else { return dig.replace(/(\d{0,2})(\d{0,5})(\d{0,4}).*/, (_,a,b,c)=>{ let r=''; if(a) r+='('+a+') '; if(b) r+=b+(c?'-':''); if(c) r+=c; return r; }); } };
@@ -155,9 +175,105 @@
       const adicionarSocio = () => { socios.push({ nome:'', cpf:'' }); renderizarSocios(); };
       const obterDadosFormulario = () => { const fd=new FormData(empresaForm); const dados=Object.fromEntries(fd.entries()); dados.cnpj=aplicarMascaraCnpj(dados.cnpj).replace(/\D/g,''); dados.cep=aplicarMascaraCep(dados.cep).replace(/\D/g,''); dados.telefone=aplicarMascaraTelefone(dados.telefone); dados.socios=socios.map(s=>({ nome:String(s.nome||'').trim(), cpf:String(s.cpf||'').replace(/\D/g,'') })).filter(s=>s.nome||s.cpf); return dados; };
       const atualizarRotuloSubmit = () => { submitBtn.textContent = empresaEmEdicao ? 'Salvar' : 'Incluir'; };
-      const salvarEmpresa = async (e) => { e.preventDefault(); const payload=obterDadosFormulario(); exibirMensagemForm('Cadastro de empresa em preparação (backend pendente).', 'info'); };
-      const listarEmpresas = async () => { exibirMensagem('Listagem de empresas em preparação (backend pendente).', 'info'); listaEl.innerHTML=''; };
-      const inicializar = () => { atualizarRotuloSubmit(); document.getElementById('empresa-cnpj')?.addEventListener('input', e=>{ e.target.value=aplicarMascaraCnpj(e.target.value); }); document.getElementById('empresa-cep')?.addEventListener('input', e=>{ e.target.value=aplicarMascaraCep(e.target.value); }); document.getElementById('empresa-telefone')?.addEventListener('input', e=>{ e.target.value=aplicarMascaraTelefone(e.target.value); }); document.getElementById('adicionar-socio')?.addEventListener('click', adicionarSocio); empresaForm.addEventListener('submit', salvarEmpresa); listarBtn?.addEventListener('click', listarEmpresas); renderizarSocios(); };
+      const salvarEmpresa = async (e) => {
+        e.preventDefault();
+        const payload = obterDadosFormulario();
+        try {
+          exibirMensagemForm('Salvando empresa...', 'info');
+          const metodo = empresaEmEdicao ? 'PUT' : 'POST';
+          const url = empresaEmEdicao ? `${API_EMPRESAS}/${empresaEmEdicao}` : API_EMPRESAS;
+          const resp = await fetchAutenticado(url, { method: metodo, body: JSON.stringify(payload) });
+          const data = await resp.json().catch(() => ({}));
+          if (!resp.ok) {
+            const msg = data?.mensagem || data?.message || 'Não foi possível salvar a empresa.';
+            throw new Error(msg);
+          }
+          exibirMensagemForm('Empresa salva com sucesso!', 'success');
+          empresaForm.reset();
+          socios = [];
+          renderizarSocios();
+          empresaEmEdicao = null;
+          atualizarRotuloSubmit();
+          listarEmpresas();
+        } catch (err) {
+          exibirMensagemForm(err?.message || 'Erro ao salvar empresa.', 'error');
+        }
+      };
+      const listarEmpresas = async () => {
+        try {
+          exibirMensagem('Carregando empresas...', 'info');
+          listaEl.innerHTML = '';
+          const resp = await fetchAutenticado(API_EMPRESAS);
+          const data = await resp.json().catch(() => []);
+          if (!resp.ok) {
+            const msg = data?.mensagem || data?.message || 'Não foi possível buscar as empresas.';
+            throw new Error(msg);
+          }
+          const lista = Array.isArray(data) ? data : data?.data || [];
+          if (!lista.length) {
+            exibirMensagem('Nenhuma empresa cadastrada.', 'info');
+            return;
+          }
+          exibirMensagem(`Exibindo ${lista.length} empresa(s).`, 'success');
+          for (const e of lista) {
+            const li = document.createElement('li');
+            li.style.display = 'flex'; li.style.justifyContent='space-between'; li.style.alignItems='center';
+            const label = document.createElement('div');
+            label.textContent = `${e.razaoSocial || e.nomeFantasia || '—'} • CNPJ: ${(e.cnpj||'').toString()}`;
+            const actions = document.createElement('div');
+            actions.style.display='flex'; actions.style.gap='0.5rem';
+            const btnEditar = document.createElement('button'); btnEditar.className='button'; btnEditar.type='button'; btnEditar.textContent='Editar';
+            const btnExcluir = document.createElement('button'); btnExcluir.className='button button--danger'; btnExcluir.type='button'; btnExcluir.textContent='Excluir';
+            btnEditar.addEventListener('click', () => editarEmpresa(e));
+            btnExcluir.addEventListener('click', () => excluirEmpresa(e));
+            actions.appendChild(btnEditar); actions.appendChild(btnExcluir);
+            li.appendChild(label); li.appendChild(actions);
+            listaEl.appendChild(li);
+          }
+        } catch (err) {
+          exibirMensagem(err?.message || 'Erro ao listar empresas.', 'error');
+        }
+      };
+
+      const preencherFormularioComEmpresa = (e) => {
+        empresaForm.cnpj.value = aplicarMascaraCnpj(e.cnpj || '');
+        empresaForm.razaoSocial.value = e.razaoSocial || '';
+        empresaForm.nomeFantasia.value = e.nomeFantasia || '';
+        empresaForm.naturezaJuridica.value = e.naturezaJuridica || '';
+        empresaForm.dataInicioAtividade.value = e.dataInicioAtividade || '';
+        empresaForm.situacaoCadastral.value = e.situacaoCadastral || '';
+        empresaForm.endereco.value = e.endereco || '';
+        empresaForm.cep.value = aplicarMascaraCep(e.cep || '');
+        empresaForm.telefone.value = aplicarMascaraTelefone(e.telefone || '');
+        socios = Array.isArray(e.socios) ? e.socios.map(s=>({ nome: s.nome||'', cpf: s.cpf||'' })) : [];
+        renderizarSocios();
+      };
+
+      const editarEmpresa = (e) => {
+        empresaEmEdicao = e.id;
+        atualizarRotuloSubmit();
+        preencherFormularioComEmpresa(e);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        exibirMensagemForm('Editando empresa selecionada.', 'info');
+      };
+
+      const excluirEmpresa = async (e) => {
+        if (!confirm(`Excluir empresa "${e.razaoSocial || e.nomeFantasia || e.cnpj}"?`)) return;
+        try {
+          const resp = await fetchAutenticado(`${API_EMPRESAS}/${e.id}`, { method: 'DELETE' });
+          if (!resp.ok) {
+            const data = await resp.json().catch(()=>({}));
+            const msg = data?.mensagem || data?.message || 'Não foi possível excluir.';
+            throw new Error(msg);
+          }
+          exibirMensagem('Empresa excluída com sucesso.', 'success');
+          if (empresaEmEdicao === e.id) { empresaEmEdicao = null; atualizarRotuloSubmit(); empresaForm.reset(); socios = []; renderizarSocios(); }
+          listarEmpresas();
+        } catch (err) {
+          exibirMensagem(err?.message || 'Erro ao excluir empresa.', 'error');
+        }
+      };
+      const inicializar = () => { atualizarRotuloSubmit(); document.getElementById('empresa-cnpj')?.addEventListener('input', e=>{ e.target.value=aplicarMascaraCnpj(e.target.value); }); document.getElementById('empresa-cep')?.addEventListener('input', e=>{ e.target.value=aplicarMascaraCep(e.target.value); }); document.getElementById('empresa-telefone')?.addEventListener('input', e=>{ e.target.value=aplicarMascaraTelefone(e.target.value); }); document.getElementById('adicionar-socio')?.addEventListener('click', adicionarSocio); empresaForm.addEventListener('submit', salvarEmpresa); listarBtn?.addEventListener('click', listarEmpresas); renderizarSocios(); listarEmpresas(); };
       document.addEventListener('DOMContentLoaded', inicializar);
     </script>
     <div id="alterar-senha-modal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="alterar-senha-title">
