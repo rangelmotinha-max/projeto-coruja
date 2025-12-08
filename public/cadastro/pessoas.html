@@ -374,16 +374,8 @@
           cpf: String(v.cpf||'').trim(),
           tipo: String(v.tipo||'').trim(),
         })).filter(v => v.nome || v.cpf || v.tipo);
-        const empresasVinc = (vinculosEmpresas || [])
-          .map(e => {
-            const nome = String(e?.nome || '').trim();
-            const observacoes = String(e?.observacoes || '').trim();
-            return (nome || observacoes) ? { nome, observacoes } : null;
-          })
-          .filter(Boolean);
         const vinculosObj = {};
         if (pessoasVinc.length) vinculosObj.pessoas = pessoasVinc;
-        if (empresasVinc.length) vinculosObj.empresas = empresasVinc;
         const entidadesVinc = (vinculosEntidades || [])
           .map(e => {
             const nome = String(e?.nome || '').trim();
@@ -825,39 +817,12 @@
       const renderizarVinculosEmpresas = () => {
         const lista = document.getElementById('lista-vinculos-empresas');
         if (!lista) return;
-        lista.innerHTML = '';
-        if (vinculosEmpresas.length === 0) {
-          lista.innerHTML = '<p style="color: var(--muted); font-size: 0.85rem; margin: 0;">Nenhum vínculo de empresa adicionado. Clique para adicionar.</p>';
-          return;
-        }
-        vinculosEmpresas.forEach((emp, i) => {
-          const linha = document.createElement('div');
-          linha.style.cssText = 'display:grid; grid-template-columns: 1fr 1fr auto; gap:0.5rem; align-items:end;';
-          linha.innerHTML = `
-            <label class="form__field">
-              <span class="form__label">Nome da Empresa</span>
-              <input class="form__input vem-nome" type="text" data-index="${i}" placeholder="Digite o nome da empresa" />
-            </label>
-            <label class="form__field">
-              <span class="form__label">Observações</span>
-              <textarea class="form__input vem-obs" data-index="${i}" placeholder="Observações sobre o vínculo" rows="1" style="resize: vertical; min-height: 2.6rem;"></textarea>
-            </label>
-            <button class="button button--danger" type="button" title="Excluir" aria-label="Remover vínculo">−</button>
-          `;
-          const nomeEl = linha.querySelector('.vem-nome');
-          const obsEl = linha.querySelector('.vem-obs');
-          const btn = linha.querySelector('button');
-          nomeEl.value = String(emp?.nome || '');
-          obsEl.value = String(emp?.observacoes || '');
-          nomeEl.addEventListener('input', (e) => { if (!vinculosEmpresas[i]) vinculosEmpresas[i] = { nome: '', observacoes: '' }; vinculosEmpresas[i].nome = e.target.value; });
-          obsEl.addEventListener('input', (e) => { if (!vinculosEmpresas[i]) vinculosEmpresas[i] = { nome: '', observacoes: '' }; vinculosEmpresas[i].observacoes = e.target.value; });
-          btn.addEventListener('click', () => { vinculosEmpresas.splice(i,1); renderizarVinculosEmpresas(); });
-          lista.appendChild(linha);
-        });
+        // Seção de vínculos de Empresa removida desta tela
+        lista.innerHTML = '<p style="color: var(--muted); font-size: 0.85rem; margin: 0;">Vínculo de empresas removido desta seção.</p>';
       };
 
       const adicionarVinculoEmpresa = () => {
-        vinculosEmpresas.push({ nome: '', observacoes: '' });
+        // Sem efeito: vínculos de Empresa não são mais suportados aqui
         renderizarVinculosEmpresas();
       };
 
@@ -1434,16 +1399,8 @@
 
         // Empresa removida desta tela; nada a carregar aqui
 
-        // Carrega vínculos de empresa (múltiplos) se existirem
-        if (pessoa.vinculos && Array.isArray(pessoa.vinculos.empresas)) {
-          vinculosEmpresas = pessoa.vinculos.empresas.map(e =>
-            typeof e === 'string'
-              ? { nome: e, observacoes: '' }
-              : { nome: String(e?.nome || ''), observacoes: String(e?.observacoes || '') }
-          );
-        } else {
-          vinculosEmpresas = [];
-        }
+        // Vínculos de empresa removidos: não carregar
+        vinculosEmpresas = [];
         renderizarVinculosEmpresas();
 
         // Carrega vínculos de entidades se existirem
