@@ -59,52 +59,107 @@
       <main class="content" data-page="cadastro-empresas">
         <header class="content__header">
           <p class="content__eyebrow">Cadastro</p>
-          <h1 class="content__title">Organize Empresas</h1>
-          <p class="content__subtitle">
-            Cadastre empresas e acompanhe os vínculos corporativos com o projeto.
-          </p>
+          <h1 class="content__title">Empresas</h1>
+          <p class="content__subtitle">Cadastre e gerencie empresas e seus sócios.</p>
         </header>
 
-        <!-- Seção de painéis informativos -->
-        <section class="grid" aria-label="Ações e status do cadastro de empresas">
-          <article class="panel">
-            <div class="panel__header">
-              <h2 class="panel__title">Visão geral</h2>
-              <p class="panel__meta">Situação das empresas</p>
+        <section class="panel" aria-label="Formulário de empresas">
+          <div class="panel__header panel__header--stacked"></div>
+          <div id="empresa-form-message" class="message" role="status" aria-live="polite"></div>
+          <form class="form" id="empresa-form" action="#" method="post">
+            <div class="form__grid form__grid--3">
+              <label class="form__field">
+                <span class="form__label">CNPJ</span>
+                <input id="empresa-cnpj" name="cnpj" type="text" class="form__input" inputmode="numeric" placeholder="00.000.000/0000-00" />
+              </label>
+              <label class="form__field">
+                <span class="form__label">Razão Social</span>
+                <input name="razaoSocial" type="text" class="form__input" />
+              </label>
+              <label class="form__field">
+                <span class="form__label">Nome Fantasia</span>
+                <input name="nomeFantasia" type="text" class="form__input" />
+              </label>
             </div>
-            <ul class="list">
-              <li class="list__item">
-                <p class="list__title">Empresas ativas</p>
-                <p class="list__description">Acompanhe quantos parceiros estão com cadastro validado.</p>
-              </li>
-              <li class="list__item">
-                <p class="list__title">Pendências</p>
-                <p class="list__description">Identifique documentos ou dados que ainda precisam de revisão.</p>
-              </li>
-            </ul>
-          </article>
 
-          <article class="panel">
-            <div class="panel__header">
-              <h2 class="panel__title">Ações rápidas</h2>
-              <p class="panel__meta">Fluxo de trabalho</p>
+            <div class="form__grid form__grid--3">
+              <label class="form__field">
+                <span class="form__label">Natureza Jurídica</span>
+                <input name="naturezaJuridica" type="text" class="form__input" />
+              </label>
+              <label class="form__field">
+                <span class="form__label">Início da Atividade</span>
+                <input name="dataInicioAtividade" type="date" class="form__input" />
+              </label>
+              <label class="form__field">
+                <span class="form__label">Situação Cadastral</span>
+                <select name="situacaoCadastral" class="form__input">
+                  <option value="">Selecione</option>
+                  <option value="Ativo">Ativo</option>
+                  <option value="Inativo">Inativo</option>
+                  <option value="Inapta">Inapta</option>
+                </select>
+              </label>
             </div>
-            <ul class="list">
-              <li class="list__item">
-                <p class="list__title">Nova empresa</p>
-                <p class="list__description">Inicie o cadastro com dados básicos e siga para os anexos.</p>
-              </li>
-              <li class="list__item">
-                <p class="list__title">Auditar informações</p>
-                <p class="list__description">Revise periodicamente para manter a conformidade e a precisão.</p>
-              </li>
-            </ul>
-          </article>
+
+            <div class="form__grid form__grid--3">
+              <label class="form__field">
+                <span class="form__label">Endereço</span>
+                <input name="endereco" type="text" class="form__input" />
+              </label>
+              <label class="form__field">
+                <span class="form__label">CEP</span>
+                <input id="empresa-cep" name="cep" type="text" class="form__input" inputmode="numeric" placeholder="00000-000" />
+              </label>
+              <label class="form__field">
+                <span class="form__label">Telefone</span>
+                <input id="empresa-telefone" name="telefone" type="tel" class="form__input" inputmode="tel" placeholder="(XX) XXXXX-XXXX" />
+              </label>
+            </div>
+
+            <div class="form__section">
+              <div class="form__section-header">
+                <h3 class="form__section-title">Sócios</h3>
+                <button class="button" type="button" id="adicionar-socio">Adicionar sócio</button>
+              </div>
+              <div id="lista-socios" class="form__section-body"></div>
+            </div>
+
+            <div class="form__actions">
+              <button class="button button--primary" id="submit-empresa" type="submit">Incluir</button>
+              <button class="button" id="listar-empresas" type="button">Listar</button>
+              <button class="button button--ghost" type="reset">Limpar</button>
+            </div>
+          </form>
         </section>
       </main>
     </div>
 
     <script src="/js/main.js"></script>
+    <script>
+      const empresaForm = document.getElementById('empresa-form');
+      const formMsgEl = document.getElementById('empresa-form-message');
+      const msgEl = document.getElementById('empresas-message');
+      const listaEl = document.getElementById('empresas-lista');
+      const submitBtn = document.getElementById('submit-empresa');
+      const listarBtn = document.getElementById('listar-empresas');
+      let socios = [];
+      let empresaEmEdicao = null;
+
+      const exibirMensagem = (texto, tipo = 'info') => { msgEl.textContent = texto||''; msgEl.className='message'; if (texto) msgEl.classList.add(`message--${tipo}`); };
+      const exibirMensagemForm = (texto, tipo='info') => { formMsgEl.textContent = texto||''; formMsgEl.className='message'; if (texto) formMsgEl.classList.add(`message--${tipo}`); };
+      const aplicarMascaraCnpj = (v) => { const d=String(v||'').replace(/\D/g,'').slice(0,14); let r=d; if(d.length>2) r=d.slice(0,2)+'.'+d.slice(2); if(d.length>5) r=r.slice(0,6)+'.'+d.slice(5); if(d.length>8) r=r.slice(0,10)+'/'+d.slice(8); if(d.length>12) r=r.slice(0,15)+'-'+d.slice(12); return r; };
+      const aplicarMascaraTelefone = (valor) => { const dig=String(valor||'').replace(/\D/g,'').slice(0,11); if(dig.length<=10){ return dig.replace(/(\d{0,2})(\d{0,4})(\d{0,4}).*/, (_,a,b,c)=>{ let r=''; if(a) r+='('+a+') '; if(b) r+=b+(c?'-':''); if(c) r+=c; return r; }); } else { return dig.replace(/(\d{0,2})(\d{0,5})(\d{0,4}).*/, (_,a,b,c)=>{ let r=''; if(a) r+='('+a+') '; if(b) r+=b+(c?'-':''); if(c) r+=c; return r; }); } };
+      const aplicarMascaraCep = (valor) => { const dig=String(valor||'').replace(/\D/g,'').slice(0,8); return dig.length<=5?dig:dig.slice(0,5)+'-'+dig.slice(5); };
+      const renderizarSocios = () => { const lista=document.getElementById('lista-socios'); lista.innerHTML=''; if(!socios.length){ lista.innerHTML='<p style="color: var(--muted); font-size: 0.85rem; margin: 0;">Nenhum sócio adicionado. Clique para adicionar.</p>'; return; } socios.forEach((s,i)=>{ const linha=document.createElement('div'); linha.style.cssText='display:flex; gap:0.5rem; align-items:center;'; linha.innerHTML=`<label class="form__field" style="flex:1"><span class="form__label">Nome</span><input type="text" class="form__input socio-nome" /></label><label class="form__field" style="max-width:16rem"><span class="form__label">CPF</span><input type="text" class="form__input socio-cpf" inputmode="numeric" /></label><button class="button button--danger" type="button" title="Excluir" aria-label="Remover sócio">−</button>`; const nomeEl=linha.querySelector('.socio-nome'); const cpfEl=linha.querySelector('.socio-cpf'); const btn=linha.querySelector('button'); nomeEl.value=s.nome||''; cpfEl.value=s.cpf||''; nomeEl.addEventListener('input', e=>{ socios[i].nome=e.target.value; }); cpfEl.addEventListener('input', e=>{ socios[i].cpf=e.target.value; }); btn.addEventListener('click', ()=>{ socios.splice(i,1); renderizarSocios(); }); lista.appendChild(linha); }); };
+      const adicionarSocio = () => { socios.push({ nome:'', cpf:'' }); renderizarSocios(); };
+      const obterDadosFormulario = () => { const fd=new FormData(empresaForm); const dados=Object.fromEntries(fd.entries()); dados.cnpj=aplicarMascaraCnpj(dados.cnpj).replace(/\D/g,''); dados.cep=aplicarMascaraCep(dados.cep).replace(/\D/g,''); dados.telefone=aplicarMascaraTelefone(dados.telefone); dados.socios=socios.map(s=>({ nome:String(s.nome||'').trim(), cpf:String(s.cpf||'').replace(/\D/g,'') })).filter(s=>s.nome||s.cpf); return dados; };
+      const atualizarRotuloSubmit = () => { submitBtn.textContent = empresaEmEdicao ? 'Salvar' : 'Incluir'; };
+      const salvarEmpresa = async (e) => { e.preventDefault(); const payload=obterDadosFormulario(); exibirMensagemForm('Cadastro de empresa em preparação (backend pendente).', 'info'); };
+      const listarEmpresas = async () => { exibirMensagem('Listagem de empresas em preparação (backend pendente).', 'info'); listaEl.innerHTML=''; };
+      const inicializar = () => { atualizarRotuloSubmit(); document.getElementById('empresa-cnpj')?.addEventListener('input', e=>{ e.target.value=aplicarMascaraCnpj(e.target.value); }); document.getElementById('empresa-cep')?.addEventListener('input', e=>{ e.target.value=aplicarMascaraCep(e.target.value); }); document.getElementById('empresa-telefone')?.addEventListener('input', e=>{ e.target.value=aplicarMascaraTelefone(e.target.value); }); document.getElementById('adicionar-socio')?.addEventListener('click', adicionarSocio); empresaForm.addEventListener('submit', salvarEmpresa); listarBtn?.addEventListener('click', listarEmpresas); renderizarSocios(); };
+      document.addEventListener('DOMContentLoaded', inicializar);
+    </script>
     <div id="alterar-senha-modal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="alterar-senha-title">
       <div class="modal__overlay" data-modal-close></div>
       <div class="modal__panel modal__panel--sm" role="document">
