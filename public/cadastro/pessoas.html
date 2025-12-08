@@ -214,6 +214,23 @@
                   <button class="button button--secondary" id="adicionar-vinculo-veiculo" type="button" aria-label="Adicionar veículo vinculado" title="Adicionar">+</button>
                 </div>
                 <div id="lista-vinculos-veiculos" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
+                <div class="form__subsection" aria-label="Veículos vinculados por busca" style="margin-top: 0.75rem;">
+                  <div style="display:flex; justify-content:space-between; align-items:center; width:100%; margin:0.25rem 0 0.75rem 0;">
+                    <h4 class="form__section-title" style="font-size: 1rem; margin: 0;">Vincular veículo existente</h4>
+                  </div>
+                  <div class="form__grid form__grid--3" style="align-items:end;">
+                    <label class="form__field">
+                      <span class="form__label">Placa do veículo</span>
+                      <input class="form__input" type="text" id="veiculo-placa-input" placeholder="Digite a placa" />
+                    </label>
+                    <div class="form__actions" style="margin:0;">
+                      <button class="button button--secondary" type="button" id="veiculo-buscar-placa">Procurar</button>
+                    </div>
+                    <small id="veiculo-vinculado-status" style="color: var(--muted);"></small>
+                  </div>
+                  <div id="veiculo-busca-resultado" style="margin-top:0.75rem;"></div>
+                  <div id="veiculos-vinculados-lista" style="margin-top:0.75rem;"></div>
+                </div>
               </div>
               <div class="form__subsection">
                 <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin: 0.75rem 0;">
@@ -320,6 +337,7 @@
     </div>
     <script>
       const API_PESSOAS_URL = '/api/pessoas';
+      const API_VEICULOS_URL = '/api/veiculos';
       const pessoaForm = document.getElementById('pessoa-form');
       const submitButton = document.getElementById('submit-pessoa');
       const listarButton = document.getElementById('listar-pessoas');
@@ -418,6 +436,10 @@
           })
           .filter(Boolean);
         if (vincVeic.length) vinculosObj.veiculos = vincVeic;
+        if (Array.isArray(veiculosVinculadosIds) && veiculosVinculadosIds.length) {
+          const ids = veiculosVinculadosIds.map((id) => ({ id }));
+          vinculosObj.veiculos = Array.isArray(vinculosObj.veiculos) ? [...vinculosObj.veiculos, ...ids] : ids;
+        }
         const empregList = (vinculosEmpregaticio || [])
           .map(e => {
             const info = String(e?.info || '').trim();
@@ -712,6 +734,130 @@
       let vinculosEmpresas = [];
       let vinculosEntidades = [];
       let vinculosVeiculos = [];
+      let veiculosOpcoes = [];
+      let veiculosVinculadosIds = [];
+
+      const normalizarPlaca = (placa) => String(placa || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 7);
+
+      const carregarVeiculosOpcoes = async () => {
+        const statusEl = document.getElementById('veiculo-vinculado-status');
+        try {
+          if (statusEl) statusEl.textContent = 'Carregando veículos...';
+          const resp = await fetchAutenticado(API_VEICULOS_URL);
+          const data = await resp.json().catch(() => []);
+          if (!resp.ok) {
+            const msg = data?.mensagem || data?.message || 'Não foi possível carregar veículos.';
+            throw new Error(msg);
+          }
+          veiculosOpcoes = Array.isArray(data) ? data : (data?.data || []);
+          if (statusEl) statusEl.textContent = `Veículos disponíveis: ${veiculosOpcoes.length}.`;
+        } catch (err) {
+          if (statusEl) statusEl.textContent = err?.message || 'Erro ao carregar veículos.';
+        }
+      };
+
+      const buscarVeiculoPorPlaca = (placa) => {
+        const p = normalizarPlaca(placa);
+        if (!p) return null;
+        return veiculosOpcoes.find((v) => normalizarPlaca(v.placa) === p) || null;
+      };
+
+      const renderizarResultadoBuscaVeiculo = (veiculo) => {
+        const cont = document.getElementById('veiculo-busca-resultado');
+        if (!cont) return;
+        cont.innerHTML = '';
+        if (!veiculo) {
+          cont.innerHTML = '<div class="list__item">Nenhum veículo encontrado para a placa informada.</div>';
+          return;
+        }
+        const table = document.createElement('table');
+        table.style.width = '100%';
+        table.style.borderCollapse = 'collapse';
+        table.style.marginTop = '0.5rem';
+        table.innerHTML = `
+          <thead>
+            <tr style="background: var(--surface-muted);">
+              <th style="text-align:left; padding:0.5rem;">Marca/Modelo</th>
+              <th style="text-align:left; padding:0.5rem;">Placa</th>
+              <th style="text-align:left; padding:0.5rem;">Cor</th>
+              <th style="text-align:left; padding:0.5rem;">Ano/Modelo</th>
+              <th style="text-align:center; padding:0.5rem;">Confirmação</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        `;
+        const tbody = table.querySelector('tbody');
+        const tr = document.createElement('tr');
+        tr.style.borderBottom = '1px solid var(--border)';
+        const tdMM = document.createElement('td'); tdMM.style.padding = '0.5rem'; tdMM.textContent = veiculo.marcaModelo || '';
+        const tdPlaca = document.createElement('td'); tdPlaca.style.padding = '0.5rem'; tdPlaca.textContent = normalizarPlaca(veiculo.placa);
+        const tdCor = document.createElement('td'); tdCor.style.padding = '0.5rem'; tdCor.textContent = veiculo.cor || '';
+        const tdAno = document.createElement('td'); tdAno.style.padding = '0.5rem'; tdAno.textContent = veiculo.anoModelo || '';
+        const tdConfirm = document.createElement('td'); tdConfirm.style.padding = '0.5rem'; tdConfirm.style.textAlign = 'center';
+        const msg = document.createElement('div'); msg.textContent = 'Deseja vincular o veículo?'; msg.style.marginBottom = '0.5rem';
+        const grupo = document.createElement('div'); grupo.style.display = 'inline-flex'; grupo.style.gap = '0.5rem';
+        const btnSim = document.createElement('button'); btnSim.type = 'button'; btnSim.className = 'button button--primary'; btnSim.textContent = 'Sim';
+        const btnNao = document.createElement('button'); btnNao.type = 'button'; btnNao.className = 'button button--ghost'; btnNao.textContent = 'Não';
+        btnSim.addEventListener('click', () => {
+          if (!veiculosVinculadosIds.includes(veiculo.id)) {
+            veiculosVinculadosIds.push(veiculo.id);
+            renderizarVeiculosVinculadosLista();
+          }
+          document.getElementById('veiculo-busca-resultado').innerHTML = '';
+        });
+        btnNao.addEventListener('click', () => { document.getElementById('veiculo-busca-resultado').innerHTML = ''; });
+        grupo.appendChild(btnSim); grupo.appendChild(btnNao);
+        tdConfirm.appendChild(msg); tdConfirm.appendChild(grupo);
+        tr.appendChild(tdMM); tr.appendChild(tdPlaca); tr.appendChild(tdCor); tr.appendChild(tdAno); tr.appendChild(tdConfirm);
+        tbody.appendChild(tr);
+        cont.appendChild(table);
+      };
+
+      const renderizarVeiculosVinculadosLista = () => {
+        const cont = document.getElementById('veiculos-vinculados-lista');
+        if (!cont) return;
+        cont.innerHTML = '';
+        if (!veiculosVinculadosIds.length) {
+          cont.innerHTML = '<div class="list__item">Nenhum veículo vinculado.</div>';
+          return;
+        }
+        const table = document.createElement('table');
+        table.style.width = '100%';
+        table.style.borderCollapse = 'collapse';
+        table.style.marginTop = '0.5rem';
+        table.innerHTML = `
+          <thead>
+            <tr style="background: var(--surface-muted);">
+              <th style="text-align:left; padding:0.5rem;">Marca/Modelo</th>
+              <th style="text-align:left; padding:0.5rem;">Placa</th>
+              <th style="text-align:left; padding:0.5rem;">Cor</th>
+              <th style="text-align:left; padding:0.5rem;">Ano/Modelo</th>
+              <th style="text-align:center; padding:0.5rem;">Ações</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        `;
+        const tbody = table.querySelector('tbody');
+        veiculosVinculadosIds.forEach((id) => {
+          const v = veiculosOpcoes.find((x) => String(x.id) === String(id));
+          if (!v) return;
+          const tr = document.createElement('tr'); tr.style.borderBottom = '1px solid var(--border)';
+          const tdMM = document.createElement('td'); tdMM.style.padding = '0.5rem'; tdMM.textContent = v.marcaModelo || '';
+          const tdPlaca = document.createElement('td'); tdPlaca.style.padding = '0.5rem'; tdPlaca.textContent = normalizarPlaca(v.placa);
+          const tdCor = document.createElement('td'); tdCor.style.padding = '0.5rem'; tdCor.textContent = v.cor || '';
+          const tdAno = document.createElement('td'); tdAno.style.padding = '0.5rem'; tdAno.textContent = v.anoModelo || '';
+          const tdAcoes = document.createElement('td'); tdAcoes.style.padding = '0.5rem'; tdAcoes.style.textAlign = 'center';
+          const btnRemover = document.createElement('button'); btnRemover.type = 'button'; btnRemover.className = 'button button--danger'; btnRemover.textContent = 'Remover';
+          btnRemover.addEventListener('click', () => {
+            veiculosVinculadosIds = veiculosVinculadosIds.filter((x) => String(x) !== String(id));
+            renderizarVeiculosVinculadosLista();
+          });
+          tdAcoes.appendChild(btnRemover);
+          tr.appendChild(tdMM); tr.appendChild(tdPlaca); tr.appendChild(tdCor); tr.appendChild(tdAno); tr.appendChild(tdAcoes);
+          tbody.appendChild(tr);
+        });
+        cont.appendChild(table);
+      };
       let vinculosEmpregaticio = [];
       let ocorrenciasPoliciais = [];
       let processos = [];
@@ -1955,6 +2101,29 @@
             if (statusEl) statusEl.textContent = empresa ? 'Empresa encontrada.' : 'Empresa não encontrada.';
           } catch (err) {
             if (statusEl) statusEl.textContent = 'Erro ao buscar empresa.';
+          }
+        });
+
+        // Veículos vinculados: busca por placa com confirmação
+        const placaInput = document.getElementById('veiculo-placa-input');
+        placaInput?.addEventListener('input', (e) => {
+          e.target.value = normalizarPlaca(e.target.value);
+        });
+        document.getElementById('veiculo-buscar-placa')?.addEventListener('click', () => {
+          const statusEl = document.getElementById('veiculo-vinculado-status');
+          const placaVal = placaInput?.value || '';
+          if (!placaVal || normalizarPlaca(placaVal).length < 6) {
+            if (statusEl) statusEl.textContent = 'Informe uma placa válida.';
+            renderizarResultadoBuscaVeiculo(null);
+            return;
+          }
+          try {
+            if (statusEl) statusEl.textContent = 'Buscando veículo...';
+            const veiculo = buscarVeiculoPorPlaca(placaVal);
+            renderizarResultadoBuscaVeiculo(veiculo);
+            if (statusEl) statusEl.textContent = veiculo ? 'Veículo encontrado.' : 'Veículo não encontrado.';
+          } catch (err) {
+            if (statusEl) statusEl.textContent = 'Erro ao buscar veículo.';
           }
         });
 
