@@ -141,7 +141,7 @@
                 type="text"
                 id="campo-consulta"
                 class="search-input"
-                placeholder="Consultar por CNPJ, Razão Social, Nome Fantasia ou Situação..."
+                placeholder="Consultar em todos os campos da empresa e sócios..."
                 aria-label="Campo de busca de empresas"
               />
             </div>
@@ -299,18 +299,45 @@
       const filtrarEmpresas = (termo) => {
         const q = String(termo || '').toLowerCase().trim();
         const onlyDigits = (s) => String(s || '').replace(/\D+/g, '');
+        const norm = (s) => String(s || '').toLowerCase();
         if (!q) {
           empresasFiltradas = [...todasEmpresas];
         } else {
           const qDigits = onlyDigits(q);
           empresasFiltradas = todasEmpresas.filter((e) => {
-            const razao = String(e.razaoSocial || '').toLowerCase();
-            const fantasia = String(e.nomeFantasia || '').toLowerCase();
-            const situacao = String(e.situacaoCadastral || '').toLowerCase();
+            const razao = norm(e.razaoSocial);
+            const fantasia = norm(e.nomeFantasia);
+            const situacao = norm(e.situacaoCadastral);
+            const natureza = norm(e.naturezaJuridica);
+            const endereco = norm(e.endereco);
+            const dataInicio = norm(e.dataInicioAtividade);
+            const cepDigits = onlyDigits(e.cep);
+            const telDigits = onlyDigits(e.telefone);
             const cnpjDigits = onlyDigits(e.cnpj);
-            const matchTexto = razao.includes(q) || fantasia.includes(q) || situacao.includes(q);
-            const matchCnpj = qDigits && cnpjDigits.includes(qDigits);
-            return matchTexto || matchCnpj;
+
+            const textoMatch = (
+              razao.includes(q) ||
+              fantasia.includes(q) ||
+              situacao.includes(q) ||
+              natureza.includes(q) ||
+              endereco.includes(q) ||
+              dataInicio.includes(q)
+            );
+
+            const digitosMatch = (
+              (qDigits && cnpjDigits.includes(qDigits)) ||
+              (qDigits && cepDigits.includes(qDigits)) ||
+              (qDigits && telDigits.includes(qDigits))
+            );
+
+            const sociosArr = Array.isArray(e.socios) ? e.socios : [];
+            const sociosMatch = sociosArr.some((s) => {
+              const nome = norm(s.nome);
+              const cpfDigits = onlyDigits(s.cpf);
+              return nome.includes(q) || (qDigits && cpfDigits.includes(qDigits));
+            });
+
+            return textoMatch || digitosMatch || sociosMatch;
           });
         }
         renderizarEmpresas(empresasFiltradas);
