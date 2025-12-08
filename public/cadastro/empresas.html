@@ -136,6 +136,15 @@
         <section class="panel" aria-label="Listagem de empresas">
           <div class="panel__header panel__header--stacked">
             <h3 class="panel__title">Empresas cadastradas</h3>
+            <div class="panel__actions page-actions">
+              <input
+                type="text"
+                id="campo-consulta"
+                class="search-input"
+                placeholder="Consultar por CNPJ, Razão Social, Nome Fantasia ou Situação..."
+                aria-label="Campo de busca de empresas"
+              />
+            </div>
           </div>
           <div id="empresas-message" class="message" role="status" aria-live="polite"></div>
           <div class="panel__body">
@@ -154,6 +163,10 @@
       const listaEl = document.getElementById('empresas-lista');
       const submitBtn = document.getElementById('submit-empresa');
       const listarBtn = document.getElementById('listar-empresas');
+      const campoConsulta = document.getElementById('campo-consulta');
+      let todasEmpresas = [];
+      let empresasFiltradas = [];
+      let termoBusca = '';
       let socios = [];
       let empresaEmEdicao = null;
 
@@ -199,90 +212,129 @@
           exibirMensagemForm(err?.message || 'Erro ao salvar empresa.', 'error');
         }
       };
+      const renderizarEmpresas = (lista) => {
+        listaEl.innerHTML = '';
+        if (!Array.isArray(lista) || !lista.length) {
+          const table = document.createElement('table');
+          const tbody = document.createElement('tbody');
+          const tr = document.createElement('tr');
+          const td = document.createElement('td');
+          td.colSpan = 5;
+          td.textContent = 'Nenhuma empresa encontrada.';
+          tr.appendChild(td);
+          tbody.appendChild(tr);
+          table.appendChild(tbody);
+          listaEl.appendChild(table);
+          return;
+        }
+
+        const table = document.createElement('table');
+        table.style.width = '100%';
+        table.style.borderCollapse = 'collapse';
+
+        const thead = document.createElement('thead');
+        const headRow = document.createElement('tr');
+        const ths = ['CNPJ', 'Razão Social', 'Nome Fantasia', 'Situação Cadastral', 'Ações'];
+        ths.forEach(t => {
+          const th = document.createElement('th');
+          th.textContent = t;
+          th.style.textAlign = 'left';
+          th.style.padding = '0.5rem';
+          headRow.appendChild(th);
+        });
+        thead.appendChild(headRow);
+        table.appendChild(thead);
+
+        const tbody = document.createElement('tbody');
+        for (const e of lista) {
+          const tr = document.createElement('tr');
+
+          const tdCnpj = document.createElement('td');
+          tdCnpj.textContent = aplicarMascaraCnpj(e.cnpj || '') || '—';
+          tdCnpj.style.padding = '0.5rem';
+
+          const tdRazao = document.createElement('td');
+          tdRazao.textContent = e.razaoSocial || '—';
+          tdRazao.style.padding = '0.5rem';
+
+          const tdFantasia = document.createElement('td');
+          tdFantasia.textContent = e.nomeFantasia || '—';
+          tdFantasia.style.padding = '0.5rem';
+
+          const tdSituacao = document.createElement('td');
+          tdSituacao.textContent = e.situacaoCadastral || '—';
+          tdSituacao.style.padding = '0.5rem';
+
+          const tdAcoes = document.createElement('td');
+          tdAcoes.style.padding = '0.5rem';
+          const actions = document.createElement('div');
+          actions.style.display = 'flex';
+          actions.style.gap = '0.5rem';
+          const btnEditar = document.createElement('button');
+          btnEditar.className = 'button';
+          btnEditar.type = 'button';
+          btnEditar.textContent = 'Editar';
+          const btnExcluir = document.createElement('button');
+          btnExcluir.className = 'button button--danger';
+          btnExcluir.type = 'button';
+          btnExcluir.textContent = 'Excluir';
+          btnEditar.addEventListener('click', () => editarEmpresa(e));
+          btnExcluir.addEventListener('click', () => excluirEmpresa(e));
+          actions.appendChild(btnEditar);
+          actions.appendChild(btnExcluir);
+          tdAcoes.appendChild(actions);
+
+          tr.appendChild(tdCnpj);
+          tr.appendChild(tdRazao);
+          tr.appendChild(tdFantasia);
+          tr.appendChild(tdSituacao);
+          tr.appendChild(tdAcoes);
+
+          tbody.appendChild(tr);
+        }
+        table.appendChild(tbody);
+        listaEl.appendChild(table);
+      };
+
+      const filtrarEmpresas = (termo) => {
+        const q = String(termo || '').toLowerCase().trim();
+        const onlyDigits = (s) => String(s || '').replace(/\D+/g, '');
+        if (!q) {
+          empresasFiltradas = [...todasEmpresas];
+        } else {
+          const qDigits = onlyDigits(q);
+          empresasFiltradas = todasEmpresas.filter((e) => {
+            const razao = String(e.razaoSocial || '').toLowerCase();
+            const fantasia = String(e.nomeFantasia || '').toLowerCase();
+            const situacao = String(e.situacaoCadastral || '').toLowerCase();
+            const cnpjDigits = onlyDigits(e.cnpj);
+            const matchTexto = razao.includes(q) || fantasia.includes(q) || situacao.includes(q);
+            const matchCnpj = qDigits && cnpjDigits.includes(qDigits);
+            return matchTexto || matchCnpj;
+          });
+        }
+        renderizarEmpresas(empresasFiltradas);
+      };
+
       const listarEmpresas = async () => {
         try {
           exibirMensagem('Carregando empresas...', 'info');
-          listaEl.innerHTML = '';
           const resp = await fetchAutenticado(API_EMPRESAS);
           const data = await resp.json().catch(() => []);
           if (!resp.ok) {
             const msg = data?.mensagem || data?.message || 'Não foi possível buscar as empresas.';
             throw new Error(msg);
           }
-          const lista = Array.isArray(data) ? data : data?.data || [];
-          if (!lista.length) {
+          todasEmpresas = Array.isArray(data) ? data : data?.data || [];
+          if (!todasEmpresas.length) {
             exibirMensagem('Nenhuma empresa cadastrada.', 'info');
+            empresasFiltradas = [];
+            renderizarEmpresas(empresasFiltradas);
             return;
           }
-          exibirMensagem(`Exibindo ${lista.length} empresa(s).`, 'success');
-
-          // Construir tabela no estilo da listagem de Pessoas
-          const table = document.createElement('table');
-          table.style.width = '100%';
-          table.style.borderCollapse = 'collapse';
-
-          const thead = document.createElement('thead');
-          const headRow = document.createElement('tr');
-          const ths = ['CNPJ', 'Razão Social', 'Nome Fantasia', 'Situação Cadastral', 'Ações'];
-          ths.forEach(t => {
-            const th = document.createElement('th');
-            th.textContent = t;
-            th.style.textAlign = 'left';
-            th.style.padding = '0.5rem';
-            headRow.appendChild(th);
-          });
-          thead.appendChild(headRow);
-          table.appendChild(thead);
-
-          const tbody = document.createElement('tbody');
-          for (const e of lista) {
-            const tr = document.createElement('tr');
-
-            const tdCnpj = document.createElement('td');
-            tdCnpj.textContent = aplicarMascaraCnpj(e.cnpj || '') || '—';
-            tdCnpj.style.padding = '0.5rem';
-
-            const tdRazao = document.createElement('td');
-            tdRazao.textContent = e.razaoSocial || '—';
-            tdRazao.style.padding = '0.5rem';
-
-            const tdFantasia = document.createElement('td');
-            tdFantasia.textContent = e.nomeFantasia || '—';
-            tdFantasia.style.padding = '0.5rem';
-
-            const tdSituacao = document.createElement('td');
-            tdSituacao.textContent = e.situacaoCadastral || '—';
-            tdSituacao.style.padding = '0.5rem';
-
-            const tdAcoes = document.createElement('td');
-            tdAcoes.style.padding = '0.5rem';
-            const actions = document.createElement('div');
-            actions.style.display = 'flex';
-            actions.style.gap = '0.5rem';
-            const btnEditar = document.createElement('button');
-            btnEditar.className = 'button';
-            btnEditar.type = 'button';
-            btnEditar.textContent = 'Editar';
-            const btnExcluir = document.createElement('button');
-            btnExcluir.className = 'button button--danger';
-            btnExcluir.type = 'button';
-            btnExcluir.textContent = 'Excluir';
-            btnEditar.addEventListener('click', () => editarEmpresa(e));
-            btnExcluir.addEventListener('click', () => excluirEmpresa(e));
-            actions.appendChild(btnEditar);
-            actions.appendChild(btnExcluir);
-            tdAcoes.appendChild(actions);
-
-            tr.appendChild(tdCnpj);
-            tr.appendChild(tdRazao);
-            tr.appendChild(tdFantasia);
-            tr.appendChild(tdSituacao);
-            tr.appendChild(tdAcoes);
-
-            tbody.appendChild(tr);
-          }
-          table.appendChild(tbody);
-          listaEl.appendChild(table);
+          exibirMensagem(`Exibindo ${todasEmpresas.length} empresa(s).`, 'success');
+          empresasFiltradas = [...todasEmpresas];
+          filtrarEmpresas(termoBusca);
         } catch (err) {
           exibirMensagem(err?.message || 'Erro ao listar empresas.', 'error');
         }
@@ -326,7 +378,18 @@
           exibirMensagem(err?.message || 'Erro ao excluir empresa.', 'error');
         }
       };
-      const inicializar = () => { atualizarRotuloSubmit(); document.getElementById('empresa-cnpj')?.addEventListener('input', e=>{ e.target.value=aplicarMascaraCnpj(e.target.value); }); document.getElementById('empresa-cep')?.addEventListener('input', e=>{ e.target.value=aplicarMascaraCep(e.target.value); }); document.getElementById('empresa-telefone')?.addEventListener('input', e=>{ e.target.value=aplicarMascaraTelefone(e.target.value); }); document.getElementById('adicionar-socio')?.addEventListener('click', adicionarSocio); empresaForm.addEventListener('submit', salvarEmpresa); listarBtn?.addEventListener('click', listarEmpresas); renderizarSocios(); listarEmpresas(); };
+      const inicializar = () => {
+        atualizarRotuloSubmit();
+        document.getElementById('empresa-cnpj')?.addEventListener('input', e=>{ e.target.value=aplicarMascaraCnpj(e.target.value); });
+        document.getElementById('empresa-cep')?.addEventListener('input', e=>{ e.target.value=aplicarMascaraCep(e.target.value); });
+        document.getElementById('empresa-telefone')?.addEventListener('input', e=>{ e.target.value=aplicarMascaraTelefone(e.target.value); });
+        document.getElementById('adicionar-socio')?.addEventListener('click', adicionarSocio);
+        empresaForm.addEventListener('submit', salvarEmpresa);
+        listarBtn?.addEventListener('click', listarEmpresas);
+        campoConsulta?.addEventListener('input', (e) => { termoBusca = e.target.value || ''; filtrarEmpresas(termoBusca); });
+        renderizarSocios();
+        listarEmpresas();
+      };
       document.addEventListener('DOMContentLoaded', inicializar);
     </script>
     <div id="alterar-senha-modal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="alterar-senha-title">
