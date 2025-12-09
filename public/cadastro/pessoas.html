@@ -499,8 +499,8 @@
 
         fotosSelecionadas.forEach((foto, index) => {
           if (foto.file) {
-            // Inclui arquivo novo mantendo o nome amigável
-            formDataEnvio.append('fotosNovas', foto.file, foto.nome || foto.file.name || `foto-${index + 1}.jpg`);
+            // Inclui arquivos novos na chave esperada pelo backend
+            formDataEnvio.append('fotos', foto.file, foto.nome || foto.file.name || `foto-${index + 1}.jpg`);
           } else if (foto.existing && foto.referencia) {
             // Mantém referência de imagem já existente
             formDataEnvio.append('fotosExistentes[]', foto.referencia);
