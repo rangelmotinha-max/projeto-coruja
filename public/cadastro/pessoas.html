@@ -1759,7 +1759,7 @@
           const logradouroField = logradouroCampo.closest('.form__field');
           const logradouroAnchor = document.createElement('a');
           logradouroAnchor.className = 'endereco-inline-link';
-          logradouroAnchor.style.cssText = 'position:absolute; inset: calc(1.6rem + 2px) 2px 2px 2px; display:none; align-items:center; padding: 0.5rem 0.75rem; border-radius: 0.4rem; text-decoration: underline; color: var(--primary); background: transparent;';
+          logradouroAnchor.style.cssText = 'position:absolute; inset: calc(1.6rem + 2px) 2px 2px 2px; display:none; align-items:center; padding: 0.5rem 0.75rem; border-radius: 0.4rem; text-decoration: underline; color: var(--primary); background: transparent; z-index: 2; pointer-events: auto;';
           logradouroAnchor.target = '_blank';
           logradouroAnchor.rel = 'noopener noreferrer';
           logradouroField?.appendChild(logradouroAnchor);
@@ -1784,11 +1784,13 @@
               logradouroCampo.style.color = 'transparent';
               logradouroCampo.style.textShadow = '0 0 0 var(--text)';
               logradouroCampo.style.caretColor = 'var(--text)';
+              logradouroCampo.style.pointerEvents = 'none';
             } else {
               logradouroAnchor.style.display = 'none';
               logradouroCampo.style.color = '';
               logradouroCampo.style.textShadow = '';
               logradouroCampo.style.caretColor = '';
+              logradouroCampo.style.pointerEvents = '';
             }
           };
 
@@ -1804,29 +1806,36 @@
           const latLongField = latLongCampo.closest('.form__field');
           const latLongAnchor = document.createElement('a');
           latLongAnchor.className = 'latlong-inline-link';
-          latLongAnchor.style.cssText = 'position:absolute; inset: calc(1.6rem + 2px) 2px 2px 2px; display:none; align-items:center; padding: 0.5rem 0.75rem; border-radius: 0.4rem; text-decoration: underline; color: var(--primary); background: transparent;';
+          latLongAnchor.style.cssText = 'display:none; margin-top: 0.35rem; text-decoration: underline; color: var(--primary);';
           latLongAnchor.target = '_blank';
           latLongAnchor.rel = 'noopener noreferrer';
-          latLongField?.appendChild(latLongAnchor);
+          const latLongEditBtn = document.createElement('button');
+          latLongEditBtn.type = 'button';
+          latLongEditBtn.className = 'button button--secondary';
+          latLongEditBtn.textContent = 'Editar';
+          latLongEditBtn.title = 'Editar Lat/Long';
+          latLongEditBtn.style.cssText = 'display:none; margin-top: 0.35rem; padding: 0.25rem 0.5rem; font-size: 0.75rem;';
+          const latLongActionsWrap = document.createElement('div');
+          latLongActionsWrap.style.cssText = 'display:flex; gap:0.5rem; align-items:center;';
+          latLongActionsWrap.appendChild(latLongAnchor);
+          latLongActionsWrap.appendChild(latLongEditBtn);
+          latLongField?.appendChild(latLongActionsWrap);
 
           const atualizarLinkLatLong = (valor) => {
             const texto = String(valor || '').trim();
             const url = gerarLinkMapaLatLong(texto);
-            if (url) {
+            const podeMostrar = Boolean(enderecos[indiceOrdenado]?.mostrarLinkLatLong);
+            if (url && texto && podeMostrar) {
               latLongAnchor.href = url;
               latLongAnchor.textContent = texto;
               latLongAnchor.title = 'Abrir no Google Maps';
-              latLongAnchor.style.display = texto ? 'flex' : 'none';
-              // Oculta visualmente o texto do input para evitar duplicidade
-              latLongCampo.style.color = 'transparent';
-              latLongCampo.style.textShadow = '0 0 0 var(--text)';
-              latLongCampo.style.caretColor = 'var(--text)';
+              latLongAnchor.style.display = 'inline';
+              latLongEditBtn.style.display = 'inline';
+              latLongCampo.style.display = 'none';
             } else {
               latLongAnchor.style.display = 'none';
-              // Restaura visualização do input quando link não é válido
-              latLongCampo.style.color = '';
-              latLongCampo.style.textShadow = '';
-              latLongCampo.style.caretColor = '';
+              latLongEditBtn.style.display = 'none';
+              latLongCampo.style.display = '';
             }
           };
 
@@ -1834,7 +1843,13 @@
 
           latLongCampo.addEventListener('input', (e) => {
             enderecos[indiceOrdenado].latLong = e.target.value;
+            enderecos[indiceOrdenado].mostrarLinkLatLong = false;
             atualizarLinkLatLong(e.target.value);
+          });
+          latLongEditBtn.addEventListener('click', () => {
+            enderecos[indiceOrdenado].mostrarLinkLatLong = false;
+            atualizarLinkLatLong(latLongCampo.value);
+            latLongCampo.focus();
           });
           const cepInput = gridDiv.querySelector('.endereco-cep');
           cepInput.addEventListener('blur', (e) => {
@@ -2437,7 +2452,7 @@
           // Marca endereços para exibir como link após salvar
           try {
             if (Array.isArray(enderecos)) {
-              enderecos = enderecos.map((e) => ({ ...e, mostrarLinkEndereco: true }));
+              enderecos = enderecos.map((e) => ({ ...e, mostrarLinkEndereco: true, mostrarLinkLatLong: true }));
               renderizarEnderecos();
             }
           } catch {}
