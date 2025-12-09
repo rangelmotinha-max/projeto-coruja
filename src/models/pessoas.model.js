@@ -261,7 +261,8 @@ class PessoaModel {
   static async obterEnderecosPorPessoa(pessoaId) {
     const db = await initDatabase();
     return db.all(
-      'SELECT id, uf, logradouro, bairro, complemento, cep FROM enderecos WHERE pessoa_id = ? ORDER BY criadoEm ASC',
+      // Retorna lat/long com alias em camelCase para o frontend
+      'SELECT id, uf, logradouro, bairro, complemento, cep, lat_long AS latLong FROM enderecos WHERE pessoa_id = ? ORDER BY criadoEm ASC',
       [pessoaId]
     );
   }
@@ -279,14 +280,16 @@ class PessoaModel {
       bairro: endereco.bairro || null,
       // Complemento agora é salvo para permitir recuperar o campo na edição.
       complemento: endereco.complemento || null,
+      // Armazena texto livre de latitude/longitude preenchido pelo usuário
+      latLong: endereco.latLong || null,
       cep: endereco.cep || null,
       criadoEm: agora,
       atualizadoEm: agora,
     };
 
     await db.run(
-      `INSERT INTO enderecos (id, pessoa_id, uf, logradouro, bairro, complemento, cep, criadoEm, atualizadoEm)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO enderecos (id, pessoa_id, uf, logradouro, bairro, complemento, lat_long, cep, criadoEm, atualizadoEm)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         novoEndereco.id,
         novoEndereco.pessoa_id,
@@ -294,6 +297,7 @@ class PessoaModel {
         novoEndereco.logradouro,
         novoEndereco.bairro,
         novoEndereco.complemento,
+        novoEndereco.latLong,
         novoEndereco.cep,
         novoEndereco.criadoEm,
         novoEndereco.atualizadoEm,
@@ -309,12 +313,20 @@ class PessoaModel {
     const campos = [];
     const valores = [];
 
-    const colunasPermitidas = ['uf', 'logradouro', 'bairro', 'complemento', 'cep'];
+    const colunasPermitidas = {
+      uf: 'uf',
+      logradouro: 'logradouro',
+      bairro: 'bairro',
+      complemento: 'complemento',
+      cep: 'cep',
+      // Mapeia propriedade camelCase para nome da coluna no banco
+      latLong: 'lat_long',
+    };
 
-    colunasPermitidas.forEach((coluna) => {
-      if (updates[coluna] !== undefined) {
-        campos.push(`${coluna} = ?`);
-        valores.push(updates[coluna]);
+    Object.entries(colunasPermitidas).forEach(([campoPayload, colunaBanco]) => {
+      if (updates[campoPayload] !== undefined) {
+        campos.push(`${colunaBanco} = ?`);
+        valores.push(updates[campoPayload]);
       }
     });
 

@@ -1699,6 +1699,11 @@
               <span class="form__label">Complemento</span>
               <input class="form__input endereco-complemento" type="text" data-index="${indiceOrdenado}" />
             </label>
+            <label class="form__field">
+              <span class="form__label">Lat/Long</span>
+              <!-- Entrada livre para latitude e longitude informadas pelo usuário -->
+              <input class="form__input endereco-latlong" type="text" data-index="${indiceOrdenado}" placeholder="-23.5, -46.6" />
+            </label>
           `;
 
           // Preencher valores salvos para manter sincronia com o formulário
@@ -1707,6 +1712,7 @@
           gridDiv.querySelector('.endereco-bairro').value = endereco.bairro || '';
           gridDiv.querySelector('.endereco-cep').value = endereco.cep || '';
           gridDiv.querySelector('.endereco-complemento').value = endereco.complemento || '';
+          gridDiv.querySelector('.endereco-latlong').value = endereco.latLong || '';
 
           // Adicionar listeners
           gridDiv.querySelector('.endereco-uf').addEventListener('change', (e) => {
@@ -1720,6 +1726,9 @@
           });
           gridDiv.querySelector('.endereco-complemento').addEventListener('input', (e) => {
             enderecos[indiceOrdenado].complemento = e.target.value;
+          });
+          gridDiv.querySelector('.endereco-latlong').addEventListener('input', (e) => {
+            enderecos[indiceOrdenado].latLong = e.target.value;
           });
           const cepInput = gridDiv.querySelector('.endereco-cep');
           cepInput.addEventListener('blur', (e) => {
@@ -1747,7 +1756,9 @@
           logradouro: '',
           bairro: '',
           cep: '',
-          complemento: ''
+          complemento: '',
+          // Inicializa campo de latitude/longitude vazio
+          latLong: ''
         });
 
         if (indicadorEnderecoAtual === null && enderecos.length === 1) {
