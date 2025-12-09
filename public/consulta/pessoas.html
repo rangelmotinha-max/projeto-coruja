@@ -82,15 +82,42 @@
             <div class="form__grid form__grid--3">
               <label class="form__field">
                 <span class="form__label">Nome ou apelido</span>
-                <input class="form__input" type="text" name="nome" placeholder="Digite o nome para consultar" />
+                <!-- Campo utilizado para filtrar por nome completo ou apelido na pesquisa -->
+                <input class="form__input" type="text" name="nome" placeholder="Busque por nome completo ou apelido" />
               </label>
               <label class="form__field">
-                <span class="form__label">Documento</span>
-                <input class="form__input" type="text" name="documento" placeholder="CPF ou RG" />
+                <span class="form__label">Documento (CPF/RG/CNH)</span>
+                <!-- Campo para consulta de documentos pessoais de múltiplos tipos -->
+                <input class="form__input" type="text" name="documento" placeholder="Informe CPF, RG ou CNH para filtrar" />
               </label>
               <label class="form__field">
-                <span class="form__label">Veículo vinculado</span>
-                <input class="form__input" type="text" name="placa" placeholder="Placa do veículo" />
+                <span class="form__label">Data de nascimento</span>
+                <!-- Campo data pensado para consultas por faixa etária ou data específica -->
+                <input class="form__input" type="date" name="dataNascimento" placeholder="Selecione a data de nascimento" />
+              </label>
+            </div>
+            <div class="form__grid form__grid--3">
+              <label class="form__field">
+                <span class="form__label">Mãe</span>
+                <!-- Campo para relacionar registros através da mãe declarada -->
+                <input class="form__input" type="text" name="mae" placeholder="Informe o nome da mãe" />
+              </label>
+              <label class="form__field">
+                <span class="form__label">Pai</span>
+                <!-- Campo para facilitar cruzamentos pelo nome do pai -->
+                <input class="form__input" type="text" name="pai" placeholder="Informe o nome do pai" />
+              </label>
+              <label class="form__field">
+                <span class="form__label">Telefone</span>
+                <!-- Campo para futuras consultas por telefone, aceitando DDD e número completo -->
+                <input class="form__input" type="tel" name="telefone" placeholder="(DD) número para contato" />
+              </label>
+            </div>
+            <div class="form__grid form__grid--1">
+              <label class="form__field">
+                <span class="form__label">Email</span>
+                <!-- Campo dedicado para filtrar registros pelo email de cadastro -->
+                <input class="form__input" type="email" name="email" placeholder="email@dominio.com" />
               </label>
             </div>
             <div class="form__actions">
