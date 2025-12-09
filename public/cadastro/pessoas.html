@@ -1340,6 +1340,16 @@
         renderizarVinculosEmpregaticio();
       };
 
+      // Gera o link de mapa usando o valor de latitude/longitude informado
+      const gerarLinkMapaLatLong = (valorLatLong) => {
+        const texto = String(valorLatLong || '').trim();
+        const coordenadas = texto.match(/(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/);
+
+        if (!coordenadas) return '';
+
+        return `https://www.google.com/maps?q=${coordenadas[1]},${coordenadas[2]}`;
+      };
+
       const renderizarVinculosEntidades = () => {
         const lista = document.getElementById('lista-vinculos-entidades');
         if (!lista) return;
@@ -1727,8 +1737,32 @@
           gridDiv.querySelector('.endereco-complemento').addEventListener('input', (e) => {
             enderecos[indiceOrdenado].complemento = e.target.value;
           });
-          gridDiv.querySelector('.endereco-latlong').addEventListener('input', (e) => {
+
+          // Cria container e link dinâmico para a coordenada salva
+          const latLongCampo = gridDiv.querySelector('.endereco-latlong');
+          const latLongContainer = document.createElement('div');
+          latLongContainer.className = 'latlong-link-container';
+          latLongContainer.style.cssText = 'margin-top: 0.35rem; font-size: 0.85rem; word-break: break-word;';
+          latLongCampo.closest('.form__field')?.appendChild(latLongContainer);
+
+          const atualizarLinkLatLong = (valor) => {
+            latLongContainer.innerHTML = '';
+            const url = gerarLinkMapaLatLong(valor);
+            if (!url) return;
+
+            const anchor = document.createElement('a');
+            anchor.href = url;
+            anchor.target = '_blank';
+            anchor.rel = 'noopener noreferrer';
+            anchor.textContent = String(valor || '').trim();
+            latLongContainer.appendChild(anchor);
+          };
+
+          atualizarLinkLatLong(latLongCampo.value);
+
+          latLongCampo.addEventListener('input', (e) => {
             enderecos[indiceOrdenado].latLong = e.target.value;
+            atualizarLinkLatLong(e.target.value);
           });
           const cepInput = gridDiv.querySelector('.endereco-cep');
           cepInput.addEventListener('blur', (e) => {
