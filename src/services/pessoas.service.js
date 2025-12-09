@@ -9,8 +9,51 @@ async function criar(payload, arquivos = []) {
   return PessoaModel.create(dados);
 }
 
+function normalizarFiltros(filtrosBrutos = {}) {
+  // Remove espaços extras e permite usar diferentes chaves de consulta.
+  const limpar = (valor) => (typeof valor === 'string' ? valor.trim() : '');
+
+  const filtros = {};
+
+  // Nome ou apelido: aceita "nome", "apelido" ou "nome_apelido".
+  const nomeOuApelido = limpar(filtrosBrutos.nome) || limpar(filtrosBrutos.apelido) || limpar(filtrosBrutos.nome_apelido);
+  if (nomeOuApelido) filtros.nomeOuApelido = nomeOuApelido;
+
+  // Documento: CPF/RG/CNH.
+  const documento = limpar(filtrosBrutos.documento);
+  if (documento) filtros.documento = documento;
+
+  // Data de nascimento aceita formatos livres para compatibilidade.
+  const dataNascimento = limpar(filtrosBrutos.data_nascimento || filtrosBrutos.dataNascimento);
+  if (dataNascimento) filtros.dataNascimento = dataNascimento;
+
+  // Nome da mãe.
+  const mae = limpar(filtrosBrutos.mae || filtrosBrutos.nomeMae);
+  if (mae) filtros.nomeMae = mae;
+
+  // Nome do pai.
+  const pai = limpar(filtrosBrutos.pai || filtrosBrutos.nomePai);
+  if (pai) filtros.nomePai = pai;
+
+  // Telefone vinculado.
+  const telefone = limpar(filtrosBrutos.telefone);
+  if (telefone) filtros.telefone = telefone;
+
+  // Email vinculado.
+  const email = limpar(filtrosBrutos.email);
+  if (email) filtros.email = email;
+
+  return filtros;
+}
+
 async function listar() {
   return PessoaModel.findAll();
+}
+
+async function buscar(filtrosBrutos) {
+  // Interpreta os filtros enviados na querystring e delega para o modelo.
+  const filtros = normalizarFiltros(filtrosBrutos);
+  return PessoaModel.findByFilters(filtros);
 }
 
 async function buscarPorId(id) {
@@ -162,6 +205,7 @@ async function remover(id) {
 module.exports = {
   criar,
   listar,
+  buscar,
   buscarPorId,
   atualizar,
   remover,

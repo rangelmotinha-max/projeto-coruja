@@ -12,7 +12,7 @@ router.use(authMiddleware);
 // Criação de nova pessoa com suporte a upload de fotos.
 router.post('/', authorize(['admin', 'editor']), uploadFotosPessoa.array('fotos', 10), pessoasController.criar);
 
-// Listagem completa de pessoas cadastradas.
+// Listagem/busca de pessoas cadastradas com filtros por nome, documento, familiares e contatos.
 router.get('/', authorize(['admin', 'editor', 'viewer', 'user', 'leitor']), pessoasController.listar);
 
 // Busca detalhada pelo identificador único.

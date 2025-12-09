@@ -142,39 +142,12 @@ class PessoaModel {
   static async findAll() {
     const db = await initDatabase();
     const pessoas = await db.all('SELECT * FROM pessoas');
-    
+
     // Buscar endereços e telefones para cada pessoa
     for (const pessoa of pessoas) {
-      pessoa.enderecos = await this.obterEnderecosPorPessoa(pessoa.id);
-      pessoa.telefones = (await this.obterTelefonesPorPessoa(pessoa.id)).map(t => t.numero);
-      pessoa.emails = (await this.obterEmailsPorPessoa(pessoa.id)).map(e => e.email);
-      pessoa.redesSociais = (await this.obterRedesPorPessoa(pessoa.id)).map(r => r.perfil);
-      pessoa.fotos = await this.obterFotosPorPessoa(pessoa.id);
-      pessoa.veiculos = await this.obterVeiculosPorPessoa(pessoa.id);
-      pessoa.empresa = await this.obterEmpresaPorPessoa(pessoa.id);
-      // Vinculos: preferir JSON quando existir, mas manter compatibilidade com tabela vinculos_pessoas
-      let vinculosFromJson = {};
-      if (pessoa.vinculos_json) {
-        try {
-          vinculosFromJson = JSON.parse(pessoa.vinculos_json) || {};
-        } catch (_) {
-          vinculosFromJson = {};
-        }
-      }
-      const vinculosPessoas = await this.obterVinculosPessoas(pessoa.id);
-      pessoa.vinculos = { pessoas: vinculosPessoas, ...vinculosFromJson };
-      // Ocorrencias via JSON
-      if (pessoa.ocorrencias_json) {
-        try {
-          pessoa.ocorrencias = JSON.parse(pessoa.ocorrencias_json) || {};
-        } catch (_) {
-          pessoa.ocorrencias = {};
-        }
-      } else {
-        pessoa.ocorrencias = {};
-      }
+      await this.hidratarPessoa(pessoa);
     }
-    
+
     return pessoas;
   }
 
@@ -182,39 +155,106 @@ class PessoaModel {
   static async findById(id) {
     const db = await initDatabase();
     const pessoa = await db.get('SELECT * FROM pessoas WHERE id = ?', [id]);
-    
-    if (pessoa) {
-      pessoa.enderecos = await this.obterEnderecosPorPessoa(id);
-      pessoa.telefones = (await this.obterTelefonesPorPessoa(id)).map(t => t.numero);
-      pessoa.emails = (await this.obterEmailsPorPessoa(id)).map(e => e.email);
-      pessoa.redesSociais = (await this.obterRedesPorPessoa(id)).map(r => r.perfil);
-      pessoa.fotos = await this.obterFotosPorPessoa(id);
-      pessoa.veiculos = await this.obterVeiculosPorPessoa(id);
-      pessoa.empresa = await this.obterEmpresaPorPessoa(id);
-      // Vinculos: preferir JSON quando existir, mas manter compatibilidade com tabela vinculos_pessoas
-      let vinculosFromJson = {};
-      if (pessoa.vinculos_json) {
-        try {
-          vinculosFromJson = JSON.parse(pessoa.vinculos_json) || {};
-        } catch (_) {
-          vinculosFromJson = {};
-        }
-      }
-      const vinculosPessoas = await this.obterVinculosPessoas(id);
-      pessoa.vinculos = { pessoas: vinculosPessoas, ...vinculosFromJson };
-      // Ocorrencias via JSON
-      if (pessoa.ocorrencias_json) {
-        try {
-          pessoa.ocorrencias = JSON.parse(pessoa.ocorrencias_json) || {};
-        } catch (_) {
-          pessoa.ocorrencias = {};
-        }
-      } else {
-        pessoa.ocorrencias = {};
+
+    if (pessoa) await this.hidratarPessoa(pessoa);
+
+    return pessoa;
+  }
+
+  // Hidrata o objeto de pessoa com relacionamentos e campos derivados.
+  static async hidratarPessoa(pessoa) {
+    pessoa.enderecos = await this.obterEnderecosPorPessoa(pessoa.id);
+    pessoa.telefones = (await this.obterTelefonesPorPessoa(pessoa.id)).map(t => t.numero);
+    pessoa.emails = (await this.obterEmailsPorPessoa(pessoa.id)).map(e => e.email);
+    pessoa.redesSociais = (await this.obterRedesPorPessoa(pessoa.id)).map(r => r.perfil);
+    pessoa.fotos = await this.obterFotosPorPessoa(pessoa.id);
+    pessoa.veiculos = await this.obterVeiculosPorPessoa(pessoa.id);
+    pessoa.empresa = await this.obterEmpresaPorPessoa(pessoa.id);
+    // Vinculos: preferir JSON quando existir, mas manter compatibilidade com tabela vinculos_pessoas
+    let vinculosFromJson = {};
+    if (pessoa.vinculos_json) {
+      try {
+        vinculosFromJson = JSON.parse(pessoa.vinculos_json) || {};
+      } catch (_) {
+        vinculosFromJson = {};
       }
     }
-    
+    const vinculosPessoas = await this.obterVinculosPessoas(pessoa.id);
+    pessoa.vinculos = { pessoas: vinculosPessoas, ...vinculosFromJson };
+    // Ocorrencias via JSON
+    if (pessoa.ocorrencias_json) {
+      try {
+        pessoa.ocorrencias = JSON.parse(pessoa.ocorrencias_json) || {};
+      } catch (_) {
+        pessoa.ocorrencias = {};
+      }
+    } else {
+      pessoa.ocorrencias = {};
+    }
     return pessoa;
+  }
+
+  // Consulta pessoas aplicando filtros opcionais utilizando LIKE e subconsultas seguras.
+  static async findByFilters(filtros = {}) {
+    const db = await initDatabase();
+    const where = ['1=1'];
+    const params = [];
+
+    // Filtro de nome completo ou apelido.
+    if (filtros.nomeOuApelido) {
+      where.push('(p.nomeCompleto LIKE ? OR p.apelido LIKE ?)');
+      const termo = `%${filtros.nomeOuApelido}%`;
+      params.push(termo, termo);
+    }
+
+    // Filtro por documento (CPF, RG ou CNH).
+    if (filtros.documento) {
+      where.push('(p.cpf LIKE ? OR p.rg LIKE ? OR p.cnh LIKE ?)');
+      const termo = `%${filtros.documento}%`;
+      params.push(termo, termo, termo);
+    }
+
+    // Filtro por data de nascimento.
+    if (filtros.dataNascimento) {
+      where.push('p.dataNascimento LIKE ?');
+      params.push(`%${filtros.dataNascimento}%`);
+    }
+
+    // Filtro por nome da mãe.
+    if (filtros.nomeMae) {
+      where.push('p.nomeMae LIKE ?');
+      params.push(`%${filtros.nomeMae}%`);
+    }
+
+    // Filtro por nome do pai.
+    if (filtros.nomePai) {
+      where.push('p.nomePai LIKE ?');
+      params.push(`%${filtros.nomePai}%`);
+    }
+
+    // Filtro por telefone considerando coluna legado e tabela de telefones.
+    if (filtros.telefone) {
+      const termo = `%${filtros.telefone}%`;
+      where.push('(p.telefone LIKE ? OR EXISTS (SELECT 1 FROM telefones t WHERE t.pessoa_id = p.id AND t.numero LIKE ?))');
+      params.push(termo, termo);
+    }
+
+    // Filtro por email vinculado.
+    if (filtros.email) {
+      where.push('EXISTS (SELECT 1 FROM emails e WHERE e.pessoa_id = p.id AND e.email LIKE ?)');
+      params.push(`%${filtros.email}%`);
+    }
+
+    const pessoas = await db.all(
+      `SELECT DISTINCT p.* FROM pessoas p WHERE ${where.join(' AND ')} ORDER BY p.nomeCompleto ASC`,
+      params
+    );
+
+    for (const pessoa of pessoas) {
+      await this.hidratarPessoa(pessoa);
+    }
+
+    return pessoas;
   }
 
   // Obtém todos os endereços de uma pessoa

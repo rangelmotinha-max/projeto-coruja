@@ -31,7 +31,8 @@ async function criar(req, res, next) {
 
 async function listar(req, res, next) {
   try {
-    const pessoas = await pessoaService.listar();
+    // Busca com filtros opcionais de nome/apelido, documento, data de nascimento, parentes e contatos.
+    const pessoas = await pessoaService.buscar(req.query || {});
     return res.json(pessoas);
   } catch (error) {
     return next(error);
