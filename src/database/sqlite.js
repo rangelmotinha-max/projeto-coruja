@@ -80,6 +80,8 @@ async function runMigrations(db) {
       logradouro TEXT,
       bairro TEXT,
       complemento TEXT,
+      -- Guarda latitude e longitude informadas manualmente
+      lat_long TEXT,
       cep TEXT,
       criadoEm TEXT NOT NULL,
       atualizadoEm TEXT NOT NULL,
@@ -264,6 +266,17 @@ async function runMigrations(db) {
     `);
   } catch (err) {
     // Coluna já existe, ignorar erro
+    if (!err.message.includes('duplicate column name')) {
+      throw err;
+    }
+  }
+
+  // Tenta adicionar coluna de latitude/longitude para bancos antigos
+  try {
+    await db.run(`
+      ALTER TABLE enderecos ADD COLUMN lat_long TEXT
+    `);
+  } catch (err) {
     if (!err.message.includes('duplicate column name')) {
       throw err;
     }
