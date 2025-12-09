@@ -69,6 +69,21 @@
               <div class="form__section-header">
                 <h3 class="form__section-title" style="text-align: center; width: 100%;">Identificação</h3>
               </div>
+              <div class="form__subsection" style="margin-bottom: 1rem;">
+                <div class="form__field">
+                  <span class="form__label">Fotos do cadastro</span>
+                  <input
+                    class="form__input"
+                    type="file"
+                    id="pessoa-fotos"
+                    name="fotos"
+                    accept="image/*"
+                    multiple
+                  />
+                  <small>Adicione uma ou mais imagens para a ficha da pessoa.</small>
+                </div>
+                <div id="lista-fotos" style="display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));"></div>
+              </div>
               <div class="form__grid form__grid--1">
                 <label class="form__field">
                   <span class="form__label">Nome Completo</span>
@@ -327,8 +342,10 @@
       const messageEl = document.getElementById('pessoas-message');
       const formMessageEl = document.getElementById('pessoa-form-message');
       const cpfInput = pessoaForm?.elements['cpf'];
+      const fotosInput = document.getElementById('pessoa-fotos');
       let pessoaEmEdicao = null;
       let ultimaAcaoFoiEdicao = false;
+      let fotosSelecionadas = [];
 
       const getCookie = (name) => {
         return document.cookie
@@ -342,8 +359,9 @@
 
       const fetchAutenticado = (url, options = {}) => {
         const token = obterToken();
+        const isFormData = options?.body instanceof FormData;
         const headers = {
-          'Content-Type': 'application/json',
+          ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
           ...(options.headers || {}),
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         };
@@ -458,8 +476,30 @@
         if (abordList.length) ocorrenciasObj.abordagens = abordList;
         if (prisList.length) ocorrenciasObj.prisoes = prisList;
         dados.ocorrencias = Object.keys(ocorrenciasObj).length ? ocorrenciasObj : undefined;
-        
+
+        dados.fotosExistentes = fotosSelecionadas
+          .filter((foto) => foto.existing)
+          .map((foto) => ({ referencia: foto.referencia, nome: foto.nome }));
+
         return dados;
+      };
+
+      // Monta um FormData com os arquivos e os dados em JSON para envio
+      const montarFormDataEnvio = (dados) => {
+        const formDataEnvio = new FormData();
+        formDataEnvio.append('dados', JSON.stringify(dados));
+
+        fotosSelecionadas.forEach((foto, index) => {
+          if (foto.file) {
+            // Inclui arquivo novo mantendo o nome amigável
+            formDataEnvio.append('fotosNovas', foto.file, foto.nome || foto.file.name || `foto-${index + 1}.jpg`);
+          } else if (foto.existing && foto.referencia) {
+            // Mantém referência de imagem já existente
+            formDataEnvio.append('fotosExistentes[]', foto.referencia);
+          }
+        });
+
+        return formDataEnvio;
       };
       // Empresa vinculada (seleção única)
       const API_EMPRESAS_URL = '/api/empresas';
@@ -718,6 +758,100 @@
       let vinculosVeiculos = [];
       let veiculosOpcoes = [];
       let veiculosVinculadosIds = [];
+
+      // Renderiza as pré-visualizações das fotos selecionadas
+      const renderizarFotos = () => {
+        const container = document.getElementById('lista-fotos');
+        if (!container) return;
+
+        container.innerHTML = '';
+
+        if (!fotosSelecionadas.length) {
+          container.innerHTML = '<div class="list__item">Nenhuma foto selecionada.</div>';
+          return;
+        }
+
+        fotosSelecionadas.forEach((foto, index) => {
+          const wrapper = document.createElement('div');
+          wrapper.style.border = '1px solid var(--border)';
+          wrapper.style.padding = '0.5rem';
+          wrapper.style.borderRadius = '0.5rem';
+          wrapper.style.background = 'var(--surface)';
+          wrapper.style.display = 'flex';
+          wrapper.style.flexDirection = 'column';
+          wrapper.style.gap = '0.5rem';
+
+          const img = document.createElement('img');
+          img.src = foto.previewUrl;
+          img.alt = foto.nome || 'Foto selecionada';
+          img.style.width = '100%';
+          img.style.height = '140px';
+          img.style.objectFit = 'cover';
+          img.style.borderRadius = '0.35rem';
+
+          const legend = document.createElement('div');
+          legend.textContent = foto.nome || 'Foto';
+          legend.style.fontSize = '0.9rem';
+          legend.style.fontWeight = '600';
+
+          const removerBtn = document.createElement('button');
+          removerBtn.type = 'button';
+          removerBtn.className = 'button button--ghost';
+          removerBtn.textContent = 'Remover';
+          removerBtn.addEventListener('click', () => removerFoto(index));
+
+          wrapper.appendChild(img);
+          wrapper.appendChild(legend);
+          wrapper.appendChild(removerBtn);
+          container.appendChild(wrapper);
+        });
+      };
+
+      // Remove uma foto da lista e libera o URL de pré-visualização
+      const removerFoto = (index) => {
+        const [removida] = fotosSelecionadas.splice(index, 1);
+        if (removida?.previewUrl && removida.file) {
+          URL.revokeObjectURL(removida.previewUrl);
+        }
+        renderizarFotos();
+      };
+
+      // Adiciona novas fotos a partir do FileList do input
+      const adicionarFotos = (arquivos = []) => {
+        const arquivosValidos = Array.from(arquivos).filter((arquivo) => arquivo.type?.startsWith('image/'));
+
+        arquivosValidos.forEach((arquivo) => {
+          fotosSelecionadas.push({
+            file: arquivo,
+            nome: arquivo.name,
+            previewUrl: URL.createObjectURL(arquivo),
+          });
+        });
+
+        renderizarFotos();
+      };
+
+      // Carrega fotos existentes retornadas pela API para edição
+      const carregarFotosExistentes = (fotos = []) => {
+        if (!Array.isArray(fotos)) {
+          fotosSelecionadas = [];
+          renderizarFotos();
+          return;
+        }
+
+        fotosSelecionadas = fotos.map((foto, index) => {
+          const referencia = foto?.id || foto?.url || foto;
+          const nome = foto?.nomeArquivo || foto?.nome || `Foto ${index + 1}`;
+          return {
+            existing: true,
+            referencia,
+            nome,
+            previewUrl: foto?.url || foto?.previewUrl || referencia,
+          };
+        });
+
+        renderizarFotos();
+      };
 
       const normalizarPlaca = (placa) => String(placa || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 7);
 
@@ -1747,6 +1881,9 @@
         renderizarProcessos();
         renderizarAbordagens();
         renderizarPrisoes();
+
+        // Carrega fotos existentes para manter a lista na edição
+        carregarFotosExistentes(pessoa.fotos || pessoa.imagens || []);
       };
 
 
@@ -1957,9 +2094,11 @@
           exibirMensagemForm('Enviando dados...', 'info');
           submitButton.disabled = true;
 
+          const formDataEnvio = montarFormDataEnvio(payload);
+
           const response = await fetchAutenticado(url, {
             method: metodo,
-            body: JSON.stringify(payload),
+            body: formDataEnvio,
           });
 
           const data = await response.json().catch(() => ({}));
@@ -2023,7 +2162,9 @@
           renderizarRedes();
           veiculos = [];
           renderizarVeiculos();
-          
+          fotosSelecionadas = [];
+          renderizarFotos();
+
           vinculosPessoas = [];
           renderizarVinculosPessoas();
           vinculosEmpresas = [];
@@ -2057,6 +2198,12 @@
         adicionarEmailBtn?.addEventListener('click', adicionarEmail);
         const adicionarRedeBtn = document.getElementById('adicionar-rede');
         adicionarRedeBtn?.addEventListener('click', adicionarRede);
+
+        // Event listener para upload de fotos
+        fotosInput?.addEventListener('change', (event) => {
+          adicionarFotos(event.target.files);
+          event.target.value = '';
+        });
 
         // Event listener para adicionar novo veículo
         const adicionarVeiculoBtn = document.getElementById('adicionar-veiculo');
@@ -2144,6 +2291,7 @@
         renderizarEmails();
         renderizarRedes();
         renderizarVeiculos();
+        renderizarFotos();
         // Carrega opções de empresas para vínculo
         carregarEmpresasOpcoes();
         renderizarVinculosPessoas();
