@@ -1886,6 +1886,18 @@
         // Vínculos de empresa removidos: não carregar
         vinculosEmpresas = [];
 
+        // Vínculos: Pessoas vinculadas
+        if (pessoa.vinculos && Array.isArray(pessoa.vinculos.pessoas)) {
+          vinculosPessoas = pessoa.vinculos.pessoas.map(v => ({
+            nome: String(v?.nome || ''),
+            cpf: String(v?.cpf || ''),
+            tipo: String(v?.tipo || ''),
+          }));
+        } else {
+          vinculosPessoas = [];
+        }
+        renderizarVinculosPessoas();
+
         // Carrega vínculos de entidades se existirem
         if (pessoa.vinculos && Array.isArray(pessoa.vinculos.entidades)) {
           vinculosEntidades = pessoa.vinculos.entidades.map(e => ({
@@ -1904,6 +1916,26 @@
           vinculosVeiculos = [];
         }
         renderizarVinculosVeiculos();
+
+        // Empresas vinculadas (IDs) se existirem
+        if (pessoa.vinculos && Array.isArray(pessoa.vinculos.empresas)) {
+          empresasVinculadas = pessoa.vinculos.empresas
+            .map(e => (typeof e === 'object' ? e.id : e))
+            .filter(Boolean);
+        } else {
+          empresasVinculadas = [];
+        }
+        renderizarEmpresasVinculadasLista();
+
+        // Vínculos empregatícios
+        if (pessoa.vinculos && Array.isArray(pessoa.vinculos.empregaticio)) {
+          vinculosEmpregaticio = pessoa.vinculos.empregaticio.map(it => ({
+            info: String(it?.info || ''),
+          }));
+        } else {
+          vinculosEmpregaticio = [];
+        }
+        renderizarVinculosEmpregaticio();
 
         // Carrega ocorrências
         if (pessoa.ocorrencias) {
