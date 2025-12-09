@@ -63,88 +63,94 @@ async function buscarPorId(id) {
 }
 
 async function atualizar(id, payload, arquivos = []) {
-  const { fotos = [], fotosParaRemover = [], ...atualizacoes } = validarAtualizacaoPessoa(payload, arquivos);
+  const {
+    fotos = [],
+    fotosParaRemover = [],
+    enderecos,
+    telefones,
+    emails,
+    redesSociais,
+    veiculos,
+    vinculos,
+    ocorrencias,
+    ...atualizacoes
+  } = validarAtualizacaoPessoa(payload, arquivos);
   const existente = await PessoaModel.findById(id);
   if (!existente) throw criarErro('Pessoa não encontrada', 404);
 
-  // Processar endereços se fornecidos no payload
-  if (payload.enderecos && Array.isArray(payload.enderecos)) {
-    // Obter endereços atuais
+  // Processar endereços validados, mantendo limpeza consistente antes de regravar.
+  const enderecosValidados = Array.isArray(enderecos) ? enderecos.filter(Boolean) : null;
+  if (enderecosValidados) {
+    // Obter endereços atuais para decidir remoções.
     const enderecosAtuais = await PessoaModel.obterEnderecosPorPessoa(id);
-    
-    // Remover endereços que não estão mais no payload
+
+    // Remover endereços que não estão mais aprovados pelo validador.
     for (const enderecoAtual of enderecosAtuais) {
-      const existe = payload.enderecos.some(e => e.id === enderecoAtual.id);
+      const existe = enderecosValidados.some((e) => e.id === enderecoAtual.id);
       if (!existe) {
         await PessoaModel.removerEndereco(enderecoAtual.id);
       }
     }
-    
-    // Adicionar novos ou atualizar existentes
-    for (const endereco of payload.enderecos) {
+
+    // Adicionar novos ou atualizar existentes apenas com dados filtrados.
+    for (const endereco of enderecosValidados) {
       if (endereco.id) {
-        // Atualizar endereço existente
+        // Atualizar endereço existente validado.
         await PessoaModel.atualizarEndereco(endereco.id, endereco);
       } else {
-        // Adicionar novo endereço
+        // Adicionar novo endereço validado.
         await PessoaModel.adicionarEndereco(id, endereco);
       }
     }
   }
 
-  // Processar telefones se fornecidos no payload
-  if (payload.telefones && Array.isArray(payload.telefones)) {
-    // Obter telefones atuais
+  // Processar telefones validados com limpeza total antes da inserção.
+  const telefonesValidados = Array.isArray(telefones) ? telefones.filter(Boolean) : null;
+  if (telefonesValidados) {
     const telefonesAtuais = await PessoaModel.obterTelefonesPorPessoa(id);
-    
-    // Remover todos os telefones antigos
     for (const telefoneAtual of telefonesAtuais) {
       await PessoaModel.removerTelefone(telefoneAtual.id);
     }
-    
-    // Adicionar novos telefones
-    for (const telefone of payload.telefones) {
-      if (telefone.trim()) {
-        await PessoaModel.adicionarTelefone(id, telefone);
-      }
+
+    for (const telefone of telefonesValidados) {
+      await PessoaModel.adicionarTelefone(id, telefone);
     }
   }
 
-  // Processar emails se fornecidos no payload
-  if (payload.emails && Array.isArray(payload.emails)) {
+  // Processar emails validados com remoção total prévia.
+  const emailsValidados = Array.isArray(emails) ? emails.filter(Boolean) : null;
+  if (emailsValidados) {
     const emailsAtuais = await PessoaModel.obterEmailsPorPessoa(id);
     for (const emailAtual of emailsAtuais) {
       await PessoaModel.removerEmail(emailAtual.id);
     }
-    for (const email of payload.emails) {
-      if (String(email).trim()) {
-        await PessoaModel.adicionarEmail(id, email);
-      }
+    for (const email of emailsValidados) {
+      await PessoaModel.adicionarEmail(id, email);
     }
   }
 
-  // Processar redes sociais se fornecidas no payload
-  if (payload.redesSociais && Array.isArray(payload.redesSociais)) {
+  // Processar redes sociais validadas garantindo limpeza antes de regravar.
+  const redesValidadas = Array.isArray(redesSociais) ? redesSociais.filter(Boolean) : null;
+  if (redesValidadas) {
     const redesAtuais = await PessoaModel.obterRedesPorPessoa(id);
     for (const redeAtual of redesAtuais) {
       await PessoaModel.removerRedeSocial(redeAtual.id);
     }
-    for (const perfil of payload.redesSociais) {
-      if (String(perfil).trim()) {
-        await PessoaModel.adicionarRedeSocial(id, perfil);
-      }
+    for (const perfil of redesValidadas) {
+      await PessoaModel.adicionarRedeSocial(id, perfil);
     }
   }
 
   // Empresa removida do cadastro de Pessoas; nenhum processamento aqui
 
-  // Processar veículos se fornecidos no payload
-  if (payload.veiculos && Array.isArray(payload.veiculos)) {
+  // Processar veículos validados garantindo remoção total antes da nova gravação.
+  const veiculosValidados = Array.isArray(veiculos) ? veiculos.filter(Boolean) : null;
+  if (veiculosValidados) {
     const veiculosAtuais = await PessoaModel.obterVeiculosPorPessoa(id);
     for (const vAtual of veiculosAtuais) {
       await PessoaModel.removerVeiculo(vAtual.id);
     }
-    for (const v of payload.veiculos) {
+    for (const v of veiculosValidados) {
       const mm = (v.marcaModelo || '').trim();
       const pl = (v.placa || '').trim();
       const cr = (v.cor || '').trim();
@@ -155,14 +161,17 @@ async function atualizar(id, payload, arquivos = []) {
     }
   }
 
-  // Processar vínculos (pessoas relacionadas)
-  if (payload.vinculos && Array.isArray(payload.vinculos.pessoas)) {
+  // Processar vínculos validados (pessoas relacionadas) sempre após limpeza.
+  const vinculosValidados = vinculos && Array.isArray(vinculos.pessoas)
+    ? vinculos.pessoas.filter(Boolean)
+    : null;
+  if (vinculosValidados) {
     const atuais = await PessoaModel.obterVinculosPessoas(id);
     for (const v of atuais) {
       await PessoaModel.removerVinculoPessoa(v.id);
     }
-    for (const vp of payload.vinculos.pessoas) {
-      if ((vp.nome||vp.cpf||vp.tipo||'').toString().trim().length) {
+    for (const vp of vinculosValidados) {
+      if ((vp.nome || vp.cpf || vp.tipo || '').toString().trim().length) {
         await PessoaModel.adicionarVinculoPessoa(id, vp);
       }
     }
@@ -177,17 +186,17 @@ async function atualizar(id, payload, arquivos = []) {
     await PessoaModel.adicionarFoto(id, foto);
   }
 
-  // Atualizar dados da pessoa e índice do endereço atual
-  if (payload.endereco_atual_index !== undefined) {
-    atualizacoes.endereco_atual_index = payload.endereco_atual_index;
+  // Atualizar dados da pessoa e índice do endereço atual validados.
+  if (atualizacoes.endereco_atual_index !== undefined) {
+    atualizacoes.endereco_atual_index = atualizacoes.endereco_atual_index;
   }
 
   // Persistir estruturas complexas via JSON
-  if (payload.vinculos) {
-    atualizacoes.vinculos_json = JSON.stringify(payload.vinculos);
+  if (vinculos) {
+    atualizacoes.vinculos_json = JSON.stringify(vinculos);
   }
-  if (payload.ocorrencias) {
-    atualizacoes.ocorrencias_json = JSON.stringify(payload.ocorrencias);
+  if (ocorrencias) {
+    atualizacoes.ocorrencias_json = JSON.stringify(ocorrencias);
   }
 
   const atualizada = await PessoaModel.update(id, atualizacoes);
