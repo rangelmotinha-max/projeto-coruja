@@ -360,11 +360,13 @@
       const fetchAutenticado = (url, options = {}) => {
         const token = obterToken();
         const isFormData = options?.body instanceof FormData;
-        const headers = {
-          ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
-          ...(options.headers || {}),
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        };
+        const headers = new Headers(options.headers || {});
+
+        // Garante Authorization e deixa o navegador definir Content-Type para FormData
+        if (token) headers.set('Authorization', `Bearer ${token}`);
+        if (!isFormData && !headers.has('Content-Type')) {
+          headers.set('Content-Type', 'application/json');
+        }
 
         return fetch(url, { ...options, headers });
       };
@@ -484,10 +486,16 @@
         return dados;
       };
 
-      // Monta um FormData com os arquivos e os dados em JSON para envio
+      // Monta um FormData com os arquivos e demais campos serializados
       const montarFormDataEnvio = (dados) => {
         const formDataEnvio = new FormData();
-        formDataEnvio.append('dados', JSON.stringify(dados));
+
+        // Serializa todos os campos para o FormData (listas vão em JSON)
+        Object.entries(dados || {}).forEach(([chave, valor]) => {
+          if (valor === undefined || valor === null || chave === 'fotosExistentes') return;
+          const precisaJson = typeof valor === 'object';
+          formDataEnvio.append(chave, precisaJson ? JSON.stringify(valor) : valor);
+        });
 
         fotosSelecionadas.forEach((foto, index) => {
           if (foto.file) {
@@ -498,6 +506,11 @@
             formDataEnvio.append('fotosExistentes[]', foto.referencia);
           }
         });
+
+        // Inclui referência das fotos existentes também como JSON para consistência
+        if (Array.isArray(dados?.fotosExistentes)) {
+          formDataEnvio.append('fotosExistentes', JSON.stringify(dados.fotosExistentes));
+        }
 
         return formDataEnvio;
       };
