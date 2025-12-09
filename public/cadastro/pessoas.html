@@ -2289,6 +2289,8 @@
 
         atualizarRotuloSubmit();
         pessoaForm.addEventListener('submit', salvarPessoa);
+        // Mantém o rótulo do botão sincronizado ao alterar qualquer campo
+        pessoaForm.addEventListener('input', atualizarRotuloSubmit);
         listarButton.addEventListener('click', () => {
           const painel = document.getElementById('pessoas-panel');
           if (painel) painel.hidden = false;
