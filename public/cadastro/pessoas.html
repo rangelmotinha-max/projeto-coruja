@@ -2107,11 +2107,12 @@
           exibirMensagemForm('Enviando dados...', 'info');
           submitButton.disabled = true;
 
-          const formDataEnvio = montarFormDataEnvio(payload);
+          const hasFiles = Array.isArray(fotosSelecionadas) && fotosSelecionadas.some(f => !!f.file);
+          const body = hasFiles ? montarFormDataEnvio(payload) : JSON.stringify(payload);
 
           const response = await fetchAutenticado(url, {
             method: metodo,
-            body: formDataEnvio,
+            body,
           });
 
           const data = await response.json().catch(() => ({}));
@@ -2129,6 +2130,10 @@
             alert('Pessoa cadastrada com sucesso!');
           }
           ultimaAcaoFoiEdicao = foiEdicao;
+          // Atualiza visual das fotos com o que o servidor persistiu (se vier no response)
+          if (data && (Array.isArray(data.fotos) || Array.isArray(data.imagens))) {
+            carregarFotosExistentes(data.fotos || data.imagens);
+          }
           pessoaForm.reset();
           pessoaEmEdicao = null;
           atualizarRotuloSubmit();
