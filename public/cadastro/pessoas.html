@@ -1831,9 +1831,11 @@
 
       const preencherFormulario = (pessoa) => {
         Object.entries(pessoa).forEach(([chave, valor]) => {
-          if (pessoaForm.elements[chave]) {
-            pessoaForm.elements[chave].value = valor || '';
-          }
+          const el = pessoaForm.elements[chave];
+          if (!el) return;
+          // Não é permitido setar programaticamente valor em inputs type="file"; pule-os
+          if (el.type === 'file' || chave === 'fotos') return;
+          el.value = valor || '';
         });
 
         // Carrega endereços se existirem
@@ -2003,11 +2005,29 @@
           editarBtn.type = 'button';
           editarBtn.className = 'button button--ghost';
           editarBtn.textContent = 'Editar';
-          editarBtn.addEventListener('click', () => {
-            pessoaEmEdicao = pessoa.id || pessoa._id;
-            preencherFormulario(pessoa);
-            atualizarRotuloSubmit();
-            exibirMensagem('Editando registro selecionado.', 'info');
+          editarBtn.addEventListener('click', async () => {
+            const id = pessoa.id || pessoa._id;
+            if (!id) return;
+            try {
+              exibirMensagem('Carregando dados completos para edição...', 'info');
+              const resp = await fetchAutenticado(`${API_PESSOAS_URL}/${id}`);
+              const dados = await resp.json().catch(() => ({}));
+              if (!resp.ok) {
+                const msg = dados?.mensagem || dados?.message || 'Não foi possível carregar os dados da pessoa.';
+                throw new Error(msg);
+              }
+              const pessoaCompleta = dados?.data || dados;
+              pessoaEmEdicao = pessoaCompleta.id || pessoaCompleta._id || id;
+              preencherFormulario(pessoaCompleta);
+              atualizarRotuloSubmit();
+              exibirMensagem('Editando registro selecionado.', 'success');
+            } catch (err) {
+              exibirMensagem(err?.message || 'Erro ao carregar dados completos para edição.', 'error');
+              // fallback: pelo menos preenche campos básicos
+              pessoaEmEdicao = id;
+              preencherFormulario(pessoa);
+              atualizarRotuloSubmit();
+            }
           });
 
           const excluirBtn = document.createElement('button');
