@@ -2261,7 +2261,10 @@
           }
 
           pessoaEmEdicao = null;
-          atualizarRotuloSubmit();
+            atualizarRotuloSubmit();
+            // Permanece em modo edição: não limpar nem zerar pessoaEmEdicao
+            const novoId = data?.id || data?._id;
+            if (novoId) pessoaEmEdicao = novoId;
           // Atualiza lista se o painel estiver visível
           if (!document.getElementById('pessoas-panel')?.hidden) {
             carregarPessoasRecentes();
