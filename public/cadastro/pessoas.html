@@ -2112,6 +2112,55 @@
         }
       };
 
+      // Valida junto ao backend se as fotos foram gravadas e atualiza a galeria com o retorno oficial
+      const validarFotosPersistidas = async (pessoaId, fotosEsperadas = []) => {
+        if (!pessoaId) {
+          // Comentário: não é possível validar sem um identificador válido
+          return [];
+        }
+
+        try {
+          exibirMensagemForm('Validando fotos salvas...', 'info');
+
+          const response = await fetchAutenticado(`${API_PESSOAS_URL}/${pessoaId}`);
+          const data = await response.json().catch(() => ({}));
+
+          if (!response.ok) {
+            const erro = data?.mensagem || data?.message || 'Erro ao confirmar fotos salvas.';
+            throw new Error(erro);
+          }
+
+          const fotosServidor = (data?.fotos || data?.imagens || []).filter(Boolean);
+          const existemFotosServidor = Array.isArray(fotosServidor) && fotosServidor.length > 0;
+
+          if (existemFotosServidor) {
+            // Comentário: loga um resumo para facilitar troubleshooting
+            const resumoFotos = fotosServidor.map((foto, index) => ({
+              id: foto?.id || foto?.url || foto,
+              url: foto?.url || foto?.previewUrl || foto?.id || foto,
+              ordem: index + 1,
+            }));
+            console.info('Resumo das fotos persistidas:', resumoFotos);
+
+            carregarFotosExistentes(fotosServidor);
+            exibirMensagemForm('Fotos confirmadas no servidor e galeria atualizada.', 'success');
+          } else if (Array.isArray(fotosEsperadas) && fotosEsperadas.length > 0) {
+            // Comentário: informa claramente que as imagens não foram encontradas após o salvamento
+            exibirMensagemForm(
+              'Atenção: as fotos não foram localizadas após salvar. Reenvie as imagens se necessário.',
+              'error'
+            );
+          } else {
+            exibirMensagemForm('Nenhuma foto foi localizada para este cadastro.', 'warning');
+          }
+
+          return fotosServidor;
+        } catch (error) {
+          exibirMensagemForm(error?.message || 'Erro ao validar fotos salvas.', 'error');
+          return [];
+        }
+      };
+
       const salvarPessoa = async (event) => {
         event.preventDefault();
 
@@ -2181,6 +2230,10 @@
           const fotosPersistidas = (data?.fotos || data?.imagens || []).filter(Boolean);
           const existeGaleriaPersistida = Array.isArray(fotosPersistidas) && fotosPersistidas.length > 0;
 
+          // Identifica o ID da pessoa para validar posteriormente a galeria com um GET dedicado
+          const pessoaIdResposta =
+            data?.id || data?._id || data?.pessoa?.id || data?.pessoa?._id || pessoaEmEdicao || null;
+
           // O reset ocorre antes de reidratar a galeria para evitar que o listener limpe as fotos retornadas
           preservarFotosNoReset = existeGaleriaPersistida;
           pessoaForm.reset();
@@ -2189,6 +2242,15 @@
           if (existeGaleriaPersistida) {
             carregarFotosExistentes(fotosPersistidas);
           }
+
+          // Após salvar, confirma via GET que as fotos estão gravadas e reidrata a galeria com a versão do banco
+          if (pessoaIdResposta) {
+            await validarFotosPersistidas(pessoaIdResposta, fotosPersistidas);
+          } else if (existeGaleriaPersistida) {
+            // Comentário: mantém feedback claro caso o ID não esteja disponível para validação
+            exibirMensagemForm('Não foi possível validar as fotos porque o ID não foi retornado.', 'warning');
+          }
+
           pessoaEmEdicao = null;
           atualizarRotuloSubmit();
           // Atualiza lista se o painel estiver visível
