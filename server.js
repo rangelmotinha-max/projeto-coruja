@@ -45,6 +45,19 @@ app.get('/cadastro/veiculos', authMiddleware, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'cadastro', 'veiculos.html'));
 });
 
+// Rotas protegidas para páginas de Consulta com filtros especializados
+app.get('/consulta/pessoas', authMiddleware, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'consulta', 'pessoas.html'));
+});
+
+app.get('/consulta/empresas', authMiddleware, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'consulta', 'empresas.html'));
+});
+
+app.get('/consulta/veiculos', authMiddleware, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'consulta', 'veiculos.html'));
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', routes);

@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Home | Projeto Coruja</title>
+    <title>Consulta de Veículos | Projeto Coruja</title>
     <link rel="stylesheet" href="/css/main.css" />
   </head>
   <body class="theme-dark">
@@ -39,7 +39,7 @@
           </button>
         </div>
         <nav class="sidebar__nav" aria-label="Menu principal">
-          <a class="sidebar__link sidebar__link--active" href="/home">Home</a>
+          <a class="sidebar__link" href="/home">Home</a>
           <a class="sidebar__link" href="/usuarios">Usuários</a>
           <!-- Início do menu de nível superior: Cadastro -->
           <details class="sidebar__section">
@@ -50,51 +50,67 @@
             </div>
           </details>
           <!-- Início do menu de nível superior: Consulta -->
-          <details class="sidebar__section">
+          <details class="sidebar__section sidebar__section--active" open>
             <summary class="sidebar__link sidebar__link--parent" aria-label="Abrir menu Consulta">Consulta</summary>
             <div class="sidebar__subnav">
               <a class="sidebar__link sidebar__link--child" href="/consulta/pessoas">Pessoas</a>
               <a class="sidebar__link sidebar__link--child" href="/consulta/empresas">Empresas</a>
-              <a class="sidebar__link sidebar__link--child" href="/consulta/veiculos">Veículos</a>
+              <a class="sidebar__link sidebar__link--child sidebar__link--active" href="/consulta/veiculos">Veículos</a>
             </div>
           </details>
           <!-- Fim do menu de nível superior: Consulta -->
         </nav>
-        
+
       </aside>
 
-      <main class="content" data-page="home">
+      <main class="content" data-page="consulta-veiculos">
         <header class="content__header">
-          <p class="content__eyebrow">Home</p>
-          <h1 class="content__title">Bem-vindo(a) de volta</h1>
-          <p class="content__subtitle">
-            Acompanhe rapidamente suas informações e navegue pelas áreas principais.
-          </p>
+          <p class="content__eyebrow">Consulta</p>
+          <h1 class="content__title">Veículos</h1>
+          <p class="content__subtitle">Localize veículos cadastrados e visualize seus vínculos e características.</p>
         </header>
+
+        <section class="panel" aria-label="Consulta de veículos">
+          <div class="panel__header">
+            <div>
+              <h2 class="panel__title">Pesquisar veículos</h2>
+              <!-- Comentário reforçando o uso dos filtros de placa, chassi e proprietário -->
+              <p class="panel__subtitle">Refine pelos principais identificadores para encontrar rapidamente um veículo.</p>
+            </div>
+          </div>
+          <form class="form" aria-label="Filtros de consulta de veículos">
+            <div class="form__grid form__grid--3">
+              <label class="form__field">
+                <span class="form__label">Placa</span>
+                <input class="form__input" type="text" name="placa" placeholder="ABC-1234" />
+              </label>
+              <label class="form__field">
+                <span class="form__label">Chassi</span>
+                <input class="form__input" type="text" name="chassi" placeholder="Número do chassi" />
+              </label>
+              <label class="form__field">
+                <span class="form__label">Proprietário</span>
+                <input class="form__input" type="text" name="proprietario" placeholder="Nome do proprietário" />
+              </label>
+            </div>
+            <div class="form__actions">
+              <button type="submit" class="button button--primary">Consultar</button>
+              <button type="reset" class="button button--ghost">Limpar filtros</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="panel" aria-label="Resultados da consulta">
+          <div class="panel__header panel__header--stacked">
+            <h2 class="panel__title">Resultados</h2>
+            <!-- Comentário destacando que a tabela receberá dados quando a integração for feita -->
+            <p class="panel__subtitle">Nenhum veículo listado. Faça uma busca para ver detalhes.</p>
+          </div>
+          <div class="message" role="status" aria-live="polite">Aguardando consulta...</div>
+        </section>
       </main>
     </div>
 
     <script src="/js/main.js"></script>
-    <div id="alterar-senha-modal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="alterar-senha-title">
-      <div class="modal__overlay" data-modal-close></div>
-      <div class="modal__panel modal__panel--sm" role="document">
-        <button class="modal__close" id="alterar-senha-close" aria-label="Fechar">×</button>
-        <h3 id="alterar-senha-title">Alterar senha</h3>
-        <form id="alterar-senha-form" class="form" novalidate>
-          <label class="form__field">
-            <span class="form__label">Senha atual</span>
-            <input class="form__input" type="password" id="senha-atual" required />
-          </label>
-          <label class="form__field">
-            <span class="form__label">Nova senha</span>
-            <input class="form__input" type="password" id="senha-nova" required />
-          </label>
-          <div class="form__actions">
-            <button type="button" class="button button--ghost" id="alterar-senha-cancelar">Cancelar</button>
-            <button type="submit" class="button button--primary" id="alterar-senha-submit">Alterar</button>
-          </div>
-        </form>
-      </div>
-    </div>
   </body>
 </html>
