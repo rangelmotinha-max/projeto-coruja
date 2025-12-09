@@ -9,6 +9,8 @@ CREATE TABLE IF NOT EXISTS enderecos (
   logradouro TEXT,
   bairro TEXT,
   complemento TEXT,
+  -- Coluna para armazenar latitude e longitude preenchidas pelo usuário
+  lat_long TEXT,
   cep TEXT,
   criadoEm TEXT NOT NULL,
   atualizadoEm TEXT NOT NULL,
