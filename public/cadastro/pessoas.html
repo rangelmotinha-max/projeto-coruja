@@ -346,6 +346,7 @@
       let pessoaEmEdicao = null;
       let ultimaAcaoFoiEdicao = false;
       let fotosSelecionadas = [];
+      let fotosParaRemover = []; // Armazena referências de fotos existentes removidas
 
       const getCookie = (name) => {
         return document.cookie
@@ -482,6 +483,9 @@
         dados.fotosExistentes = fotosSelecionadas
           .filter((foto) => foto.existing)
           .map((foto) => ({ referencia: foto.referencia, nome: foto.nome }));
+
+        // Envia ao backend quais fotos existentes devem ser removidas
+        dados.fotosParaRemover = Array.from(new Set(fotosParaRemover));
 
         return dados;
       };
@@ -823,6 +827,9 @@
       // Remove uma foto da lista e libera o URL de pré-visualização
       const removerFoto = (index) => {
         const [removida] = fotosSelecionadas.splice(index, 1);
+        if (removida?.existing && removida.referencia) {
+          fotosParaRemover.push(removida.referencia); // Mantém controle das imagens persistidas que foram excluídas
+        }
         if (removida?.previewUrl && removida.file) {
           URL.revokeObjectURL(removida.previewUrl);
         }
@@ -848,10 +855,12 @@
       const carregarFotosExistentes = (fotos = []) => {
         if (!Array.isArray(fotos)) {
           fotosSelecionadas = [];
+          fotosParaRemover = [];
           renderizarFotos();
           return;
         }
 
+        fotosParaRemover = [];
         fotosSelecionadas = fotos.map((foto, index) => {
           const referencia = foto?.id || foto?.url || foto;
           const nome = foto?.nomeArquivo || foto?.nome || `Foto ${index + 1}`;
@@ -2180,6 +2189,7 @@
           renderizarRedes();
           veiculos = [];
           renderizarVeiculos();
+          fotosParaRemover = []; // Limpa registros de exclusão de imagens existentes
           fotosSelecionadas = [];
           renderizarFotos();
 
