@@ -92,6 +92,25 @@ async function runMigrations(db) {
     CREATE INDEX IF NOT EXISTS idx_enderecos_pessoa_id ON enderecos(pessoa_id)
   `);
 
+  // Tabela de fotos vinculadas a pessoas (permite múltiplas imagens por cadastro)
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS fotos_pessoas (
+      id TEXT PRIMARY KEY,
+      pessoa_id TEXT NOT NULL,
+      nome_arquivo TEXT,
+      caminho TEXT NOT NULL,
+      mime_type TEXT,
+      tamanho INTEGER,
+      criadoEm TEXT NOT NULL,
+      atualizadoEm TEXT NOT NULL,
+      FOREIGN KEY (pessoa_id) REFERENCES pessoas(id) ON DELETE CASCADE
+    )
+  `);
+
+  await db.run(`
+    CREATE INDEX IF NOT EXISTS idx_fotos_pessoa_id ON fotos_pessoas(pessoa_id)
+  `);
+
   // Tabela de telefones com relacionamento 1:N com pessoas
   await db.run(`
     CREATE TABLE IF NOT EXISTS telefones (
