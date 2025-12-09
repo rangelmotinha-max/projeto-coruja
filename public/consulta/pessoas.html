@@ -78,7 +78,7 @@
               <p class="panel__subtitle">Utilize os filtros para localizar rapidamente registros existentes.</p>
             </div>
           </div>
-          <form class="form" aria-label="Filtros de consulta de pessoas">
+          <form class="form" aria-label="Filtros de consulta de pessoas" data-pessoas-form>
             <div class="form__grid form__grid--3">
               <label class="form__field">
                 <span class="form__label">Nome ou apelido</span>
@@ -131,13 +131,15 @@
           <div class="panel__header panel__header--stacked">
             <h2 class="panel__title">Resultados</h2>
             <!-- Comentário indicando que a listagem será populada futuramente por dados reais -->
-            <p class="panel__subtitle">Nenhum resultado carregado. Execute uma consulta para visualizar registros.</p>
+            <p class="panel__subtitle">Os registros aparecerão aqui após a consulta.</p>
           </div>
-          <div class="message" role="status" aria-live="polite">Aguardando consulta...</div>
+          <div class="message" role="status" aria-live="polite" data-results-message>Aguardando consulta...</div>
+          <div class="results" data-results-container aria-live="polite"></div>
         </section>
       </main>
     </div>
 
     <script src="/js/main.js"></script>
+    <script src="/js/consulta-pessoas.js"></script>
   </body>
 </html>
