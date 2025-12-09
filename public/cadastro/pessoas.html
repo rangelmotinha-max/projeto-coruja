@@ -387,6 +387,12 @@
         if (texto) formMessageEl.classList.add(`message--${tipo}`);
       };
 
+      // Recupera o ID da pessoa a partir da URL (?pessoaId= ou ?id=)
+      const obterPessoaIdDaUrl = () => {
+        const params = new URLSearchParams(window.location.search);
+        return params.get('pessoaId') || params.get('id');
+      };
+
       const obterDadosFormulario = () => {
         const formData = new FormData(pessoaForm);
         const dados = Object.fromEntries(formData.entries());
@@ -2076,6 +2082,36 @@
         }
       };
 
+      // Busca e preenche o formulário com a pessoa da URL, incluindo fotos existentes
+      const carregarPessoaInicial = async () => {
+        const pessoaId = obterPessoaIdDaUrl();
+        if (!pessoaId) return;
+
+        try {
+          // Feedback visual semelhante ao usado em carregarPessoasRecentes/exibirMensagemForm
+          exibirMensagemForm('Carregando dados da pessoa...', 'info');
+
+          const response = await fetchAutenticado(`${API_PESSOAS_URL}/${pessoaId}`);
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            const erro = data?.mensagem || data?.message || 'Não foi possível carregar os dados da pessoa.';
+            throw new Error(erro);
+          }
+
+          const pessoa = data?.data || data;
+          if (!pessoa || typeof pessoa !== 'object') {
+            throw new Error('Registro não encontrado para o identificador informado.');
+          }
+
+          preencherFormulario(pessoa); // Dispara renderização e carregamento de fotos existentes
+          pessoaEmEdicao = pessoa.id || pessoa._id || pessoaId;
+          atualizarRotuloSubmit();
+          exibirMensagemForm('Dados carregados para edição.', 'success');
+        } catch (error) {
+          exibirMensagemForm(error?.message || 'Não foi possível carregar os dados da pessoa.', 'error');
+        }
+      };
+
       const salvarPessoa = async (event) => {
         event.preventDefault();
 
@@ -2346,6 +2382,9 @@
         renderizarAbordagens();
         renderizarPrisoes();
         // Lista fica oculta até o usuário clicar em "Listar"
+
+        // Preenche automaticamente se houver pessoaId na URL
+        carregarPessoaInicial();
       };
 
       document.addEventListener('DOMContentLoaded', inicializarCadastro);
