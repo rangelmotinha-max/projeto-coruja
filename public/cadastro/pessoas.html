@@ -346,6 +346,7 @@
       let pessoaEmEdicao = null;
       let ultimaAcaoFoiEdicao = false;
       let fotosSelecionadas = [];
+      let fotosParaRemover = []; // Armazena referências de fotos existentes removidas
 
       const getCookie = (name) => {
         return document.cookie
@@ -482,6 +483,9 @@
         dados.fotosExistentes = fotosSelecionadas
           .filter((foto) => foto.existing)
           .map((foto) => ({ referencia: foto.referencia, nome: foto.nome }));
+
+        // Envia ao backend quais fotos existentes devem ser removidas
+        dados.fotosParaRemover = Array.from(new Set(fotosParaRemover));
 
         return dados;
       };
@@ -823,6 +827,9 @@
       // Remove uma foto da lista e libera o URL de pré-visualização
       const removerFoto = (index) => {
         const [removida] = fotosSelecionadas.splice(index, 1);
+        if (removida?.existing && removida.referencia) {
+          fotosParaRemover.push(removida.referencia); // Mantém controle das imagens persistidas que foram excluídas
+        }
         if (removida?.previewUrl && removida.file) {
           URL.revokeObjectURL(removida.previewUrl);
         }
@@ -848,10 +855,12 @@
       const carregarFotosExistentes = (fotos = []) => {
         if (!Array.isArray(fotos)) {
           fotosSelecionadas = [];
+          fotosParaRemover = [];
           renderizarFotos();
           return;
         }
 
+        fotosParaRemover = [];
         fotosSelecionadas = fotos.map((foto, index) => {
           const referencia = foto?.id || foto?.url || foto;
           const nome = foto?.nomeArquivo || foto?.nome || `Foto ${index + 1}`;
@@ -1920,6 +1929,7 @@
         table.innerHTML = `
           <thead>
             <tr style="background: var(--surface-muted);">
+              <th style="padding: 0.75rem; border: 1px solid var(--border); text-align: center; width: 80px;">Foto</th>
               <th style="padding: 0.75rem; border: 1px solid var(--border); text-align: left;">Nome</th>
               <th style="padding: 0.75rem; border: 1px solid var(--border); text-align: left;">CPF</th>
               <th style="padding: 0.75rem; border: 1px solid var(--border); text-align: left;">Mãe</th>
@@ -1934,6 +1944,44 @@
         pessoas.forEach((pessoa) => {
           const tr = document.createElement('tr');
           tr.style.borderBottom = '1px solid var(--border)';
+
+          // Coluna de foto com fallback textual
+          const tdFoto = document.createElement('td');
+          tdFoto.style.padding = '0.75rem';
+          tdFoto.style.textAlign = 'center';
+          tdFoto.style.verticalAlign = 'middle';
+
+          const fotoWrapper = document.createElement('div');
+          fotoWrapper.style.width = '48px';
+          fotoWrapper.style.height = '48px';
+          fotoWrapper.style.margin = '0 auto';
+          fotoWrapper.style.display = 'flex';
+          fotoWrapper.style.alignItems = 'center';
+          fotoWrapper.style.justifyContent = 'center';
+          fotoWrapper.style.background = 'var(--surface-muted)';
+          fotoWrapper.style.borderRadius = '6px';
+          fotoWrapper.style.overflow = 'hidden';
+
+          const primeiraFoto = Array.isArray(pessoa.fotos) ? pessoa.fotos[0] : null;
+
+          if (primeiraFoto?.url) {
+            const img = document.createElement('img');
+            img.src = primeiraFoto.url;
+            img.alt = `Foto de ${pessoa.nomeCompleto || 'pessoa sem nome'}`;
+            img.style.width = '100%';
+            img.style.height = '100%';
+            img.style.objectFit = 'cover';
+            fotoWrapper.appendChild(img);
+          } else {
+            const placeholder = document.createElement('span');
+            placeholder.textContent = '—';
+            placeholder.style.fontSize = '1.5rem';
+            placeholder.setAttribute('aria-label', 'Sem foto cadastrada');
+            fotoWrapper.appendChild(placeholder);
+          }
+
+          tdFoto.appendChild(fotoWrapper);
+          tr.appendChild(tdFoto);
 
           // Nome
           const tdNome = document.createElement('td');
@@ -2180,6 +2228,7 @@
           renderizarRedes();
           veiculos = [];
           renderizarVeiculos();
+          fotosParaRemover = []; // Limpa registros de exclusão de imagens existentes
           fotosSelecionadas = [];
           renderizarFotos();
 
