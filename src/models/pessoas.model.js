@@ -1,5 +1,24 @@
+const fs = require('fs');
+const path = require('path');
 const { randomUUID } = require('crypto');
 const { initDatabase } = require('../database/sqlite');
+
+// Diretório público onde as fotos ficam acessíveis via servidor estático
+const publicDir = path.join(__dirname, '../../public');
+
+// Gera a URL acessível a partir do caminho salvo no banco.
+function gerarUrlPublica(caminhoRelativo) {
+  if (!caminhoRelativo) return null;
+  const normalizado = caminhoRelativo.replace(/\\/g, '/');
+  return `/${normalizado.replace(/^\//, '')}`;
+}
+
+// Remove o arquivo físico, mas não interrompe o fluxo se algo falhar.
+function removerArquivoFisico(caminhoRelativo) {
+  if (!caminhoRelativo) return;
+  const absoluto = path.join(publicDir, caminhoRelativo);
+  fs.promises.unlink(absoluto).catch(() => {});
+}
 
 // Modelo responsável por persistir e recuperar registros de pessoas.
 class PessoaModel {
@@ -109,7 +128,14 @@ class PessoaModel {
       }
     }
 
-    return { ...pessoa, enderecos: [], telefones: [], emails: [], redesSociais: [] };
+    // Salvar fotos carregadas durante o cadastro
+    if (dados.fotos && Array.isArray(dados.fotos)) {
+      for (const foto of dados.fotos) {
+        await this.adicionarFoto(pessoa.id, foto);
+      }
+    }
+
+    return { ...pessoa, enderecos: [], telefones: [], emails: [], redesSociais: [], fotos: await this.obterFotosPorPessoa(pessoa.id) };
   }
 
   // Retorna todas as pessoas cadastradas com seus endereços e telefones.
@@ -123,6 +149,7 @@ class PessoaModel {
       pessoa.telefones = (await this.obterTelefonesPorPessoa(pessoa.id)).map(t => t.numero);
       pessoa.emails = (await this.obterEmailsPorPessoa(pessoa.id)).map(e => e.email);
       pessoa.redesSociais = (await this.obterRedesPorPessoa(pessoa.id)).map(r => r.perfil);
+      pessoa.fotos = await this.obterFotosPorPessoa(pessoa.id);
       pessoa.veiculos = await this.obterVeiculosPorPessoa(pessoa.id);
       pessoa.empresa = await this.obterEmpresaPorPessoa(pessoa.id);
       // Vinculos: preferir JSON quando existir, mas manter compatibilidade com tabela vinculos_pessoas
@@ -161,6 +188,7 @@ class PessoaModel {
       pessoa.telefones = (await this.obterTelefonesPorPessoa(id)).map(t => t.numero);
       pessoa.emails = (await this.obterEmailsPorPessoa(id)).map(e => e.email);
       pessoa.redesSociais = (await this.obterRedesPorPessoa(id)).map(r => r.perfil);
+      pessoa.fotos = await this.obterFotosPorPessoa(id);
       pessoa.veiculos = await this.obterVeiculosPorPessoa(id);
       pessoa.empresa = await this.obterEmpresaPorPessoa(id);
       // Vinculos: preferir JSON quando existir, mas manter compatibilidade com tabela vinculos_pessoas
@@ -380,6 +408,67 @@ class PessoaModel {
     return resultado.changes > 0;
   }
 
+  // Fotos vinculadas a uma pessoa
+  static async obterFotosPorPessoa(pessoaId) {
+    const db = await initDatabase();
+    const registros = await db.all(
+      'SELECT id, nome_arquivo, caminho, mime_type AS mimeType, tamanho FROM fotos_pessoas WHERE pessoa_id = ? ORDER BY criadoEm ASC',
+      [pessoaId]
+    );
+    return registros.map((foto) => ({ ...foto, url: gerarUrlPublica(foto.caminho) }));
+  }
+
+  static async adicionarFoto(pessoaId, foto) {
+    const db = await initDatabase();
+    const agora = new Date().toISOString();
+    const novaFoto = {
+      id: randomUUID(),
+      pessoa_id: pessoaId,
+      nome_arquivo: foto.nomeOriginal || null,
+      caminho: foto.caminho,
+      mime_type: foto.mimeType || null,
+      tamanho: foto.tamanho || null,
+      criadoEm: agora,
+      atualizadoEm: agora,
+    };
+
+    await db.run(
+      `INSERT INTO fotos_pessoas (id, pessoa_id, nome_arquivo, caminho, mime_type, tamanho, criadoEm, atualizadoEm)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        novaFoto.id,
+        novaFoto.pessoa_id,
+        novaFoto.nome_arquivo,
+        novaFoto.caminho,
+        novaFoto.mime_type,
+        novaFoto.tamanho,
+        novaFoto.criadoEm,
+        novaFoto.atualizadoEm,
+      ]
+    );
+
+    return { ...novaFoto, url: gerarUrlPublica(novaFoto.caminho) };
+  }
+
+  static async removerFoto(fotoId) {
+    const db = await initDatabase();
+    const foto = await db.get('SELECT caminho FROM fotos_pessoas WHERE id = ?', [fotoId]);
+    if (!foto) return false;
+
+    const resultado = await db.run('DELETE FROM fotos_pessoas WHERE id = ?', [fotoId]);
+    if (resultado.changes > 0) {
+      removerArquivoFisico(foto.caminho);
+    }
+    return resultado.changes > 0;
+  }
+
+  static async removerFotosPorPessoa(pessoaId) {
+    const fotos = await this.obterFotosPorPessoa(pessoaId);
+    for (const foto of fotos) {
+      await this.removerFoto(foto.id);
+    }
+  }
+
   // Veículos
   static async obterVeiculosPorPessoa(pessoaId) {
     const db = await initDatabase();
@@ -586,6 +675,8 @@ class PessoaModel {
   // Remove o registro informado (cascata remove endereços também).
   static async delete(id) {
     const db = await initDatabase();
+    // Remover arquivos físicos antes de apagar os vínculos no banco.
+    await this.removerFotosPorPessoa(id);
     const resultado = await db.run('DELETE FROM pessoas WHERE id = ?', [id]);
     return resultado.changes > 0;
   }

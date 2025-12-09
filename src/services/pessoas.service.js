@@ -3,9 +3,9 @@ const { criarErro } = require('../utils/helpers');
 const { validarCadastroPessoa, validarAtualizacaoPessoa } = require('../utils/validators');
 
 // Serviços de negócio para Pessoas encapsulando validações e regras.
-async function criar(payload) {
+async function criar(payload, arquivos = []) {
   // Validação centralizada garante integridade antes da persistência.
-  const dados = validarCadastroPessoa(payload);
+  const dados = validarCadastroPessoa(payload, arquivos);
   return PessoaModel.create(dados);
 }
 
@@ -19,8 +19,8 @@ async function buscarPorId(id) {
   return pessoa;
 }
 
-async function atualizar(id, payload) {
-  const atualizacoes = validarAtualizacaoPessoa(payload);
+async function atualizar(id, payload, arquivos = []) {
+  const { fotos = [], fotosParaRemover = [], ...atualizacoes } = validarAtualizacaoPessoa(payload, arquivos);
   const existente = await PessoaModel.findById(id);
   if (!existente) throw criarErro('Pessoa não encontrada', 404);
 
@@ -123,6 +123,15 @@ async function atualizar(id, payload) {
         await PessoaModel.adicionarVinculoPessoa(id, vp);
       }
     }
+  }
+
+  // Remover fotos solicitadas antes de adicionar novas
+  for (const fotoId of fotosParaRemover) {
+    await PessoaModel.removerFoto(fotoId);
+  }
+
+  for (const foto of fotos) {
+    await PessoaModel.adicionarFoto(id, foto);
   }
 
   // Atualizar dados da pessoa e índice do endereço atual

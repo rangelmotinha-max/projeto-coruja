@@ -1,6 +1,10 @@
+const path = require('path');
 const { normalizarEmail, criarErro } = require('./helpers');
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const TAMANHO_MAX_FOTO = 5 * 1024 * 1024; // 5MB
+const MIMES_PERMITIDOS = ['image/jpeg', 'image/png', 'image/webp'];
+const BASE_UPLOAD_DIR = path.join(__dirname, '../../public');
 
 function validarEmail(email) {
   const normalizado = normalizarEmail(email);
@@ -59,6 +63,53 @@ function normalizarOpcional(texto) {
   return valor.length ? valor : null;
 }
 
+// Converte lista de IDs (string ou array) em array sanitizado.
+function normalizarListaIds(listaIds) {
+  if (!listaIds) return [];
+  let valores = listaIds;
+  if (typeof listaIds === 'string') {
+    try {
+      valores = JSON.parse(listaIds);
+    } catch (_) {
+      valores = listaIds.split(',');
+    }
+  }
+
+  if (!Array.isArray(valores)) {
+    throw criarErro('A lista de fotos a remover deve ser um array de IDs', 400);
+  }
+
+  return valores
+    .map((v) => String(v).trim())
+    .filter((v) => v.length > 0);
+}
+
+// Valida uploads de fotos garantindo tipo e tamanho adequados.
+function validarFotosUpload(arquivos) {
+  if (!arquivos || arquivos.length === 0) return [];
+
+  return arquivos.map((file) => {
+    if (!MIMES_PERMITIDOS.includes(file.mimetype)) {
+      throw criarErro('Tipo de imagem não suportado. Use PNG, JPG ou WEBP.', 400);
+    }
+    if (file.size > TAMANHO_MAX_FOTO) {
+      throw criarErro('Cada foto deve ter no máximo 5MB', 400);
+    }
+
+    const caminhoRelativo = path.relative(BASE_UPLOAD_DIR, file.path).replace(/\\/g, '/');
+    if (caminhoRelativo.startsWith('..')) {
+      throw criarErro('Falha ao salvar foto: caminho inválido', 400);
+    }
+
+    return {
+      nomeOriginal: file.originalname,
+      mimeType: file.mimetype,
+      tamanho: file.size,
+      caminho: caminhoRelativo,
+    };
+  });
+}
+
 // Validação de criação de pessoa com campos obrigatórios e opcionais.
 function limparListaStrings(lista, transform = (v) => v) {
   if (!lista) return [];
@@ -71,7 +122,7 @@ function limparListaStrings(lista, transform = (v) => v) {
     .map(transform);
 }
 
-function validarCadastroPessoa(payload) {
+function validarCadastroPessoa(payload, arquivos = []) {
   const telefonesArray = limparListaStrings(payload.telefones || []);
   const emailsArray = limparListaStrings(payload.emails || [], normalizarEmail);
   const redesSociaisArray = limparListaStrings(payload.redesSociais || []);
@@ -79,6 +130,7 @@ function validarCadastroPessoa(payload) {
   // Empresa removida do cadastro de Pessoas; não validar aqui
   const vinculosObj = validarVinculos(payload.vinculos);
   const ocorrenciasObj = validarOcorrencias(payload.ocorrencias);
+  const fotosUpload = validarFotosUpload(arquivos);
 
   const primeiroTelefone = payload.telefone ? normalizarOpcional(payload.telefone) : (telefonesArray[0] || null);
 
@@ -100,6 +152,7 @@ function validarCadastroPessoa(payload) {
     veiculos: veiculosArray,
     vinculos: vinculosObj,
     ocorrencias: ocorrenciasObj,
+    fotos: fotosUpload,
   };
 }
 
@@ -214,7 +267,7 @@ function validarOcorrencias(ocorrencias) {
 }
 
 // Validação de atualização de pessoa garantindo ao menos um campo.
-function validarAtualizacaoPessoa(payload) {
+function validarAtualizacaoPessoa(payload, arquivos = []) {
   const atualizacoes = {};
 
   if (payload.nomeCompleto !== undefined) {
@@ -258,6 +311,10 @@ function validarAtualizacaoPessoa(payload) {
   if (payload.veiculos !== undefined) {
     atualizacoes.veiculos = validarVeiculos(payload.veiculos || []);
   }
+
+  // Validar fotos novas e remoções solicitadas
+  atualizacoes.fotos = validarFotosUpload(arquivos);
+  atualizacoes.fotosParaRemover = normalizarListaIds(payload.fotosParaRemover);
   // Empresa removida do cadastro de Pessoas; ignorar atualizações
   if (payload.vinculos !== undefined) {
     atualizacoes.vinculos = validarVinculos(payload.vinculos);
