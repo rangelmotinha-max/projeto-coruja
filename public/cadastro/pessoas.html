@@ -2260,11 +2260,12 @@
             exibirMensagemForm('Não foi possível validar as fotos porque o ID não foi retornado.', 'warning');
           }
 
-          pessoaEmEdicao = null;
-            atualizarRotuloSubmit();
-            // Permanece em modo edição: não limpar nem zerar pessoaEmEdicao
-            const novoId = data?.id || data?._id;
-            if (novoId) pessoaEmEdicao = novoId;
+          // Define o ID retornado antes de atualizar o rótulo, preservando o modo edição
+          const novoId = data?.id || data?._id || data?.pessoa?.id || data?.pessoa?._id || pessoaEmEdicao;
+
+          // Reseta estado de edição apenas quando não houver ID conhecido
+          pessoaEmEdicao = novoId || null;
+          atualizarRotuloSubmit();
           // Atualiza lista se o painel estiver visível
           if (!document.getElementById('pessoas-panel')?.hidden) {
             carregarPessoasRecentes();
