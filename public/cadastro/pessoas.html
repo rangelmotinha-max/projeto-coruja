@@ -1350,6 +1350,21 @@
         return `https://www.google.com/maps?q=${coordenadas[1]},${coordenadas[2]}`;
       };
 
+      // Gera link de mapa a partir do endereço textual
+      const gerarLinkMapaEndereco = (endereco) => {
+        if (!endereco) return '';
+        const partes = [
+          endereco.logradouro,
+          endereco.bairro,
+          endereco.complemento,
+          endereco.uf,
+          endereco.cep
+        ].filter(Boolean).map(String);
+        if (partes.length === 0) return '';
+        const query = encodeURIComponent(partes.join(', '));
+        return `https://www.google.com/maps?q=${query}`;
+      };
+
       const renderizarVinculosEntidades = () => {
         const lista = document.getElementById('lista-vinculos-entidades');
         if (!lista) return;
@@ -1709,7 +1724,7 @@
               <span class="form__label">Complemento</span>
               <input class="form__input endereco-complemento" type="text" data-index="${indiceOrdenado}" />
             </label>
-            <label class="form__field">
+            <label class="form__field form__field--wide" style="position: relative;">
               <span class="form__label">Lat/Long</span>
               <!-- Entrada livre para latitude e longitude informadas pelo usuário -->
               <input class="form__input endereco-latlong" type="text" data-index="${indiceOrdenado}" placeholder="-23.5, -46.6" />
@@ -1738,24 +1753,81 @@
             enderecos[indiceOrdenado].complemento = e.target.value;
           });
 
-          // Cria container e link dinâmico para a coordenada salva
+          // Link dinâmico inline dentro do próprio campo
+          // Para Logradouro/Nome após salvar
+          const logradouroCampo = gridDiv.querySelector('.endereco-logradouro');
+          const logradouroField = logradouroCampo.closest('.form__field');
+          const logradouroAnchor = document.createElement('a');
+          logradouroAnchor.className = 'endereco-inline-link';
+          logradouroAnchor.style.cssText = 'position:absolute; inset: calc(1.6rem + 2px) 2px 2px 2px; display:none; align-items:center; padding: 0.5rem 0.75rem; border-radius: 0.4rem; text-decoration: underline; color: var(--primary); background: transparent;';
+          logradouroAnchor.target = '_blank';
+          logradouroAnchor.rel = 'noopener noreferrer';
+          logradouroField?.appendChild(logradouroAnchor);
+
+          const atualizarLinkEnderecoTexto = () => {
+            if (!enderecos[indiceOrdenado]?.mostrarLinkEndereco) {
+              logradouroAnchor.style.display = 'none';
+              // Restaura texto do input durante edição
+              logradouroCampo.style.color = '';
+              logradouroCampo.style.textShadow = '';
+              logradouroCampo.style.caretColor = '';
+              return;
+            }
+            const url = gerarLinkMapaEndereco(enderecos[indiceOrdenado]);
+            const texto = String(enderecos[indiceOrdenado]?.logradouro || '').trim();
+            if (url && texto) {
+              logradouroAnchor.href = url;
+              logradouroAnchor.textContent = texto;
+              logradouroAnchor.title = 'Abrir endereço no Google Maps';
+              logradouroAnchor.style.display = 'flex';
+              // Oculta visivelmente o texto do input para evitar duplicidade
+              logradouroCampo.style.color = 'transparent';
+              logradouroCampo.style.textShadow = '0 0 0 var(--text)';
+              logradouroCampo.style.caretColor = 'var(--text)';
+            } else {
+              logradouroAnchor.style.display = 'none';
+              logradouroCampo.style.color = '';
+              logradouroCampo.style.textShadow = '';
+              logradouroCampo.style.caretColor = '';
+            }
+          };
+
+          atualizarLinkEnderecoTexto();
+
+          logradouroCampo.addEventListener('input', () => {
+            // Durante edição, desativa a conversão para link
+            enderecos[indiceOrdenado].mostrarLinkEndereco = false;
+            atualizarLinkEnderecoTexto();
+          });
+
           const latLongCampo = gridDiv.querySelector('.endereco-latlong');
-          const latLongContainer = document.createElement('div');
-          latLongContainer.className = 'latlong-link-container';
-          latLongContainer.style.cssText = 'margin-top: 0.35rem; font-size: 0.85rem; word-break: break-word;';
-          latLongCampo.closest('.form__field')?.appendChild(latLongContainer);
+          const latLongField = latLongCampo.closest('.form__field');
+          const latLongAnchor = document.createElement('a');
+          latLongAnchor.className = 'latlong-inline-link';
+          latLongAnchor.style.cssText = 'position:absolute; inset: calc(1.6rem + 2px) 2px 2px 2px; display:none; align-items:center; padding: 0.5rem 0.75rem; border-radius: 0.4rem; text-decoration: underline; color: var(--primary); background: transparent;';
+          latLongAnchor.target = '_blank';
+          latLongAnchor.rel = 'noopener noreferrer';
+          latLongField?.appendChild(latLongAnchor);
 
           const atualizarLinkLatLong = (valor) => {
-            latLongContainer.innerHTML = '';
-            const url = gerarLinkMapaLatLong(valor);
-            if (!url) return;
-
-            const anchor = document.createElement('a');
-            anchor.href = url;
-            anchor.target = '_blank';
-            anchor.rel = 'noopener noreferrer';
-            anchor.textContent = String(valor || '').trim();
-            latLongContainer.appendChild(anchor);
+            const texto = String(valor || '').trim();
+            const url = gerarLinkMapaLatLong(texto);
+            if (url) {
+              latLongAnchor.href = url;
+              latLongAnchor.textContent = texto;
+              latLongAnchor.title = 'Abrir no Google Maps';
+              latLongAnchor.style.display = texto ? 'flex' : 'none';
+              // Oculta visualmente o texto do input para evitar duplicidade
+              latLongCampo.style.color = 'transparent';
+              latLongCampo.style.textShadow = '0 0 0 var(--text)';
+              latLongCampo.style.caretColor = 'var(--text)';
+            } else {
+              latLongAnchor.style.display = 'none';
+              // Restaura visualização do input quando link não é válido
+              latLongCampo.style.color = '';
+              latLongCampo.style.textShadow = '';
+              latLongCampo.style.caretColor = '';
+            }
           };
 
           atualizarLinkLatLong(latLongCampo.value);
@@ -2362,6 +2434,13 @@
 
           // Reseta estado de edição apenas quando não houver ID conhecido
           pessoaEmEdicao = novoId || null;
+          // Marca endereços para exibir como link após salvar
+          try {
+            if (Array.isArray(enderecos)) {
+              enderecos = enderecos.map((e) => ({ ...e, mostrarLinkEndereco: true }));
+              renderizarEnderecos();
+            }
+          } catch {}
           atualizarRotuloSubmit();
           // Atualiza lista se o painel estiver visível
           if (!document.getElementById('pessoas-panel')?.hidden) {
