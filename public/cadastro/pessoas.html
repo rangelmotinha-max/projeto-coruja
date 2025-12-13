@@ -212,7 +212,7 @@
               <!-- Sub-seção: Empresa vinculada (seleção única de empresas já cadastradas) -->
                 <div class="form__subsection" aria-label="Empresas vinculadas">
                   <div style="display:flex; justify-content:space-between; align-items:center; width:100%; margin:0.75rem 0;">
-                    <h4 class="form__section-title" style="font-size:1rem; margin:0;">Empresas vinculadas</h4>
+                    <h4 class="form__section-title" style="font-size:1rem; margin:0;">Empresa</h4>
                   </div>
                   <div class="form__grid form__grid--3" style="align-items:end;">
                     <label class="form__field">
@@ -666,7 +666,7 @@
           const lista = await resp.json();
           empresasOpcoes = Array.isArray(lista) ? lista : [];
           renderizarEmpresasVinculadasLista();
-          if (statusEl) statusEl.textContent = empresasOpcoes.length ? 'Empresas carregadas.' : 'Nenhuma empresa cadastrada.';
+          if (statusEl) statusEl.textContent = empresasOpcoes.length ? '' : 'Nenhuma empresa cadastrada.';
         } catch (error) {
           console.error('Erro ao carregar empresas:', error);
           if (statusEl) statusEl.textContent = 'Não foi possível carregar as empresas.';
@@ -1153,7 +1153,7 @@
         if (!lista) return;
         lista.innerHTML = '';
         if (vinculosPessoas.length === 0) {
-          lista.innerHTML = '<p style="color: var(--muted); font-size: 0.85rem; margin: 0;">Nenhum vínculo adicionado. Use o campo acima para procurar uma pessoa já cadastrada.</p>';
+          lista.innerHTML = '';
           return;
         }
         vinculosPessoas.forEach((v, i) => {
