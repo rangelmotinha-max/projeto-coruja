@@ -523,7 +523,56 @@
       let empresasOpcoes = [];
       let empresasVinculadas = []; // array de IDs vinculados
 
-      
+      const validarCnpjBasico = (valor) => {
+        // Validação simples: garante exatamente 14 dígitos numéricos
+        const numeros = String(valor || '').replace(/\D/g, '');
+        return numeros.length === 14;
+      };
+
+      const buscarEmpresaPorCnpj = (cnpj) => {
+        // Busca local na lista já carregada de empresas usando CNPJ sem máscara
+        const numero = String(cnpj || '').replace(/\D/g, '');
+        if (!numero) return null;
+        return empresasOpcoes.find((emp) => String(emp?.cnpj || '').replace(/\D/g, '') === numero) || null;
+      };
+
+      const renderizarResultadoBuscaEmpresa = (empresa) => {
+        const cont = document.getElementById('empresa-busca-resultado');
+        if (!cont) return;
+
+        cont.innerHTML = '';
+        if (!empresa) {
+          // Feedback rápido quando nenhum registro é localizado
+          cont.innerHTML = '<div class="list__item">Nenhuma empresa encontrada para o CNPJ informado.</div>';
+          return;
+        }
+
+        const table = document.createElement('table');
+        table.style.width = '100%';
+        table.style.borderCollapse = 'collapse';
+        table.style.marginTop = '0.5rem';
+        table.innerHTML = `
+          <thead>
+            <tr style="background: var(--surface-muted);">
+              <th style="text-align:left; padding:0.5rem;">CNPJ</th>
+              <th style="text-align:left; padding:0.5rem;">Razão Social</th>
+              <th style="text-align:left; padding:0.5rem;">Nome Fantasia</th>
+              <th style="text-align:left; padding:0.5rem;">Situação Cadastral</th>
+              <th style="text-align:center; padding:0.5rem;">Vincular</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        `;
+
+        const tbody = table.querySelector('tbody');
+        const tr = document.createElement('tr');
+        tr.style.borderBottom = '1px solid var(--border)';
+
+        const tdCnpj = document.createElement('td'); tdCnpj.style.padding = '0.5rem'; tdCnpj.textContent = aplicarMascaraCnpj(empresa.cnpj);
+        const tdRazao = document.createElement('td'); tdRazao.style.padding = '0.5rem'; tdRazao.textContent = empresa.razaoSocial || '—';
+        const tdFantasia = document.createElement('td'); tdFantasia.style.padding = '0.5rem'; tdFantasia.textContent = empresa.nomeFantasia || '—';
+        const tdSituacao = document.createElement('td'); tdSituacao.style.padding = '0.5rem'; tdSituacao.textContent = empresa.situacaoCadastral || '—';
+
         const tdConfirm = document.createElement('td');
         tdConfirm.style.padding = '0.5rem';
         tdConfirm.style.textAlign = 'center';
@@ -547,15 +596,16 @@
             renderizarEmpresasVinculadasLista();
           }
           // Limpa confirmação após ação
-          document.getElementById('empresa-busca-resultado').innerHTML = '';
+          cont.innerHTML = '';
         });
         btnNao.addEventListener('click', () => {
-          document.getElementById('empresa-busca-resultado').innerHTML = '';
+          cont.innerHTML = '';
         });
         grupo.appendChild(btnSim);
         grupo.appendChild(btnNao);
         tdConfirm.appendChild(msg);
         tdConfirm.appendChild(grupo);
+
         tr.appendChild(tdCnpj);
         tr.appendChild(tdRazao);
         tr.appendChild(tdFantasia);
@@ -563,6 +613,23 @@
         tr.appendChild(tdConfirm);
         tbody.appendChild(tr);
         cont.appendChild(table);
+      };
+
+      const carregarEmpresasOpcoes = async () => {
+        // Preenche o cache local de empresas para buscas e vínculos
+        const statusEl = document.getElementById('empresa-vinculada-status');
+        try {
+          if (statusEl) statusEl.textContent = 'Carregando empresas...';
+          const resp = await fetchAutenticado(API_EMPRESAS_URL);
+          if (!resp.ok) throw new Error('Falha ao buscar empresas cadastradas.');
+          const lista = await resp.json();
+          empresasOpcoes = Array.isArray(lista) ? lista : [];
+          renderizarEmpresasVinculadasLista();
+          if (statusEl) statusEl.textContent = empresasOpcoes.length ? 'Empresas carregadas.' : 'Nenhuma empresa cadastrada.';
+        } catch (error) {
+          console.error('Erro ao carregar empresas:', error);
+          if (statusEl) statusEl.textContent = 'Não foi possível carregar as empresas.';
+        }
       };
 
       const renderizarEmpresasVinculadasLista = () => {
@@ -2204,7 +2271,7 @@
         cnpjInput?.addEventListener('input', (e) => {
           e.target.value = aplicarMascaraCnpj(e.target.value);
         });
-        document.getElementById('empresa-buscar-cnpj')?.addEventListener('click', () => {
+        document.getElementById('empresa-buscar-cnpj')?.addEventListener('click', async () => {
           const statusEl = document.getElementById('empresa-vinculada-status');
           const cnpjVal = cnpjInput?.value || '';
           const valido = validarCnpjBasico(cnpjVal);
@@ -2215,6 +2282,10 @@
           }
           try {
             if (statusEl) statusEl.textContent = 'Buscando empresa...';
+            if (!empresasOpcoes.length) {
+              // Recarrega opções apenas quando a lista ainda não está disponível
+              await carregarEmpresasOpcoes();
+            }
             const empresa = buscarEmpresaPorCnpj(cnpjVal);
             renderizarResultadoBuscaEmpresa(empresa);
             if (statusEl) statusEl.textContent = empresa ? 'Empresa encontrada.' : 'Empresa não encontrada.';
