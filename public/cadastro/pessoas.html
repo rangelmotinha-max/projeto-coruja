@@ -54,7 +54,6 @@
             <div class="sidebar__subnav">
               <a class="sidebar__link sidebar__link--child" href="/consulta/pessoas">Pessoas</a>
               <a class="sidebar__link sidebar__link--child" href="/consulta/empresas">Empresas</a>
-              <a class="sidebar__link sidebar__link--child" href="/consulta/veiculos">Veículos</a>
             </div>
           </details>
         </nav>
@@ -340,7 +339,6 @@
     </div>
     <script>
       const API_PESSOAS_URL = '/api/pessoas';
-      const API_VEICULOS_URL = '/api/veiculos';
       const pessoaForm = document.getElementById('pessoa-form');
       const submitButton = document.getElementById('submit-pessoa');
       const listarButton = document.getElementById('listar-pessoas');
@@ -846,19 +844,10 @@
 
       const carregarVeiculosOpcoes = async () => {
         const statusEl = document.getElementById('veiculo-vinculado-status');
-        try {
-          if (statusEl) statusEl.textContent = 'Carregando veículos...';
-          const resp = await fetchAutenticado(API_VEICULOS_URL);
-          const data = await resp.json().catch(() => []);
-          if (!resp.ok) {
-            const msg = data?.mensagem || data?.message || 'Não foi possível carregar veículos.';
-            throw new Error(msg);
-          }
-          veiculosOpcoes = Array.isArray(data) ? data : (data?.data || []);
-          if (statusEl) statusEl.textContent = `Veículos disponíveis: ${veiculosOpcoes.length}.`;
-        } catch (err) {
-          if (statusEl) statusEl.textContent = err?.message || 'Erro ao carregar veículos.';
-        }
+        // Comentário: funcionalidade de veículos dedicada foi removida; evitamos requisições inexistentes.
+        if (statusEl) statusEl.textContent = 'Integração de veículos desativada.';
+        veiculosOpcoes = [];
+        return veiculosOpcoes;
       };
 
       const buscarVeiculoPorPlaca = (placa) => {
