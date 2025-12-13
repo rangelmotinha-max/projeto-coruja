@@ -7,6 +7,37 @@ const MIMES_PERMITIDOS = ['image/jpeg', 'image/png', 'image/webp'];
 const BASE_UPLOAD_DIR = path.join(__dirname, '../../public');
 const somenteDigitos = (valor) => String(valor || '').replace(/\D/g, '');
 
+// Validação de CPF reutilizável para cadastros que dependem do documento.
+function validarCpfObrigatorio(cpf) {
+  const numeros = somenteDigitos(cpf);
+  if (numeros.length !== 11) {
+    throw criarErro('CPF inválido: informe 11 dígitos.', 400);
+  }
+
+  // Rejeita sequências repetidas (ex.: 11111111111)
+  if (/^(\d)\1{10}$/.test(numeros)) {
+    throw criarErro('CPF inválido: sequência repetida.', 400);
+  }
+
+  // Calcula os dígitos verificadores para garantir integridade.
+  const calcularDigito = (base) => {
+    let soma = 0;
+    for (let i = 0; i < base.length; i += 1) {
+      soma += parseInt(base[i], 10) * (base.length + 1 - i);
+    }
+    const resto = soma % 11;
+    return resto < 2 ? '0' : String(11 - resto);
+  };
+
+  const primeiro = calcularDigito(numeros.slice(0, 9));
+  const segundo = calcularDigito(numeros.slice(0, 10));
+  if (numeros[9] !== primeiro || numeros[10] !== segundo) {
+    throw criarErro('CPF inválido: dígitos verificadores não conferem.', 400);
+  }
+
+  return numeros;
+}
+
 function validarEmail(email) {
   const normalizado = normalizarEmail(email);
   if (!normalizado || !emailRegex.test(normalizado)) {
@@ -389,4 +420,5 @@ module.exports = {
   validarEmpresa,
   validarVinculos,
   validarOcorrencias,
+  validarCpfObrigatorio,
 };
