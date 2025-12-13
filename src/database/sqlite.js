@@ -313,6 +313,17 @@ async function runMigrations(db) {
     }
   }
 
+  // Adicionar coluna idade na tabela pessoas para persistir valor calculado
+  try {
+    await db.run(`
+      ALTER TABLE pessoas ADD COLUMN idade INTEGER
+    `);
+  } catch (err) {
+    if (!err.message.includes('duplicate column name')) {
+      throw err;
+    }
+  }
+
   // Empresas independentes (cadastro geral) e seus sócios
   await db.run(`
     CREATE TABLE IF NOT EXISTS empresas_cadastro (

@@ -138,6 +138,17 @@ function validarCadastroPessoa(payload, arquivos = []) {
     nomeCompleto: validarNomeCompleto(payload.nomeCompleto),
     apelido: normalizarOpcional(payload.apelido),
     dataNascimento: payload.dataNascimento ? validarDataNascimento(payload.dataNascimento) : '',
+    // Persiste idade calculada no backend; aceita dado do frontend mas prioriza cálculo
+    idade: (() => {
+      const d = payload.dataNascimento ? validarDataNascimento(payload.dataNascimento) : '';
+      if (!d) return null;
+      const [y,m,dia] = d.split('-').map((n) => parseInt(n, 10));
+      const hoje = new Date();
+      let idade = hoje.getFullYear() - y;
+      const aindaNaoFez = (hoje.getMonth() < (m-1)) || (hoje.getMonth() === (m-1) && hoje.getDate() < dia);
+      if (aindaNaoFez) idade -= 1;
+      return idade;
+    })(),
     cpf: normalizarOpcional(payload.cpf),
     rg: normalizarOpcional(payload.rg),
     cnh: normalizarOpcional(payload.cnh),
@@ -277,6 +288,22 @@ function validarAtualizacaoPessoa(payload, arquivos = []) {
   }
   if (payload.dataNascimento !== undefined) {
     atualizacoes.dataNascimento = payload.dataNascimento ? validarDataNascimento(payload.dataNascimento) : '';
+    // Atualiza idade se dataNascimento foi enviada
+    if (atualizacoes.dataNascimento) {
+      const [y,m,dia] = atualizacoes.dataNascimento.split('-').map((n) => parseInt(n, 10));
+      const hoje = new Date();
+      let idade = hoje.getFullYear() - y;
+      const aindaNaoFez = (hoje.getMonth() < (m-1)) || (hoje.getMonth() === (m-1) && hoje.getDate() < dia);
+      if (aindaNaoFez) idade -= 1;
+      atualizacoes.idade = idade;
+    } else {
+      atualizacoes.idade = null;
+    }
+  }
+  // Permite atualizar idade diretamente se enviada
+  if (payload.idade !== undefined && atualizacoes.idade === undefined) {
+    const n = parseInt(payload.idade, 10);
+    atualizacoes.idade = Number.isNaN(n) ? null : n;
   }
 
   const camposOpcionais = [

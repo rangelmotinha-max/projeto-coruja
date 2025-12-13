@@ -117,7 +117,16 @@
                 </label>
                 <label class="form__field">
                   <span class="form__label">Data de Nascimento</span>
-                  <input class="form__input" type="date" name="dataNascimento" />
+                  <div class="form__grid form__grid--2" style="grid-template-columns: 1fr 10rem; gap: 0.5rem;">
+                    <label class="form__field" style="margin:0;">
+                      <span class="form__label">Data de Nascimento</span>
+                      <input class="form__input" type="date" name="dataNascimento" />
+                    </label>
+                    <label class="form__field" style="margin:0;">
+                      <span class="form__label">Idade</span>
+                      <input class="form__input" id="idade" type="number" min="0" step="1" placeholder="—" readonly />
+                    </label>
+                  </div>
                 </label>
                 <label class="form__field">
                   <span class="form__label">Nome da Mãe</span>
@@ -405,6 +414,11 @@
       const obterDadosFormulario = () => {
         const formData = new FormData(pessoaForm);
         const dados = Object.fromEntries(formData.entries());
+        // Preenche idade calculada (frontend) se disponível
+        const idadeEl = document.getElementById('idade');
+        if (idadeEl && idadeEl.value) {
+          dados.idade = parseInt(idadeEl.value, 10);
+        }
         
         // Adiciona os endereços múltiplos ao payload
         dados.enderecos = enderecos;
@@ -2088,6 +2102,9 @@
 
         // Carrega fotos existentes para manter a lista na edição
         carregarFotosExistentes(pessoa.fotos || pessoa.imagens || []);
+
+        // Atualiza idade exibida ao carregar pessoa para edição
+        atualizarIdade();
       };
 
 
@@ -2531,6 +2548,11 @@
         });
         cpfInput?.addEventListener('input', aplicarMascaraCpf);
 
+        // Atualiza idade ao digitar/alterar data de nascimento
+        const dobEl = pessoaForm?.elements['dataNascimento'];
+        dobEl?.addEventListener('input', atualizarIdade);
+        dobEl?.addEventListener('change', atualizarIdade);
+
         // Event listener para adicionar novo endereço
         const adicionarEnderecoBtn = document.getElementById('adicionar-endereco');
         adicionarEnderecoBtn?.addEventListener('click', adicionarEndereco);
@@ -2656,6 +2678,34 @@
       };
 
       document.addEventListener('DOMContentLoaded', inicializarCadastro);
+
+      // Calcula idade atual com base em yyyy-mm-dd
+      function calcularIdadeDe(dataStr) {
+        if (!dataStr) return null;
+        const parts = String(dataStr).split('-');
+        if (parts.length !== 3) return null;
+        const ano = parseInt(parts[0], 10);
+        const mes = parseInt(parts[1], 10) - 1; // 0-11
+        const dia = parseInt(parts[2], 10);
+        if ([ano, mes, dia].some((n) => Number.isNaN(n))) return null;
+        const hoje = new Date();
+        let idade = hoje.getFullYear() - ano;
+        const aindaNaoFezAniversario = (hoje.getMonth() < mes) || (hoje.getMonth() === mes && hoje.getDate() < dia);
+        if (aindaNaoFezAniversario) idade -= 1;
+        return idade >= 0 ? idade : 0;
+      }
+
+      function atualizarIdade() {
+        const dobEl = pessoaForm?.elements['dataNascimento'];
+        const idadeEl = document.getElementById('idade');
+        if (!dobEl || !idadeEl) return;
+        const idade = calcularIdadeDe(dobEl.value);
+        if (idade == null) {
+          idadeEl.value = '';
+        } else {
+          idadeEl.value = String(idade);
+        }
+      }
     </script>
   </body>
 </html>

@@ -3,6 +3,21 @@ const path = require('path');
 const { randomUUID } = require('crypto');
 const { initDatabase } = require('../database/sqlite');
 
+function calcularIdadeDe(dataStr) {
+  if (!dataStr) return null;
+  const parts = String(dataStr).split('-');
+  if (parts.length !== 3) return null;
+  const ano = parseInt(parts[0], 10);
+  const mes = parseInt(parts[1], 10) - 1;
+  const dia = parseInt(parts[2], 10);
+  if ([ano, mes, dia].some((n) => Number.isNaN(n))) return null;
+  const hoje = new Date();
+  let idade = hoje.getFullYear() - ano;
+  const aindaNaoFezAniversario = (hoje.getMonth() < mes) || (hoje.getMonth() === mes && hoje.getDate() < dia);
+  if (aindaNaoFezAniversario) idade -= 1;
+  return idade >= 0 ? idade : 0;
+}
+
 // Diretório público onde as fotos ficam acessíveis via servidor estático
 const publicDir = path.join(__dirname, '../../public');
 
@@ -32,6 +47,7 @@ class PessoaModel {
       apelido: dados.apelido || null,
       // Mantém string vazia quando fornecida para evitar NOT NULL em bancos antigos
       dataNascimento: dados.dataNascimento === undefined ? null : dados.dataNascimento,
+      idade: calcularIdadeDe(dados.dataNascimento) ?? (typeof dados.idade === 'number' ? dados.idade : null),
       cpf: dados.cpf || null,
       rg: dados.rg || null,
       cnh: dados.cnh || null,
@@ -46,14 +62,15 @@ class PessoaModel {
 
     await db.run(
       `INSERT INTO pessoas (
-        id, nomeCompleto, apelido, dataNascimento, cpf, rg, cnh, nomeMae, nomePai,
+        id, nomeCompleto, apelido, dataNascimento, idade, cpf, rg, cnh, nomeMae, nomePai,
         endereco_atual_index, vinculos_json, ocorrencias_json, criadoEm, atualizadoEm
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         pessoa.id,
         pessoa.nomeCompleto,
         pessoa.apelido,
         pessoa.dataNascimento,
+        pessoa.idade,
         pessoa.cpf,
         pessoa.rg,
         pessoa.cnh,
@@ -696,6 +713,7 @@ class PessoaModel {
       'nomeCompleto',
       'apelido',
       'dataNascimento',
+      'idade',
       'cpf',
       'rg',
       'cnh',
