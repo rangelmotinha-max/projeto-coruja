@@ -226,10 +226,20 @@ function validarVinculos(vinculos) {
     cpf: normalizarOpcional((p.cpf || '').replace(/\D/g, '')),
     tipo: normalizarOpcional(p.tipo),
   })).filter(p => p.nome || p.cpf || p.tipo) : [];
-  const empresas = Array.isArray(vinculos.empresas) ? vinculos.empresas.map(e => ({
-    nome: normalizarOpcional(e.nome),
-    observacoes: normalizarOpcional(e.observacoes),
-  })).filter(e => e.nome || e.observacoes) : [];
+  // Permite vínculos de empresas tanto por ID quanto por nome/observações
+  const empresas = Array.isArray(vinculos.empresas) ? vinculos.empresas
+    .map((e) => {
+      const idBruto = (e && typeof e === 'object') ? (e.id ?? e.empresaId) : e;
+      const idNormalizado = idBruto !== undefined && idBruto !== null && String(idBruto).trim() !== ''
+        ? (Number.isNaN(Number(idBruto)) ? String(idBruto) : Number(idBruto))
+        : undefined;
+      const nome = normalizarOpcional(e?.nome);
+      const observacoes = normalizarOpcional(e?.observacoes);
+      const possuiDados = idNormalizado !== undefined || nome || observacoes;
+      if (!possuiDados) return null;
+      return { id: idNormalizado, nome, observacoes };
+    })
+    .filter(Boolean) : [];
   const entidades = Array.isArray(vinculos.entidades) ? vinculos.entidades.map(e => ({
     nome: normalizarOpcional(e.nome),
     observacoes: normalizarOpcional(e.observacoes),
