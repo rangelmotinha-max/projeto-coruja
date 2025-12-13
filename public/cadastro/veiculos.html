@@ -19,11 +19,13 @@
         <nav class="sidebar__nav" aria-label="Menu principal">
           <a class="sidebar__link" href="/home">Home</a>
           <a class="sidebar__link" href="/usuarios">Usuários</a>
-          <details class="sidebar__section" open>
+          <details class="sidebar__section sidebar__section--active" open>
             <summary class="sidebar__link sidebar__link--parent" aria-label="Abrir menu Cadastro">Cadastro</summary>
             <div class="sidebar__subnav">
-              <a class="sidebar__link" href="/cadastro/pessoas">Pessoas</a>
-              <a class="sidebar__link" href="/cadastro/empresas">Empresas</a>
+              <a class="sidebar__link sidebar__link--child" href="/cadastro/pessoas">Pessoas</a>
+              <a class="sidebar__link sidebar__link--child" href="/cadastro/empresas">Empresas</a>
+              <!-- Link ativo para o cadastro de veículos -->
+              <a class="sidebar__link sidebar__link--child sidebar__link--active" href="/cadastro/veiculos">Veículos</a>
             </div>
           </details>
           <!-- Início do menu de nível superior: Consulta -->
