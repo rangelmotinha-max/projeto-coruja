@@ -5,30 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Cadastro de Veículos | Projeto Coruja</title>
     <link rel="stylesheet" href="/css/main.css" />
-    <script src="/js/main.js" defer></script>
-    <script src="/js/cadastro-veiculos.js" defer></script>
   </head>
   <body class="theme-dark">
     <div class="app">
-      <div class="user-menu" id="user-menu" aria-expanded="false">
-        <button class="user-menu__button" type="button" id="user-menu-button" aria-haspopup="true" aria-expanded="false">
-          <span class="user-menu__avatar" id="user-avatar" aria-hidden="true">U</span>
-          <span id="user-button-name">Usuário</span>
-        </button>
-        <div class="user-menu__dropdown" id="user-menu-dropdown" role="menu" aria-label="Menu do usuário">
-          <div class="user-menu__item"><span class="user-menu__label">Nome Completo:</span><span class="user-menu__value" id="um-nome">—</span></div>
-          <div class="user-menu__item"><span class="user-menu__label">Email:</span><span class="user-menu__value" id="um-email">—</span></div>
-          <div class="user-menu__item"><span class="user-menu__label">Perfil:</span><span class="user-menu__value" id="um-perfil">—</span></div>
-          <div class="user-menu__separator"></div>
-          <div class="user-menu__item"><span class="user-menu__label">Senha:</span><span class="user-menu__link" id="um-alterar-senha">Alterar senha</span></div>
-          <div class="user-menu__separator"></div>
-          <div class="user-menu__item"><span class="user-menu__link" id="um-sair">Sair</span></div>
-        </div>
-      </div>
       <aside class="sidebar">
         <div class="sidebar__header">
           <div class="sidebar__brand">Projeto Coruja</div>
-          <!-- Botão para alternar tema com feedback visual -->
           <button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false" aria-label="Alternar tema visual">
             <span class="theme-toggle__icon" aria-hidden="true" data-theme-icon>🌙</span>
             <span class="theme-toggle__label" data-theme-label>Modo escuro</span>
@@ -37,19 +19,20 @@
         <nav class="sidebar__nav" aria-label="Menu principal">
           <a class="sidebar__link" href="/home">Home</a>
           <a class="sidebar__link" href="/usuarios">Usuários</a>
-          <details class="sidebar__section sidebar__section--active" open>
+          <details class="sidebar__section" open>
             <summary class="sidebar__link sidebar__link--parent" aria-label="Abrir menu Cadastro">Cadastro</summary>
             <div class="sidebar__subnav">
-              <a class="sidebar__link sidebar__link--child" href="/cadastro/pessoas">Pessoas</a>
-              <a class="sidebar__link sidebar__link--child" href="/cadastro/empresas">Empresas</a>
-              <a class="sidebar__link sidebar__link--child sidebar__link--active" href="/cadastro/veiculos">Veículos</a>
+              <a class="sidebar__link" href="/cadastro/pessoas">Pessoas</a>
+              <a class="sidebar__link" href="/cadastro/empresas">Empresas</a>
             </div>
           </details>
+          <!-- Início do menu de nível superior: Consulta -->
           <details class="sidebar__section">
             <summary class="sidebar__link sidebar__link--parent" aria-label="Abrir menu Consulta">Consulta</summary>
             <div class="sidebar__subnav">
-              <a class="sidebar__link sidebar__link--child" href="/consulta/pessoas">Pessoas</a>
-              <a class="sidebar__link sidebar__link--child" href="/consulta/empresas">Empresas</a>
+              <a class="sidebar__link" href="/consulta/pessoas">Pessoas</a>
+              <a class="sidebar__link" href="/consulta/empresas">Empresas</a>
+              <a class="sidebar__link" href="/consulta/veiculos">Veículos</a>
             </div>
           </details>
         </nav>
@@ -58,77 +41,214 @@
       <main class="content" data-page="cadastro-veiculos">
         <header class="content__header">
           <p class="content__eyebrow">Cadastro</p>
-          <h1 class="content__title">Veículos</h1>
         </header>
 
         <section class="panel" aria-label="Formulário de veículos">
-          <div class="panel__header panel__header--stacked">
-            <div>
-              <h2 class="panel__title">Novo veículo</h2>
-              <p class="panel__subtitle">Preencha os campos para registrar um veículo na base.</p>
-            </div>
-          </div>
-
           <div id="veiculo-form-message" class="message" role="status" aria-live="polite"></div>
-
-          <form class="form" id="veiculo-form" action="#" method="post" enctype="multipart/form-data">
-            <div class="form__grid form__grid--1">
-              <label class="form__field">
-                <span class="form__label">Proprietário</span>
-                <input class="form__input" type="text" name="proprietario" required />
-              </label>
-              <label class="form__field">
-                <span class="form__label">CPF</span>
-                <input class="form__input" type="text" name="cpf" inputmode="numeric" required />
-                <span class="form__error" id="cpf-erro" style="display: none;">CPF inválido. Confira os dígitos.</span>
-              </label>
-              <label class="form__field">
-                <span class="form__label">Marca/Modelo</span>
-                <input class="form__input" type="text" name="marcaModelo" />
-              </label>
-              <label class="form__field">
-                <span class="form__label">Placa</span>
-                <input class="form__input" type="text" name="placa" />
-              </label>
-              <label class="form__field">
-                <span class="form__label">Cor</span>
-                <input class="form__input" type="text" name="cor" />
-              </label>
-              <label class="form__field">
-                <span class="form__label">Ano/Modelo</span>
-                <input class="form__input" type="text" name="anoModelo" placeholder="AAAA" />
-              </label>
-              <label class="form__field">
-                <span class="form__label">Foto do veículo</span>
-                <input class="form__input" type="file" name="foto" id="veiculo-foto" accept="image/*" />
-                <small>Formatos permitidos: JPG, PNG ou WEBP. Tamanho máximo: 5MB.</small>
-              </label>
-            </div>
-            <div class="form__actions">
-              <button class="button" type="submit">Salvar</button>
+          <form class="form" id="veiculo-form" action="#" method="post">
+            <div class="form__section">
+              <div class="form__section-header">
+                <h3 class="form__section-title" style="text-align:center; width:100%;">Veículo</h3>
+              </div>
+              <div class="form__grid form__grid--3">
+                <label class="form__field form__field--wide">
+                  <span class="form__label">Proprietário</span>
+                  <input class="form__input" type="text" name="proprietario" id="v-proprietario" required />
+                </label>
+                <label class="form__field">
+                  <span class="form__label">CPF do Proprietário</span>
+                  <input class="form__input" type="text" name="cpfProprietario" id="v-cpf" required />
+                  <small id="v-cpf-erro" style="display:none; color: var(--error-text);"></small>
+                </label>
+                <label class="form__field">
+                  <span class="form__label">Marca/Modelo</span>
+                  <input class="form__input" type="text" name="marcaModelo" id="v-marcaModelo" required />
+                </label>
+                <label class="form__field">
+                  <span class="form__label">Placa</span>
+                  <input class="form__input" type="text" name="placa" id="v-placa" required />
+                </label>
+                <label class="form__field">
+                  <span class="form__label">Cor</span>
+                  <input class="form__input" type="text" name="cor" id="v-cor" />
+                </label>
+                <label class="form__field">
+                  <span class="form__label">Ano/Modelo</span>
+                  <input class="form__input" type="text" name="anoModelo" id="v-anoModelo" />
+                </label>
+              </div>
+              <div class="form__actions">
+                <button type="submit" class="button button--primary" id="v-salvar">Incluir</button>
+                <button type="button" class="button" id="v-listar">Listar</button>
+                <button type="reset" class="button button--ghost">Limpar</button>
+              </div>
             </div>
           </form>
         </section>
 
-        <section class="panel" aria-label="Listagem de veículos">
+        <section class="panel" aria-label="Lista de veículos" id="veiculos-panel" hidden>
           <div class="panel__header panel__header--stacked">
-            <h2 class="panel__title">Veículos cadastrados</h2>
-            <p class="panel__subtitle">Todos os registros ficam armazenados na base de dados.</p>
-          </div>
-          <div class="table" role="region" aria-live="polite">
-            <div class="table__header">
-              <span>Proprietário</span>
-              <span>CPF</span>
-              <span>Marca/Modelo</span>
-              <span>Placa</span>
-              <span>Cor</span>
-              <span>Ano/Modelo</span>
-              <span>Foto</span>
+            <div>
+              <h3 class="form__section-title" style="margin:0;">Veículos cadastrados</h3>
             </div>
-            <div class="table__body" id="veiculos-lista"></div>
           </div>
+          <div id="veiculos-message" class="message" role="status" aria-live="polite"></div>
+          <div id="veiculos-lista"></div>
         </section>
       </main>
     </div>
+
+    <script>
+      const API_VEICULOS_URL = '/api/veiculos';
+      const form = document.getElementById('veiculo-form');
+      const msgForm = document.getElementById('veiculo-form-message');
+      const painelLista = document.getElementById('veiculos-panel');
+      const vListarBtn = document.getElementById('v-listar');
+      const vSalvarBtn = document.getElementById('v-salvar');
+      const listaCont = document.getElementById('veiculos-lista');
+      const msgLista = document.getElementById('veiculos-message');
+
+      const getCookie = (name) => {
+        return document.cookie
+          .split(';')
+          .map((c) => c.trim())
+          .find((c) => c.startsWith(`${name}=`))
+          ?.split('=')[1];
+      };
+      const obterToken = () => localStorage.getItem('authToken') || getCookie('authToken');
+      const fetchAutenticado = (url, options = {}) => {
+        const token = obterToken();
+        const headers = {
+          'Content-Type': 'application/json',
+          ...(options.headers || {}),
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        };
+        return fetch(url, { ...options, headers });
+      };
+
+      const exibirMsgForm = (texto, tipo = 'info') => {
+        if (!msgForm) return;
+        msgForm.textContent = texto || '';
+        msgForm.className = 'message';
+        if (texto) msgForm.classList.add(`message--${tipo}`);
+      };
+      const exibirMsgLista = (texto, tipo = 'info') => {
+        if (!msgLista) return;
+        msgLista.textContent = texto || '';
+        msgLista.className = 'message';
+        if (texto) msgLista.classList.add(`message--${tipo}`);
+      };
+
+      const aplicarMascaraCpfInline = (valor) => {
+        const dig = String(valor || '').replace(/\D/g, '').slice(0, 11);
+        let v = dig;
+        if (dig.length > 3) v = dig.slice(0,3) + '.' + dig.slice(3);
+        if (dig.length > 6) v = v.slice(0,7) + '.' + dig.slice(6);
+        if (dig.length > 9) v = v.slice(0,11) + '-' + dig.slice(9);
+        return v;
+      };
+
+      const validarCpf = (cpf) => {
+        const somenteNumeros = String(cpf||'').replace(/\D/g, '');
+        if (somenteNumeros.length !== 11) return false;
+        if (/^(\d)\1{10}$/.test(somenteNumeros)) return false;
+        let soma = 0; for (let i=0;i<9;i++) soma += parseInt(somenteNumeros[i])* (10-i);
+        let d1 = 11 - (soma % 11); d1 = d1>9?0:d1; if (parseInt(somenteNumeros[9])!==d1) return false;
+        soma = 0; for (let i=0;i<10;i++) soma += parseInt(somenteNumeros[i])* (11-i);
+        let d2 = 11 - (soma % 11); d2 = d2>9?0:d2; if (parseInt(somenteNumeros[10])!==d2) return false;
+        return true;
+      };
+
+      const normalizarPlaca = (placa) => String(placa || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 7);
+
+      document.getElementById('v-cpf')?.addEventListener('input', (e) => {
+        const val = aplicarMascaraCpfInline(e.target.value);
+        e.target.value = val;
+        const ok = validarCpf(val);
+        const erroEl = document.getElementById('v-cpf-erro');
+        if (!ok && val.replace(/\D/g,'').length===11) { erroEl.style.display='block'; erroEl.textContent='CPF inválido'; }
+        else { erroEl.style.display='none'; erroEl.textContent=''; }
+      });
+
+      document.getElementById('v-placa')?.addEventListener('input', (e) => {
+        e.target.value = normalizarPlaca(e.target.value);
+      });
+      document.getElementById('v-anoModelo')?.addEventListener('input', (e) => {
+        e.target.value = String(e.target.value||'').replace(/\D/g,'').slice(0,4);
+      });
+
+      const listarVeiculos = async () => {
+        try {
+          exibirMsgLista('Carregando veículos...', 'info');
+          const resp = await fetchAutenticado(API_VEICULOS_URL);
+          const data = await resp.json().catch(()=>[]);
+          if (!resp.ok) { throw new Error(data?.mensagem || data?.message || 'Falha ao listar veículos'); }
+          const lista = Array.isArray(data)?data:(data?.data||[]);
+          renderizarLista(lista);
+          exibirMsgLista(`Exibindo ${lista.length} veículo(s).`, 'success');
+          painelLista.hidden = false;
+        } catch (err) {
+          exibirMsgLista(err?.message || 'Não foi possível listar.', 'error');
+        }
+      };
+
+      const renderizarLista = (veiculos=[]) => {
+        listaCont.innerHTML = '';
+        if (!veiculos.length) { listaCont.innerHTML = '<div class="list__item">Nenhum veículo encontrado.</div>'; return; }
+        const table = document.createElement('table');
+        table.style.width = '100%'; table.style.borderCollapse = 'collapse'; table.style.marginTop = '0.5rem';
+        table.innerHTML = `
+          <thead>
+            <tr style="background: var(--surface-muted);">
+              <th style="text-align:left; padding:0.5rem;">Proprietário</th>
+              <th style="text-align:left; padding:0.5rem;">CPF</th>
+              <th style="text-align:left; padding:0.5rem;">Marca/Modelo</th>
+              <th style="text-align:left; padding:0.5rem;">Placa</th>
+              <th style="text-align:left; padding:0.5rem;">Cor</th>
+              <th style="text-align:left; padding:0.5rem;">Ano/Modelo</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        `;
+        const tbody = table.querySelector('tbody');
+        veiculos.forEach((v) => {
+          const tr = document.createElement('tr'); tr.style.borderBottom = '1px solid var(--border)';
+          const tdProp = document.createElement('td'); tdProp.style.padding='0.5rem'; tdProp.textContent = v.proprietario || '';
+          const tdCpf = document.createElement('td'); tdCpf.style.padding='0.5rem'; tdCpf.textContent = v.cpfProprietario || '';
+          const tdMM = document.createElement('td'); tdMM.style.padding='0.5rem'; tdMM.textContent = v.marcaModelo || '';
+          const tdPlaca = document.createElement('td'); tdPlaca.style.padding='0.5rem'; tdPlaca.textContent = v.placa || '';
+          const tdCor = document.createElement('td'); tdCor.style.padding='0.5rem'; tdCor.textContent = v.cor || '';
+          const tdAno = document.createElement('td'); tdAno.style.padding='0.5rem'; tdAno.textContent = v.anoModelo || '';
+          tr.appendChild(tdProp); tr.appendChild(tdCpf); tr.appendChild(tdMM); tr.appendChild(tdPlaca); tr.appendChild(tdCor); tr.appendChild(tdAno);
+          tbody.appendChild(tr);
+        });
+        listaCont.appendChild(table);
+      };
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const dados = Object.fromEntries(new FormData(form).entries());
+        if (!dados.proprietario?.trim() || !dados.cpfProprietario?.trim() || !dados.marcaModelo?.trim() || !dados.placa?.trim()) {
+          exibirMsgForm('Preencha Proprietário, CPF, Marca/Modelo e Placa.', 'error');
+          return;
+        }
+        if (!validarCpf(dados.cpfProprietario)) { exibirMsgForm('CPF inválido.', 'error'); return; }
+        dados.placa = normalizarPlaca(dados.placa);
+        dados.anoModelo = String(dados.anoModelo||'').replace(/\D/g,'').slice(0,4);
+        try {
+          exibirMsgForm('Enviando dados...', 'info'); vSalvarBtn.disabled = true;
+          const resp = await fetchAutenticado(API_VEICULOS_URL, { method:'POST', body: JSON.stringify(dados) });
+          const data = await resp.json().catch(()=>({}));
+          if (!resp.ok) { throw new Error(data?.mensagem || data?.message || 'Falha ao salvar veículo'); }
+          exibirMsgForm('Veículo incluído com sucesso.', 'success');
+          form.reset();
+        } catch (err) {
+          exibirMsgForm(err?.message || 'Não foi possível salvar.', 'error');
+        } finally { vSalvarBtn.disabled = false; }
+      });
+
+      vListarBtn.addEventListener('click', listarVeiculos);
+    </script>
+    <script src="/js/main.js"></script>
   </body>
 </html>

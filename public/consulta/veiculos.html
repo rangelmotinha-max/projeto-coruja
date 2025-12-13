@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Consulta de Empresas | Projeto Coruja</title>
+    <title>Consulta de Veículos | Projeto Coruja</title>
     <link rel="stylesheet" href="/css/main.css" />
   </head>
   <body class="theme-dark">
@@ -54,8 +54,8 @@
             <summary class="sidebar__link sidebar__link--parent" aria-label="Abrir menu Consulta">Consulta</summary>
             <div class="sidebar__subnav">
               <a class="sidebar__link sidebar__link--child" href="/consulta/pessoas">Pessoas</a>
-              <a class="sidebar__link sidebar__link--child sidebar__link--active" href="/consulta/empresas">Empresas</a>
-              <a class="sidebar__link sidebar__link--child" href="/consulta/veiculos">Veículos</a>
+              <a class="sidebar__link sidebar__link--child" href="/consulta/empresas">Empresas</a>
+              <a class="sidebar__link sidebar__link--child sidebar__link--active" href="/consulta/veiculos">Veículos</a>
             </div>
           </details>
           <!-- Fim do menu de nível superior: Consulta -->
@@ -63,34 +63,34 @@
 
       </aside>
 
-      <main class="content" data-page="consulta-empresas">
+      <main class="content" data-page="consulta-veiculos">
         <header class="content__header">
           <p class="content__eyebrow">Consulta</p>
-          <h1 class="content__title">Empresas</h1>
-          <p class="content__subtitle">Pesquise empresas cadastradas e visualize vínculos rapidamente.</p>
+          <h1 class="content__title">Veículos</h1>
+          <p class="content__subtitle">Localize veículos cadastrados e visualize seus vínculos e características.</p>
         </header>
 
-        <section class="panel" aria-label="Consulta de empresas">
+        <section class="panel" aria-label="Consulta de veículos">
           <div class="panel__header">
             <div>
-              <h2 class="panel__title">Pesquisar empresas</h2>
-              <!-- Comentário sobre o objetivo dos campos de busca -->
-              <p class="panel__subtitle">Combine filtros para localizar CNPJ, razão social ou sócios.</p>
+              <h2 class="panel__title">Pesquisar veículos</h2>
+              <!-- Comentário reforçando o uso dos filtros de placa, chassi e proprietário -->
+              <p class="panel__subtitle">Refine pelos principais identificadores para encontrar rapidamente um veículo.</p>
             </div>
           </div>
-          <form class="form" aria-label="Filtros de consulta de empresas">
+          <form class="form" aria-label="Filtros de consulta de veículos">
             <div class="form__grid form__grid--3">
               <label class="form__field">
-                <span class="form__label">CNPJ</span>
-                <input class="form__input" type="text" name="cnpj" placeholder="00.000.000/0000-00" />
+                <span class="form__label">Placa</span>
+                <input class="form__input" type="text" name="placa" placeholder="ABC-1234" />
               </label>
               <label class="form__field">
-                <span class="form__label">Razão social</span>
-                <input class="form__input" type="text" name="razaoSocial" placeholder="Digite a razão social" />
+                <span class="form__label">Chassi</span>
+                <input class="form__input" type="text" name="chassi" placeholder="Número do chassi" />
               </label>
               <label class="form__field">
-                <span class="form__label">Nome do sócio</span>
-                <input class="form__input" type="text" name="socio" placeholder="Pesquise pelo sócio" />
+                <span class="form__label">Proprietário</span>
+                <input class="form__input" type="text" name="proprietario" placeholder="Nome do proprietário" />
               </label>
             </div>
             <div class="form__actions">
@@ -103,8 +103,8 @@
         <section class="panel" aria-label="Resultados da consulta">
           <div class="panel__header panel__header--stacked">
             <h2 class="panel__title">Resultados</h2>
-            <!-- Comentário indicando que os resultados serão integrados depois -->
-            <p class="panel__subtitle">Nenhum resultado exibido. Pesquise para carregar empresas.</p>
+            <!-- Comentário destacando que a tabela receberá dados quando a integração for feita -->
+            <p class="panel__subtitle">Nenhum veículo listado. Faça uma busca para ver detalhes.</p>
           </div>
           <div class="message" role="status" aria-live="polite">Aguardando consulta...</div>
         </section>

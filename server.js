@@ -6,7 +6,6 @@ const env = require('./config/env');
 const routes = require('./src/routes/index.routes');
 const errorHandler = require('./src/middlewares/errorHandler');
 const authMiddleware = require('./src/middlewares/auth');
-const { initDatabase } = require('./src/database/sqlite');
 
 const app = express();
 
@@ -55,6 +54,10 @@ app.get('/consulta/empresas', authMiddleware, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'consulta', 'empresas.html'));
 });
 
+app.get('/consulta/veiculos', authMiddleware, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'consulta', 'veiculos.html'));
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', routes);
@@ -66,21 +69,8 @@ app.get('/', (req, res) => {
 app.use(errorHandler);
 
 const PORT = env.port;
-let server;
-
-// Garante que o banco (e migrações) estejam prontos antes de subir o servidor
-async function bootstrap() {
-  try {
-    await initDatabase();
-    server = app.listen(PORT, () => {
-      console.log(`Server listening on port ${PORT}`);
-    });
-  } catch (err) {
-    console.error('Erro ao iniciar servidor após preparar banco:', err);
-    process.exit(1);
-  }
-}
-
-bootstrap();
+const server = app.listen(PORT, () => {
+  console.log(`Server listening on port ${PORT}`);
+});
 
 module.exports = server;

@@ -70,6 +70,7 @@ async function atualizar(id, payload, arquivos = []) {
     telefones,
     emails,
     redesSociais,
+    veiculos,
     vinculos,
     ocorrencias,
     ...atualizacoes
@@ -141,6 +142,24 @@ async function atualizar(id, payload, arquivos = []) {
   }
 
   // Empresa removida do cadastro de Pessoas; nenhum processamento aqui
+
+  // Processar veículos validados garantindo remoção total antes da nova gravação.
+  const veiculosValidados = Array.isArray(veiculos) ? veiculos.filter(Boolean) : null;
+  if (veiculosValidados) {
+    const veiculosAtuais = await PessoaModel.obterVeiculosPorPessoa(id);
+    for (const vAtual of veiculosAtuais) {
+      await PessoaModel.removerVeiculo(vAtual.id);
+    }
+    for (const v of veiculosValidados) {
+      const mm = (v.marcaModelo || '').trim();
+      const pl = (v.placa || '').trim();
+      const cr = (v.cor || '').trim();
+      const am = (v.anoModelo || '').trim();
+      if (mm || pl || cr || am) {
+        await PessoaModel.adicionarVeiculo(id, v);
+      }
+    }
+  }
 
   // Processar vínculos validados (pessoas relacionadas) sempre após limpeza.
   const vinculosValidados = vinculos && Array.isArray(vinculos.pessoas)

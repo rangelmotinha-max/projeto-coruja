@@ -6,10 +6,6 @@ const multer = require('multer');
 const uploadDir = path.join(__dirname, '../../public/uploads/pessoas');
 fs.mkdirSync(uploadDir, { recursive: true });
 
-// Diretório de armazenamento de fotos de veículos
-const uploadVeiculosDir = path.join(__dirname, '../../public/uploads/veiculos');
-fs.mkdirSync(uploadVeiculosDir, { recursive: true });
-
 // Configuração do multer com validações de tipo/tamanho no próprio middleware
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => {
@@ -37,22 +33,4 @@ const uploadFotosPessoa = multer({
   fileFilter,
 });
 
-// Armazenamento dedicado aos veículos com a mesma política de segurança
-const storageVeiculos = multer.diskStorage({
-  destination: (_req, _file, cb) => {
-    cb(null, uploadVeiculosDir);
-  },
-  filename: (_req, file, cb) => {
-    const extensao = path.extname(file.originalname) || '';
-    const nomeSeguro = `${Date.now()}-${Math.round(Math.random() * 1e9)}${extensao}`;
-    cb(null, nomeSeguro);
-  },
-});
-
-const uploadFotosVeiculo = multer({
-  storage: storageVeiculos,
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter,
-});
-
-module.exports = { uploadFotosPessoa, uploadFotosVeiculo };
+module.exports = { uploadFotosPessoa };
