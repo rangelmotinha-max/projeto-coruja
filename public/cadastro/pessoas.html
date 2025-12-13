@@ -432,9 +432,18 @@
         })).filter(v => v.nome || v.cpf || v.tipo);
         const vinculosObj = {};
         if (pessoasVinc.length) vinculosObj.pessoas = pessoasVinc;
-        if (Array.isArray(empresasVinculadas) && empresasVinculadas.length) {
-          vinculosObj.empresas = empresasVinculadas.map((id) => ({ id }));
-        }
+        const empresasVinc = (empresasVinculadas || [])
+          .map((entrada) => {
+            const { id, nome, observacoes } = normalizarVinculoEmpresa(entrada);
+            const idLimpo = id !== undefined && id !== null && String(id).trim() !== '' ? id : undefined;
+            const nomeLimpo = String(nome || '').trim();
+            const obsLimpa = String(observacoes || '').trim();
+            return (idLimpo !== undefined || nomeLimpo || obsLimpa)
+              ? { id: idLimpo, nome: nomeLimpo, observacoes: obsLimpa }
+              : null;
+          })
+          .filter(Boolean);
+        if (empresasVinc.length) vinculosObj.empresas = empresasVinc;
         const entidadesVinc = (vinculosEntidades || [])
           .map(e => {
             const nome = String(e?.nome || '').trim();
@@ -521,7 +530,20 @@
       // Empresa vinculada (seleção única)
       const API_EMPRESAS_URL = '/api/empresas';
       let empresasOpcoes = [];
-      let empresasVinculadas = []; // array de IDs vinculados
+      let empresasVinculadas = []; // array de objetos { id, nome?, observacoes? }
+
+      const normalizarVinculoEmpresa = (entrada) => {
+        // Normaliza diferentes formatos para um objeto consistente
+        if (entrada && typeof entrada === 'object') {
+          const idLimpo = entrada.id ?? entrada.empresaId ?? null;
+          return {
+            id: idLimpo !== undefined && idLimpo !== null && String(idLimpo).trim() !== '' ? idLimpo : undefined,
+            nome: entrada.nome || entrada.razaoSocial || entrada.nomeFantasia || '',
+            observacoes: entrada.observacoes || '',
+          };
+        }
+        return { id: entrada, nome: '', observacoes: '' };
+      };
 
       const validarCnpjBasico = (valor) => {
         // Validação simples: garante exatamente 14 dígitos numéricos
@@ -591,8 +613,16 @@
         btnNao.className = 'button button--ghost';
         btnNao.textContent = 'Não';
         btnSim.addEventListener('click', () => {
-          if (!empresasVinculadas.includes(empresa.id)) {
-            empresasVinculadas.push(empresa.id);
+          const jaVinculada = empresasVinculadas.some((item) => {
+            const normalizado = normalizarVinculoEmpresa(item);
+            return normalizado.id !== undefined && String(normalizado.id) === String(empresa.id);
+          });
+          if (!jaVinculada) {
+            empresasVinculadas.push({
+              id: empresa.id,
+              nome: empresa.razaoSocial || empresa.nomeFantasia || '',
+              observacoes: empresa.observacoes || '',
+            });
             renderizarEmpresasVinculadasLista();
           }
           // Limpa confirmação após ação
@@ -657,22 +687,23 @@
           <tbody></tbody>
         `;
         const tbody = table.querySelector('tbody');
-        empresasVinculadas.forEach((id) => {
-          const emp = empresasOpcoes.find((e) => String(e.id) === String(id));
-          if (!emp) return;
+        empresasVinculadas.forEach((item, index) => {
+          const normalizado = normalizarVinculoEmpresa(item);
+          const emp = normalizado.id ? empresasOpcoes.find((e) => String(e.id) === String(normalizado.id)) : null;
+          if (!emp && !normalizado.nome && !normalizado.observacoes) return;
           const tr = document.createElement('tr');
           tr.style.borderBottom = '1px solid var(--border)';
-          const tdCnpj = document.createElement('td'); tdCnpj.style.padding = '0.5rem'; tdCnpj.textContent = aplicarMascaraCnpj(emp.cnpj);
-          const tdRazao = document.createElement('td'); tdRazao.style.padding = '0.5rem'; tdRazao.textContent = emp.razaoSocial || '';
-          const tdFantasia = document.createElement('td'); tdFantasia.style.padding = '0.5rem'; tdFantasia.textContent = emp.nomeFantasia || '';
-          const tdSituacao = document.createElement('td'); tdSituacao.style.padding = '0.5rem'; tdSituacao.textContent = emp.situacaoCadastral || '';
+          const tdCnpj = document.createElement('td'); tdCnpj.style.padding = '0.5rem'; tdCnpj.textContent = emp ? aplicarMascaraCnpj(emp.cnpj) : '—';
+          const tdRazao = document.createElement('td'); tdRazao.style.padding = '0.5rem'; tdRazao.textContent = emp?.razaoSocial || normalizado.nome || '';
+          const tdFantasia = document.createElement('td'); tdFantasia.style.padding = '0.5rem'; tdFantasia.textContent = emp?.nomeFantasia || '';
+          const tdSituacao = document.createElement('td'); tdSituacao.style.padding = '0.5rem'; tdSituacao.textContent = emp?.situacaoCadastral || normalizado.observacoes || '';
           const tdAcoes = document.createElement('td'); tdAcoes.style.padding = '0.5rem'; tdAcoes.style.textAlign = 'center';
           const btnRemover = document.createElement('button');
           btnRemover.type = 'button';
           btnRemover.className = 'button button--danger';
           btnRemover.textContent = 'Remover';
           btnRemover.addEventListener('click', () => {
-            empresasVinculadas = empresasVinculadas.filter((x) => String(x) !== String(id));
+            empresasVinculadas = empresasVinculadas.filter((_, idx) => idx !== index);
             renderizarEmpresasVinculadasLista();
           });
           tdAcoes.appendChild(btnRemover);
@@ -1748,7 +1779,11 @@
         // Empresas vinculadas (IDs) se existirem
         if (pessoa.vinculos && Array.isArray(pessoa.vinculos.empresas)) {
           empresasVinculadas = pessoa.vinculos.empresas
-            .map(e => (typeof e === 'object' ? e.id : e))
+            .map((entrada) => {
+              const normalizado = normalizarVinculoEmpresa(entrada);
+              const possuiDados = normalizado.id !== undefined || normalizado.nome || normalizado.observacoes;
+              return possuiDados ? normalizado : null;
+            })
             .filter(Boolean);
         } else {
           empresasVinculadas = [];
