@@ -2053,6 +2053,19 @@
           const pessoaIdResposta =
             data?.id || data?._id || data?.pessoa?.id || data?.pessoa?._id || pessoaEmEdicao || null;
 
+          // Comentário: exibe imediatamente no painel a pessoa retornada pela API, já com vínculos e contatos preenchidos
+          const pessoaRetornada = data?.pessoa || data?.data || data;
+          if (pessoaRetornada && typeof pessoaRetornada === 'object') {
+            const painel = document.getElementById('pessoas-panel');
+            if (painel) painel.hidden = false;
+            const listaRetorno = Array.isArray(pessoaRetornada)
+              ? pessoaRetornada.filter(Boolean)
+              : [pessoaRetornada];
+            if (listaRetorno.length) {
+              renderizarLista(listaRetorno);
+            }
+          }
+
           // O reset ocorre antes de reidratar a galeria para evitar que o listener limpe as fotos retornadas
           preservarFotosNoReset = existeGaleriaPersistida;
           pessoaForm.reset();
