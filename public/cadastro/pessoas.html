@@ -553,75 +553,24 @@
       let empresasOpcoes = [];
       let empresasVinculadas = []; // array de IDs vinculados
 
-      const carregarEmpresasOpcoes = async () => {
-        const statusEl = document.getElementById('empresa-vinculada-status');
-        try {
-          if (statusEl) statusEl.textContent = 'Carregando empresas...';
-          const resp = await fetchAutenticado(API_EMPRESAS_URL);
-          const data = await resp.json().catch(() => []);
-          if (!resp.ok) {
-            const msg = data?.mensagem || data?.message || 'Não foi possível carregar empresas.';
-            throw new Error(msg);
-          }
-          empresasOpcoes = Array.isArray(data) ? data : (data?.data || []);
-          renderizarEmpresaVinculadaSelect();
-          if (statusEl) statusEl.textContent = `Empresas disponíveis: ${empresasOpcoes.length}.`;
-        } catch (err) {
-          if (statusEl) statusEl.textContent = err?.message || 'Erro ao carregar empresas.';
+      const renderizarVeiculos = () => {
+        const listaVeiculosEl = document.getElementById('lista-veiculos');
+        if (!listaVeiculosEl) return;
+        const secao = listaVeiculosEl.closest('.form__section') || listaVeiculosEl.parentElement;
+        if (secao) {
+          secao.style.display = 'none';
+        } else {
+          listaVeiculosEl.style.display = 'none';
         }
+        // Desativa conteúdo da seção
+        listaVeiculosEl.innerHTML = '';
+        veiculos = [];
       };
 
-
-      const buscarEmpresaPorCnpj = (cnpj) => {
-        const d = String(cnpj || '').replace(/\D/g, '');
-        if (!d) return null;
-        return empresasOpcoes.find((e) => String(e.cnpj || '').replace(/\D/g, '') === d) || null;
+      const adicionarVeiculo = () => {
+        // Seção de Veículos removida: função desativada
+        return;
       };
-
-      const validarCnpjBasico = (cnpj) => {
-        const d = String(cnpj || '').replace(/\D/g, '');
-        return d.length === 14;
-      };
-
-      const renderizarResultadoBuscaEmpresa = (empresa) => {
-        const cont = document.getElementById('empresa-busca-resultado');
-        if (!cont) return;
-        cont.innerHTML = '';
-        if (!empresa) {
-          cont.innerHTML = '<div class="list__item">Nenhuma empresa encontrada para o CNPJ informado.</div>';
-          return;
-        }
-        const table = document.createElement('table');
-        table.style.width = '100%';
-        table.style.borderCollapse = 'collapse';
-        table.style.marginTop = '0.5rem';
-        table.innerHTML = `
-          <thead>
-            <tr style="background: var(--surface-muted);">
-              <th style="text-align:left; padding:0.5rem;">CNPJ</th>
-              <th style="text-align:left; padding:0.5rem;">Razão Social</th>
-              <th style="text-align:left; padding:0.5rem;">Nome Fantasia</th>
-              <th style="text-align:left; padding:0.5rem;">Situação Cadastral</th>
-              <th style="text-align:center; padding:0.5rem;">Confirmação</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        `;
-        const tbody = table.querySelector('tbody');
-        const tr = document.createElement('tr');
-        tr.style.borderBottom = '1px solid var(--border)';
-        const tdCnpj = document.createElement('td');
-        tdCnpj.style.padding = '0.5rem';
-        tdCnpj.textContent = aplicarMascaraCnpj(empresa.cnpj);
-        const tdRazao = document.createElement('td');
-        tdRazao.style.padding = '0.5rem';
-        tdRazao.textContent = empresa.razaoSocial || '';
-        const tdFantasia = document.createElement('td');
-        tdFantasia.style.padding = '0.5rem';
-        tdFantasia.textContent = empresa.nomeFantasia || '';
-        const tdSituacao = document.createElement('td');
-        tdSituacao.style.padding = '0.5rem';
-        tdSituacao.textContent = empresa.situacaoCadastral || '';
         const tdConfirm = document.createElement('td');
         tdConfirm.style.padding = '0.5rem';
         tdConfirm.style.textAlign = 'center';
