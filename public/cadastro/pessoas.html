@@ -71,7 +71,8 @@
 
           <div id="pessoa-form-message" class="message" role="status" aria-live="polite"></div>
 
-          <form class="form" id="pessoa-form" action="#" method="post">
+          <!-- Ação direta garante envio mesmo sem o manipulador JS -->
+          <form class="form" id="pessoa-form" action="/api/pessoas" method="post" enctype="multipart/form-data">
             <!-- Seção 1: Identificação -->
             <div class="form__section">
               <div class="form__section-header">

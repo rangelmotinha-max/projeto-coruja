@@ -74,7 +74,8 @@
         <section class="panel" aria-label="Formulário de empresas">
           <div class="panel__header panel__header--stacked"></div>
           <div id="empresa-form-message" class="message" role="status" aria-live="polite"></div>
-          <form class="form" id="empresa-form" action="#" method="post">
+          <!-- Ação direta garante envio mesmo sem o manipulador JS -->
+          <form class="form" id="empresa-form" action="/api/empresas" method="post">
             <div class="form__grid form__grid--3">
               <label class="form__field">
                 <span class="form__label">CNPJ</span>
