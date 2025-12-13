@@ -70,17 +70,12 @@ async function atualizar(id, payload, arquivos = []) {
     telefones,
     emails,
     redesSociais,
-    veiculos,
     vinculos,
     ocorrencias,
     ...atualizacoes
   } = validarAtualizacaoPessoa(payload, arquivos);
   const existente = await PessoaModel.findById(id);
   if (!existente) throw criarErro('Pessoa não encontrada', 404);
-  const dadosProprietario = {
-    nome: atualizacoes.nomeCompleto ?? existente.nomeCompleto,
-    cpf: atualizacoes.cpf ?? existente.cpf,
-  };
 
   // Processar endereços validados, mantendo limpeza consistente antes de regravar.
   const enderecosValidados = Array.isArray(enderecos) ? enderecos.filter(Boolean) : null;
@@ -147,24 +142,6 @@ async function atualizar(id, payload, arquivos = []) {
 
   // Empresa removida do cadastro de Pessoas; nenhum processamento aqui
 
-  // Processar veículos validados garantindo remoção total antes da nova gravação.
-  const veiculosValidados = Array.isArray(veiculos) ? veiculos.filter(Boolean) : null;
-  if (veiculosValidados) {
-    const veiculosAtuais = await PessoaModel.obterVeiculosPorPessoa(id);
-    for (const vAtual of veiculosAtuais) {
-      await PessoaModel.removerVeiculo(vAtual.id);
-    }
-    for (const v of veiculosValidados) {
-      const mm = (v.marcaModelo || '').trim();
-      const pl = (v.placa || '').trim();
-      const cr = (v.cor || '').trim();
-      const am = (v.anoModelo || '').trim();
-      if (mm || pl || cr || am) {
-        await PessoaModel.adicionarVeiculo(id, v, dadosProprietario);
-      }
-    }
-  }
-
   // Processar vínculos validados (pessoas relacionadas) sempre após limpeza.
   const vinculosValidados = vinculos && Array.isArray(vinculos.pessoas)
     ? vinculos.pessoas.filter(Boolean)
@@ -178,19 +155,6 @@ async function atualizar(id, payload, arquivos = []) {
       if ((vp.nome || vp.cpf || vp.tipo || '').toString().trim().length) {
         await PessoaModel.adicionarVinculoPessoa(id, vp);
       }
-    }
-  }
-
-  // Vincula veículos existentes encontrados via busca de placa
-  if (vinculos && Array.isArray(vinculos.veiculos)) {
-    const veiculosComId = vinculos.veiculos.filter((v) => v.id);
-    if (veiculosComId.length) {
-      await PessoaModel.vincularVeiculosExistentes(
-        id,
-        veiculosComId.map((v) => v.id),
-        dadosProprietario.nome,
-        dadosProprietario.cpf
-      );
     }
   }
 

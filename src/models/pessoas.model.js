@@ -3,9 +3,6 @@ const path = require('path');
 const { randomUUID } = require('crypto');
 const { initDatabase } = require('../database/sqlite');
 
-// Normaliza CPF/CNPJ e outros numéricos mantendo apenas dígitos.
-const somenteDigitos = (valor) => String(valor || '').replace(/\D/g, '');
-
 function calcularIdadeDe(dataStr) {
   if (!dataStr) return null;
   const parts = String(dataStr).split('-');
@@ -126,36 +123,6 @@ class PessoaModel {
       await this.upsertEmpresa(pessoa.id, dados.empresa);
     }
 
-    // Salvar veículos se fornecidos
-    if (dados.veiculos && Array.isArray(dados.veiculos)) {
-      for (const v of dados.veiculos) {
-        const mm = (v.marcaModelo || '').trim();
-        const pl = (v.placa || '').trim();
-        const cr = (v.cor || '').trim();
-        const am = (v.anoModelo || '').trim();
-        if (mm || pl || cr || am) {
-          // Vincula sempre ao proprietário correspondente aos dados da pessoa
-          await this.adicionarVeiculo(pessoa.id, v, {
-            nome: pessoa.nomeCompleto,
-            cpf: pessoa.cpf,
-          });
-        }
-      }
-    }
-
-    // Vincular veículos já cadastrados via busca por placa
-    if (dados.vinculos && Array.isArray(dados.vinculos.veiculos)) {
-      const veiculosComId = dados.vinculos.veiculos.filter((v) => v.id);
-      if (veiculosComId.length) {
-        await this.vincularVeiculosExistentes(
-          pessoa.id,
-          veiculosComId.map((v) => v.id),
-          pessoa.nomeCompleto,
-          pessoa.cpf
-        );
-      }
-    }
-
     // Salvar vínculos (pessoas relacionadas)
     if (dados.vinculos && Array.isArray(dados.vinculos.pessoas)) {
       for (const vp of dados.vinculos.pessoas) {
@@ -205,7 +172,6 @@ class PessoaModel {
     pessoa.emails = (await this.obterEmailsPorPessoa(pessoa.id)).map(e => e.email);
     pessoa.redesSociais = (await this.obterRedesPorPessoa(pessoa.id)).map(r => r.perfil);
     pessoa.fotos = await this.obterFotosPorPessoa(pessoa.id);
-    pessoa.veiculos = await this.obterVeiculosPorPessoa(pessoa.id);
     pessoa.empresa = await this.obterEmpresaPorPessoa(pessoa.id);
     // Vinculos: preferir JSON quando existir, mas manter compatibilidade com tabela vinculos_pessoas
     let vinculosFromJson = {};
@@ -555,80 +521,6 @@ class PessoaModel {
     const fotos = await this.obterFotosPorPessoa(pessoaId);
     for (const foto of fotos) {
       await this.removerFoto(foto.id);
-    }
-  }
-
-  // Veículos
-  static async obterVeiculosPorPessoa(pessoaId) {
-    const db = await initDatabase();
-    return db.all(
-      'SELECT id, marcaModelo, placa, cor, anoModelo, proprietario, cpfProprietario FROM veiculos WHERE pessoa_id = ? ORDER BY criadoEm ASC',
-      [pessoaId]
-    );
-  }
-
-  static async obterDadosProprietario(pessoaId, fallback = {}) {
-    const db = await initDatabase();
-    const pessoa = await db.get('SELECT nomeCompleto, cpf FROM pessoas WHERE id = ?', [pessoaId]);
-    return {
-      nome: fallback.nome ?? pessoa?.nomeCompleto ?? null,
-      cpf: somenteDigitos(fallback.cpf ?? pessoa?.cpf ?? ''),
-    };
-  }
-
-  static async adicionarVeiculo(pessoaId, veiculo, proprietarioInfo = {}) {
-    const db = await initDatabase();
-    const agora = new Date().toISOString();
-    const dadosProprietario = await this.obterDadosProprietario(pessoaId, proprietarioInfo);
-    const novo = {
-      id: randomUUID(),
-      pessoa_id: pessoaId,
-      proprietario: dadosProprietario.nome,
-      cpfProprietario: dadosProprietario.cpf || null,
-      marcaModelo: veiculo.marcaModelo || null,
-      placa: veiculo.placa || null,
-      cor: veiculo.cor || null,
-      anoModelo: veiculo.anoModelo || null,
-      criadoEm: agora,
-      atualizadoEm: agora,
-    };
-    await db.run(
-      `INSERT INTO veiculos (id, pessoa_id, proprietario, cpfProprietario, marcaModelo, placa, cor, anoModelo, criadoEm, atualizadoEm)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        novo.id,
-        novo.pessoa_id,
-        novo.proprietario,
-        novo.cpfProprietario,
-        novo.marcaModelo,
-        novo.placa,
-        novo.cor,
-        novo.anoModelo,
-        novo.criadoEm,
-        novo.atualizadoEm,
-      ]
-    );
-    return novo;
-  }
-
-  static async removerVeiculo(veiculoId) {
-    const db = await initDatabase();
-    const resultado = await db.run('DELETE FROM veiculos WHERE id = ?', [veiculoId]);
-    return resultado.changes > 0;
-  }
-
-  static async vincularVeiculosExistentes(pessoaId, veiculoIds = [], nomeProprietario, cpfProprietario) {
-    // Atualiza veículos já cadastrados para refletir vínculo com a pessoa atual
-    if (!veiculoIds.length) return;
-    const db = await initDatabase();
-    const agora = new Date().toISOString();
-    for (const veiculoId of veiculoIds) {
-      await db.run(
-        `UPDATE veiculos
-           SET pessoa_id = ?, proprietario = ?, cpfProprietario = ?, atualizadoEm = ?
-         WHERE id = ?`,
-        [pessoaId, nomeProprietario || null, somenteDigitos(cpfProprietario || ''), agora, veiculoId]
-      );
     }
   }
 

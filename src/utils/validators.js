@@ -127,7 +127,6 @@ function validarCadastroPessoa(payload, arquivos = []) {
   const telefonesArray = limparListaStrings(payload.telefones || []);
   const emailsArray = limparListaStrings(payload.emails || [], normalizarEmail);
   const redesSociaisArray = limparListaStrings(payload.redesSociais || []);
-  const veiculosArray = validarVeiculos(payload.veiculos || []);
   // Empresa removida do cadastro de Pessoas; não validar aqui
   const vinculosObj = validarVinculos(payload.vinculos);
   const ocorrenciasObj = validarOcorrencias(payload.ocorrencias);
@@ -161,7 +160,6 @@ function validarCadastroPessoa(payload, arquivos = []) {
     telefones: telefonesArray,
     emails: emailsArray,
     redesSociais: redesSociaisArray,
-    veiculos: veiculosArray,
     vinculos: vinculosObj,
     ocorrencias: ocorrenciasObj,
     fotos: fotosUpload,
@@ -186,22 +184,6 @@ function validarEnderecos(enderecos) {
     // Permite salvar latitude/longitude em formato livre (ex: "-23.5, -46.6")
     latLong: normalizarOpcional(endereco.latLong),
     cep: normalizarOpcional(endereco.cep),
-  }));
-}
-
-// Valida array de veículos
-function validarVeiculos(veiculos) {
-  if (!veiculos) return [];
-  if (!Array.isArray(veiculos)) {
-    throw criarErro('Veículos deve ser um array', 400);
-  }
-  return veiculos.map(v => ({
-    proprietario: normalizarOpcional(v.proprietario),
-    cpfProprietario: normalizarOpcional(somenteDigitos(v.cpfProprietario || v.cpf || '')),
-    marcaModelo: normalizarOpcional(v.marcaModelo),
-    placa: normalizarOpcional(v.placa ? String(v.placa).toUpperCase() : v.placa),
-    cor: normalizarOpcional(v.cor),
-    anoModelo: normalizarOpcional(v.anoModelo ? String(v.anoModelo).replace(/\D/g, '').slice(0,4) : v.anoModelo),
   }));
 }
 
@@ -253,20 +235,12 @@ function validarVinculos(vinculos) {
     nome: normalizarOpcional(e.nome),
     observacoes: normalizarOpcional(e.observacoes),
   })).filter(e => e.nome || e.observacoes) : [];
-  const veiculos = Array.isArray(vinculos.veiculos) ? vinculos.veiculos.map(v => ({
-    id: normalizarOpcional(v.id),
-    marcaModelo: normalizarOpcional(v.marcaModelo),
-    placa: normalizarOpcional(v.placa ? String(v.placa).toUpperCase() : v.placa),
-    cor: normalizarOpcional(v.cor),
-    anoModelo: normalizarOpcional(v.anoModelo ? String(v.anoModelo).replace(/\D/g, '').slice(0,4) : v.anoModelo),
-    cpfProprietario: normalizarOpcional(somenteDigitos(v.cpfProprietario || v.cpf || '')),
-  })).filter(v => v.id || v.marcaModelo || v.placa || v.cor || v.anoModelo || v.cpfProprietario) : [];
   const empregaticio = Array.isArray(vinculos.empregaticio) ? vinculos.empregaticio.map(e => ({
     info: normalizarOpcional(e.info),
   })).filter(e => e.info) : [];
-  const temAlgum = pessoas.length || empresas.length || entidades.length || veiculos.length || empregaticio.length;
+  const temAlgum = pessoas.length || empresas.length || entidades.length || empregaticio.length;
   if (!temAlgum) return undefined;
-  return { pessoas, empresas, entidades, veiculos, empregaticio };
+  return { pessoas, empresas, entidades, empregaticio };
 }
 
 function validarOcorrencias(ocorrencias) {
@@ -342,9 +316,6 @@ function validarAtualizacaoPessoa(payload, arquivos = []) {
   if (payload.redesSociais !== undefined) {
     atualizacoes.redesSociais = limparListaStrings(payload.redesSociais || []);
   }
-  if (payload.veiculos !== undefined) {
-    atualizacoes.veiculos = validarVeiculos(payload.veiculos || []);
-  }
 
   // Validar fotos novas e remoções solicitadas
   atualizacoes.fotos = validarFotosUpload(arquivos);
@@ -415,7 +386,6 @@ module.exports = {
   validarCadastroPessoa,
   validarAtualizacaoPessoa,
   validarEnderecos,
-  validarVeiculos,
   validarEmpresa,
   validarVinculos,
   validarOcorrencias,
