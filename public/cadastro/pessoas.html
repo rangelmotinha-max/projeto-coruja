@@ -195,7 +195,16 @@
               <div class="form__subsection">
                 <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin: 0.75rem 0;">
                   <h4 class="form__section-title" style="font-size: 1rem; margin: 0;">Pessoas</h4>
-                  <button class="button button--secondary" id="adicionar-vinculo-pessoa" type="button" aria-label="Adicionar vínculo de pessoa" title="Adicionar">+</button>
+                </div>
+                <div class="form__grid form__grid--3" style="align-items:end;">
+                  <label class="form__field" style="margin:0;">
+                    <span class="form__label">Nome ou CPF</span>
+                    <input class="form__input" type="text" id="vinculo-pessoa-busca" placeholder="Digite nome completo ou CPF" />
+                  </label>
+                  <div class="form__actions" style="margin:0;">
+                    <button class="button button--secondary" id="buscar-vinculo-pessoa" type="button" aria-label="Buscar pessoa para vínculo" title="Procurar">Procurar</button>
+                  </div>
+                  <small style="color: var(--muted);">Utilize o nome ou CPF para localizar e vincular uma pessoa já cadastrada.</small>
                 </div>
                 <div id="lista-vinculos-pessoas" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
               </div>
@@ -348,6 +357,8 @@
       const formMessageEl = document.getElementById('pessoa-form-message');
       const cpfInput = pessoaForm?.elements['cpf'];
       const fotosInput = document.getElementById('pessoa-fotos');
+      const vinculoPessoaBuscaInput = document.getElementById('vinculo-pessoa-busca');
+      const buscarVinculoPessoaBtn = document.getElementById('buscar-vinculo-pessoa');
       let pessoaEmEdicao = null;
       let ultimaAcaoFoiEdicao = false;
       let fotosSelecionadas = [];
@@ -750,6 +761,8 @@
         }
       };
 
+      const normalizarCpfSomenteDigitos = (valor) => String(valor || '').replace(/\D/g, '');
+
       const validarCpf = (cpf) => {
         // Remove caracteres não numéricos
         const somenteNumeros = cpf.replace(/\D/g, '');
@@ -1140,7 +1153,7 @@
         if (!lista) return;
         lista.innerHTML = '';
         if (vinculosPessoas.length === 0) {
-          lista.innerHTML = '<p style="color: var(--muted); font-size: 0.85rem; margin: 0;">Nenhum vínculo adicionado. Clique para adicionar.</p>';
+          lista.innerHTML = '<p style="color: var(--muted); font-size: 0.85rem; margin: 0;">Nenhum vínculo adicionado. Use o campo acima para procurar uma pessoa já cadastrada.</p>';
           return;
         }
         vinculosPessoas.forEach((v, i) => {
@@ -1191,9 +1204,104 @@
         });
       };
 
-      const adicionarVinculoPessoa = () => {
-        vinculosPessoas.push({ nome: '', cpf: '', tipo: '' });
+      const adicionarVinculoPessoa = (dados = { nome: '', cpf: '', tipo: '' }) => {
+        // Comentário: mantemos o formato original para garantir compatibilidade com o backend
+        // e com fluxos de salvamento já existentes no formulário de pessoa.
+        const novoVinculo = {
+          nome: String(dados?.nome || '').trim(),
+          cpf: aplicarMascaraCpfInline(dados?.cpf || ''),
+          tipo: String(dados?.tipo || ''),
+        };
+
+        vinculosPessoas.push(novoVinculo);
         renderizarVinculosPessoas();
+      };
+
+      const montarFiltrosBuscaVinculo = (valorBusca) => {
+        // Comentário: valida a entrada e decide qual parâmetro enviar para a API (/buscar já aceita filtros via querystring)
+        const termo = String(valorBusca || '').trim();
+        if (!termo) {
+          throw new Error('Informe um nome ou CPF para procurar a pessoa.');
+        }
+
+        const cpfLimpo = normalizarCpfSomenteDigitos(termo);
+        if (cpfLimpo.length > 0 && cpfLimpo.length < 11) {
+          throw new Error('CPF incompleto: informe os 11 dígitos para a busca.');
+        }
+
+        if (cpfLimpo.length === 11) {
+          return { query: { documento: cpfLimpo }, descricao: 'CPF informado' };
+        }
+
+        if (termo.length < 3) {
+          throw new Error('Digite ao menos 3 caracteres do nome para continuar.');
+        }
+
+        return { query: { nome: termo }, descricao: 'nome informado' };
+      };
+
+      const buscarPessoaParaVinculo = async () => {
+        const termoBusca = vinculoPessoaBuscaInput?.value || '';
+        try {
+          const { query, descricao } = montarFiltrosBuscaVinculo(termoBusca);
+          exibirMensagemForm(`Buscando pessoa pelo ${descricao}...`, 'info');
+
+          const params = new URLSearchParams(query);
+          const response = await fetchAutenticado(`${API_PESSOAS_URL}/buscar?${params.toString()}`);
+          const data = await response.json().catch(() => []);
+
+          if (!response.ok) {
+            const erro = data?.mensagem || data?.message || 'Erro ao buscar pessoas.';
+            throw new Error(erro);
+          }
+
+          const pessoasEncontradas = Array.isArray(data) ? data : data?.data || [];
+
+          if (!pessoasEncontradas.length) {
+            const criarNova = confirm('Nenhuma pessoa encontrada. Deseja cadastrar uma nova?');
+            if (criarNova) {
+              // Comentário: reutilizamos a rota padrão de criação para manter a navegação original
+              // e permitir que o usuário complete o cadastro antes de voltar para vincular.
+              window.location.href = '/cadastro/pessoas';
+            }
+            exibirMensagemForm('Nenhuma pessoa encontrada com o filtro informado.', 'info');
+            return;
+          }
+
+          const pessoaEncontrada = pessoasEncontradas[0];
+          const nomeEncontrado = pessoaEncontrada.nomeCompleto || pessoaEncontrada.apelido || 'Pessoa encontrada';
+          const cpfEncontrado = aplicarMascaraCpfInline(pessoaEncontrada.cpf || '');
+          const resumoPessoa = cpfEncontrado ? `${nomeEncontrado} (CPF: ${cpfEncontrado})` : nomeEncontrado;
+
+          const confirmarVinculo = confirm(`Encontramos ${resumoPessoa}. Deseja vincular ao cadastro atual?`);
+          if (!confirmarVinculo) {
+            exibirMensagemForm('Vínculo cancelado pelo usuário.', 'info');
+            return;
+          }
+
+          const cpfLimpoEncontrado = normalizarCpfSomenteDigitos(pessoaEncontrada.cpf || '');
+          const nomeNormalizado = String(nomeEncontrado || '').trim().toLowerCase();
+          const jaVinculado = vinculosPessoas.some((v) => {
+            const cpfVinculo = normalizarCpfSomenteDigitos(v.cpf || '');
+            const nomeVinculo = String(v.nome || '').trim().toLowerCase();
+            return (cpfLimpoEncontrado && cpfVinculo && cpfVinculo === cpfLimpoEncontrado) || (nomeNormalizado && nomeVinculo === nomeNormalizado);
+          });
+
+          if (jaVinculado) {
+            exibirMensagemForm('Essa pessoa já está vinculada.', 'info');
+            return;
+          }
+
+          adicionarVinculoPessoa({
+            nome: nomeEncontrado,
+            cpf: cpfEncontrado,
+            tipo: '',
+          });
+          renderizarVinculosPessoas();
+          exibirMensagemForm('Pessoa vinculada com sucesso ao cadastro.', 'success');
+        } catch (error) {
+          exibirMensagemForm(error?.message || 'Erro ao procurar pessoa para vínculo.', 'error');
+        }
       };
 
       // Seção de vínculos de Empresa removida: funções excluídas
@@ -2331,9 +2439,23 @@
 
         
 
-        // Event listener para adicionar vínculo pessoa
-        const addVincPessoaBtn = document.getElementById('adicionar-vinculo-pessoa');
-        addVincPessoaBtn?.addEventListener('click', adicionarVinculoPessoa);
+        // Event listener para buscar e vincular pessoa existente usando nome ou CPF
+        vinculoPessoaBuscaInput?.addEventListener('input', (event) => {
+          // Comentário: se o usuário digitar apenas números, aplicamos máscara básica de CPF para facilitar a leitura
+          const somenteDigitos = normalizarCpfSomenteDigitos(event.target.value);
+          if (somenteDigitos) {
+            event.target.value = aplicarMascaraCpfInline(somenteDigitos);
+          }
+        });
+
+        buscarVinculoPessoaBtn?.addEventListener('click', buscarPessoaParaVinculo);
+        vinculoPessoaBuscaInput?.addEventListener('keydown', (event) => {
+          // Comentário: permite acionar a busca ao pressionar Enter no campo de entrada
+          if (event.key === 'Enter') {
+            event.preventDefault();
+            buscarPessoaParaVinculo();
+          }
+        });
 
         // Event listener para adicionar vínculo empresa
         // Removido: botão e ação de vínculo de empresa
