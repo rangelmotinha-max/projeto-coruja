@@ -139,7 +139,10 @@ class PessoaModel {
       }
     }
 
-    return { ...pessoa, enderecos: [], telefones: [], emails: [], redesSociais: [], fotos: await this.obterFotosPorPessoa(pessoa.id) };
+    // Reidrata a pessoa recém-criada para devolver todas as relações populadas
+    // (enderecos, telefones, emails, redes sociais, vínculos, empresa e fotos persistidas).
+    const pessoaHidratada = await this.findById(pessoa.id);
+    return pessoaHidratada || { ...pessoa, enderecos: [], telefones: [], emails: [], redesSociais: [], fotos: await this.obterFotosPorPessoa(pessoa.id) };
   }
 
   // Retorna todas as pessoas cadastradas com seus endereços e telefones.
