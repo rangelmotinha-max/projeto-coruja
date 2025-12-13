@@ -199,25 +199,6 @@ async function runMigrations(db) {
     CREATE INDEX IF NOT EXISTS idx_socios_empresa_id ON socios(empresa_id)
   `);
 
-  // Tabela de veículos com relacionamento 1:N com pessoas
-  await db.run(`
-    CREATE TABLE IF NOT EXISTS veiculos (
-      id TEXT PRIMARY KEY,
-      pessoa_id TEXT NOT NULL,
-      marcaModelo TEXT,
-      placa TEXT,
-      cor TEXT,
-      anoModelo TEXT,
-      criadoEm TEXT NOT NULL,
-      atualizadoEm TEXT NOT NULL,
-      FOREIGN KEY (pessoa_id) REFERENCES pessoas(id) ON DELETE CASCADE
-    )
-  `);
-
-  await db.run(`
-    CREATE INDEX IF NOT EXISTS idx_veiculos_pessoa_id ON veiculos(pessoa_id)
-  `);
-
   // Tabela de vínculos de pessoas (pessoas relacionadas)
   await db.run(`
     CREATE TABLE IF NOT EXISTS vinculos_pessoas (
