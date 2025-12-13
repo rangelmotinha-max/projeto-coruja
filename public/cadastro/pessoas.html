@@ -204,8 +204,10 @@
                   <div class="form__actions" style="margin:0;">
                     <button class="button button--secondary" id="buscar-vinculo-pessoa" type="button" aria-label="Buscar pessoa para vínculo" title="Procurar">Procurar</button>
                   </div>
-                  
+
                 </div>
+                <!-- Bloco de resultados da busca para vínculos de pessoas -->
+                <div id="pessoas-busca-resultado" class="panel" style="margin-top: 0.75rem; padding: 0.75rem; display: none;"></div>
                 <div id="lista-vinculos-pessoas" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
               </div>
 
@@ -811,6 +813,8 @@
       let telefones = [];
       let emails = [];
       let redes = [];
+      // Comentário: armazenamos os resultados da busca de pessoas para renderizar múltiplas opções
+      let resultadosBuscaPessoas = [];
       let vinculosPessoas = [];
       let vinculosEmpresas = [];
       let vinculosEntidades = [];
@@ -1204,6 +1208,64 @@
         });
       };
 
+      // Comentário: controla a renderização dos resultados retornados pela API de busca de pessoas
+      const renderizarResultadosPessoasBusca = () => {
+        const container = document.getElementById('pessoas-busca-resultado');
+        if (!container) return;
+
+        container.innerHTML = '';
+
+        if (!resultadosBuscaPessoas.length) {
+          container.innerHTML = '<p style="color: var(--muted); margin: 0;">Nenhum resultado para mostrar. Refine a busca.</p>';
+          container.style.display = 'block';
+          return;
+        }
+
+        container.style.display = 'grid';
+        container.style.gridTemplateColumns = 'repeat(auto-fill, minmax(260px, 1fr))';
+        container.style.gap = '0.75rem';
+
+        resultadosBuscaPessoas.forEach((pessoa, indice) => {
+          const nomeEncontrado = pessoa.nomeCompleto || pessoa.apelido || 'Pessoa encontrada';
+          const cpfEncontrado = aplicarMascaraCpfInline(pessoa.cpf || '');
+
+          const card = document.createElement('div');
+          card.className = 'panel';
+          card.style.padding = '0.75rem';
+          card.style.display = 'flex';
+          card.style.flexDirection = 'column';
+          card.style.gap = '0.35rem';
+
+          card.innerHTML = `
+            <div style="display:flex; justify-content:space-between; gap:0.5rem; align-items:flex-start;">
+              <div>
+                <p style="margin:0; font-weight:700;">${nomeEncontrado}</p>
+                <p style="margin:0; color:var(--muted);">${cpfEncontrado ? `CPF: ${cpfEncontrado}` : 'CPF não informado'}</p>
+                <p style="margin:0; color:var(--muted);">${pessoa.apelido ? `Vulgo: ${pessoa.apelido}` : ''}</p>
+              </div>
+              <button class="button button--primary" type="button" data-indice="${indice}">Vincular</button>
+            </div>
+          `;
+
+          const botao = card.querySelector('button');
+          botao.addEventListener('click', () => confirmarVinculoPessoa(indice));
+
+          container.appendChild(card);
+        });
+      };
+
+      // Comentário: limpa o estado e a área visual de resultados de busca
+      const limparResultadosPessoasBusca = (mostrarMensagem = false) => {
+        resultadosBuscaPessoas = [];
+        const container = document.getElementById('pessoas-busca-resultado');
+        if (!container) return;
+
+        container.innerHTML = mostrarMensagem
+          ? '<p style="color: var(--muted); margin: 0;">Nenhuma pessoa encontrada.</p>'
+          : '';
+        container.style.display = mostrarMensagem ? 'block' : 'none';
+      };
+
       const adicionarVinculoPessoa = (dados = { nome: '', cpf: '', tipo: '' }) => {
         // Comentário: mantemos o formato original para garantir compatibilidade com o backend
         // e com fluxos de salvamento já existentes no formulário de pessoa.
@@ -1240,6 +1302,49 @@
         return { query: { nome: termo }, descricao: 'nome informado' };
       };
 
+      // Comentário: confirma e aplica o vínculo selecionado em cada resultado
+      const confirmarVinculoPessoa = (indice) => {
+        const pessoaEncontrada = resultadosBuscaPessoas[indice];
+
+        if (!pessoaEncontrada) {
+          exibirMensagemForm('Não foi possível identificar a pessoa selecionada.', 'error');
+          return;
+        }
+
+        const nomeEncontrado = pessoaEncontrada.nomeCompleto || pessoaEncontrada.apelido || 'Pessoa encontrada';
+        const cpfEncontrado = aplicarMascaraCpfInline(pessoaEncontrada.cpf || '');
+        const resumoPessoa = cpfEncontrado ? `${nomeEncontrado} (CPF: ${cpfEncontrado})` : nomeEncontrado;
+
+        const confirmarVinculo = confirm(`Deseja vincular ${resumoPessoa} ao cadastro atual?`);
+        if (!confirmarVinculo) {
+          exibirMensagemForm('Vínculo cancelado pelo usuário.', 'info');
+          return;
+        }
+
+        const cpfLimpoEncontrado = normalizarCpfSomenteDigitos(pessoaEncontrada.cpf || '');
+        const nomeNormalizado = String(nomeEncontrado || '').trim().toLowerCase();
+        const jaVinculado = vinculosPessoas.some((v) => {
+          const cpfVinculo = normalizarCpfSomenteDigitos(v.cpf || '');
+          const nomeVinculo = String(v.nome || '').trim().toLowerCase();
+          return (cpfLimpoEncontrado && cpfVinculo && cpfVinculo === cpfLimpoEncontrado) || (nomeNormalizado && nomeVinculo === nomeNormalizado);
+        });
+
+        if (jaVinculado) {
+          exibirMensagemForm('Essa pessoa já está vinculada.', 'info');
+          return;
+        }
+
+        adicionarVinculoPessoa({
+          nome: nomeEncontrado,
+          cpf: cpfEncontrado,
+          tipo: '',
+        });
+
+        renderizarVinculosPessoas();
+        limparResultadosPessoasBusca();
+        exibirMensagemForm('Pessoa vinculada com sucesso ao cadastro.', 'success');
+      };
+
       const buscarPessoaParaVinculo = async () => {
         const termoBusca = vinculoPessoaBuscaInput?.value || '';
         try {
@@ -1255,6 +1360,8 @@
             throw new Error(erro);
           }
 
+          limparResultadosPessoasBusca();
+
           const pessoasEncontradas = Array.isArray(data) ? data : data?.data || [];
 
           if (!pessoasEncontradas.length) {
@@ -1265,40 +1372,13 @@
               window.location.href = '/cadastro/pessoas';
             }
             exibirMensagemForm('Nenhuma pessoa encontrada com o filtro informado.', 'info');
+            limparResultadosPessoasBusca(true);
             return;
           }
 
-          const pessoaEncontrada = pessoasEncontradas[0];
-          const nomeEncontrado = pessoaEncontrada.nomeCompleto || pessoaEncontrada.apelido || 'Pessoa encontrada';
-          const cpfEncontrado = aplicarMascaraCpfInline(pessoaEncontrada.cpf || '');
-          const resumoPessoa = cpfEncontrado ? `${nomeEncontrado} (CPF: ${cpfEncontrado})` : nomeEncontrado;
-
-          const confirmarVinculo = confirm(`Encontramos ${resumoPessoa}. Deseja vincular ao cadastro atual?`);
-          if (!confirmarVinculo) {
-            exibirMensagemForm('Vínculo cancelado pelo usuário.', 'info');
-            return;
-          }
-
-          const cpfLimpoEncontrado = normalizarCpfSomenteDigitos(pessoaEncontrada.cpf || '');
-          const nomeNormalizado = String(nomeEncontrado || '').trim().toLowerCase();
-          const jaVinculado = vinculosPessoas.some((v) => {
-            const cpfVinculo = normalizarCpfSomenteDigitos(v.cpf || '');
-            const nomeVinculo = String(v.nome || '').trim().toLowerCase();
-            return (cpfLimpoEncontrado && cpfVinculo && cpfVinculo === cpfLimpoEncontrado) || (nomeNormalizado && nomeVinculo === nomeNormalizado);
-          });
-
-          if (jaVinculado) {
-            exibirMensagemForm('Essa pessoa já está vinculada.', 'info');
-            return;
-          }
-
-          adicionarVinculoPessoa({
-            nome: nomeEncontrado,
-            cpf: cpfEncontrado,
-            tipo: '',
-          });
-          renderizarVinculosPessoas();
-          exibirMensagemForm('Pessoa vinculada com sucesso ao cadastro.', 'success');
+          resultadosBuscaPessoas = pessoasEncontradas;
+          renderizarResultadosPessoasBusca();
+          exibirMensagemForm('Selecione uma das pessoas encontradas para vincular.', 'success');
         } catch (error) {
           exibirMensagemForm(error?.message || 'Erro ao procurar pessoa para vínculo.', 'error');
         }
