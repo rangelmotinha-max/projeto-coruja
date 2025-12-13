@@ -182,8 +182,6 @@ class PessoaModel {
         vinculosFromJson = {};
       }
     }
-    // Campos de veículos foram descontinuados; removemos qualquer vestígio legado.
-    delete vinculosFromJson.veiculos;
     const vinculosPessoas = await this.obterVinculosPessoas(pessoa.id);
     pessoa.vinculos = { pessoas: vinculosPessoas, ...vinculosFromJson };
     // Ocorrencias via JSON

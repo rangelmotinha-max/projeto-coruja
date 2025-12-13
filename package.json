@@ -7,7 +7,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js",
     "db:init": "node scripts/init-db.js",
-    "db:seed": "node scripts/seed-admin.js"
+    "db:seed": "node scripts/seed-admin.js",
+    "db:drop-veiculos": "node scripts/drop-veiculos.js"
   },
   "keywords": [],
   "author": "",
