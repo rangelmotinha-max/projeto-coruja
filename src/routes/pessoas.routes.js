@@ -13,7 +13,9 @@ router.use(authMiddleware);
 router.post('/', authorize(['admin', 'editor']), uploadFotosPessoa.array('fotos', 10), pessoasController.criar);
 
 // Listagem/busca de pessoas cadastradas com filtros por nome, documento, familiares e contatos.
+// A rota "/buscar" é um alias explícito para consultas filtradas via querystring.
 router.get('/', authorize(['admin', 'editor', 'viewer', 'user', 'leitor']), pessoasController.listar);
+router.get('/buscar', authorize(['admin', 'editor', 'viewer', 'user', 'leitor']), pessoasController.listar);
 
 // Busca detalhada pelo identificador único.
 router.get('/:id', authorize(['admin', 'editor', 'viewer', 'user', 'leitor']), pessoasController.buscarPorId);

@@ -155,7 +155,10 @@
     const formData = new FormData(form);
     const params = buildQueryParams(formData);
     const queryString = params.toString();
-    const endpoint = queryString ? `/api/pessoas?${queryString}` : '/api/pessoas';
+
+    // Usa rota dedicada de busca para centralizar aplicação de filtros.
+    const buscaEndpoint = '/api/pessoas/buscar';
+    const endpoint = queryString ? `${buscaEndpoint}?${queryString}` : buscaEndpoint;
 
     setMessage('Consultando registros, por favor aguarde...', 'info');
     clearResults('Carregando resultados...');
