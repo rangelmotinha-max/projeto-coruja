@@ -443,8 +443,6 @@
           cpf: String(v.cpf||'').trim(),
           tipo: String(v.tipo||'').trim(),
         })).filter(v => v.nome || v.cpf || v.tipo);
-        const vinculosObj = {};
-        if (pessoasVinc.length) vinculosObj.pessoas = pessoasVinc;
         const empresasVinc = (empresasVinculadas || [])
           .map((entrada) => {
             const { id, nome, observacoes } = normalizarVinculoEmpresa(entrada);
@@ -456,7 +454,6 @@
               : null;
           })
           .filter(Boolean);
-        if (empresasVinc.length) vinculosObj.empresas = empresasVinc;
         const entidadesVinc = (vinculosEntidades || [])
           .map(e => {
             const nome = String(e?.nome || '').trim();
@@ -464,15 +461,20 @@
             return (nome || observacoes) ? { nome, observacoes } : null;
           })
           .filter(Boolean);
-        if (entidadesVinc.length) vinculosObj.entidades = entidadesVinc;
         const empregList = (vinculosEmpregaticio || [])
           .map(e => {
             const info = String(e?.info || '').trim();
             return info ? { info } : null;
           })
           .filter(Boolean);
-        if (empregList.length) vinculosObj.empregaticio = empregList;
-        dados.vinculos = Object.keys(vinculosObj).length ? vinculosObj : undefined;
+
+        // Comentário: enviamos sempre as listas (inclusive vazias) para indicar remoção explícita ao backend
+        dados.vinculos = {
+          pessoas: pessoasVinc,
+          empresas: empresasVinc,
+          entidades: entidadesVinc,
+          empregaticio: empregList,
+        };
 
         // Montar ocorrências
         const ocorrenciasObj = {};

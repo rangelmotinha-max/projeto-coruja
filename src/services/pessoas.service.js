@@ -143,18 +143,20 @@ async function atualizar(id, payload, arquivos = []) {
   // Empresa removida do cadastro de Pessoas; nenhum processamento aqui
 
   // Processar vínculos validados (pessoas relacionadas) sempre após limpeza.
-  const vinculosValidados = vinculos && Array.isArray(vinculos.pessoas)
+  const vinculosValidados = Array.isArray(vinculos?.pessoas)
     ? vinculos.pessoas.filter(Boolean)
-    : null;
-  if (vinculosValidados) {
+    : [];
+  const deveRemoverVinculos = vinculos === undefined || vinculos === null || Array.isArray(vinculos?.pessoas);
+  if (deveRemoverVinculos) {
+    // Comentário: se o payload omitir ou enviar listas vazias, entendemos como solicitação explícita de limpeza
     const atuais = await PessoaModel.obterVinculosPessoas(id);
     for (const v of atuais) {
       await PessoaModel.removerVinculoPessoa(v.id);
     }
-    for (const vp of vinculosValidados) {
-      if ((vp.nome || vp.cpf || vp.tipo || '').toString().trim().length) {
-        await PessoaModel.adicionarVinculoPessoa(id, vp);
-      }
+  }
+  for (const vp of vinculosValidados) {
+    if ((vp.nome || vp.cpf || vp.tipo || '').toString().trim().length) {
+      await PessoaModel.adicionarVinculoPessoa(id, vp);
     }
   }
 
@@ -173,7 +175,16 @@ async function atualizar(id, payload, arquivos = []) {
   }
 
   // Persistir estruturas complexas via JSON
-  if (vinculos) {
+  const listasVinculos = vinculos && typeof vinculos === 'object'
+    ? Object.values(vinculos).filter(Array.isArray)
+    : [];
+  const semVinculosInformados = vinculos === undefined
+    || vinculos === null
+    || listasVinculos.every((lista) => lista.length === 0);
+  if (semVinculosInformados) {
+    // Comentário: ausência de vínculos deve limpar tanto a tabela quanto o JSON persistido
+    atualizacoes.vinculos_json = null;
+  } else if (vinculos) {
     atualizacoes.vinculos_json = JSON.stringify(vinculos);
   }
   if (ocorrencias) {
