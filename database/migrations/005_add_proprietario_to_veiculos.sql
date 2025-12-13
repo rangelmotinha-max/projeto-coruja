@@ -1,6 +1,5 @@
 -- Migração 005: adicionar coluna obrigatória de proprietário na tabela de veículos
 PRAGMA foreign_keys=OFF;
-BEGIN TRANSACTION;
 
 -- Adiciona a coluna com default temporário para garantir compatibilidade
 ALTER TABLE veiculos ADD COLUMN proprietario TEXT NOT NULL DEFAULT '';
@@ -48,5 +47,4 @@ ALTER TABLE veiculos_novo RENAME TO veiculos;
 CREATE INDEX IF NOT EXISTS idx_veiculos_cpf ON veiculos(cpf);
 CREATE INDEX IF NOT EXISTS idx_veiculos_placa ON veiculos(placa);
 
-COMMIT;
 PRAGMA foreign_keys=ON;
