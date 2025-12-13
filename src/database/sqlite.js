@@ -199,24 +199,94 @@ async function runMigrations(db) {
     CREATE INDEX IF NOT EXISTS idx_socios_empresa_id ON socios(empresa_id)
   `);
 
-  // Tabela de veículos com relacionamento 1:N com pessoas
-  await db.run(`
-    CREATE TABLE IF NOT EXISTS veiculos (
-      id TEXT PRIMARY KEY,
-      pessoa_id TEXT NOT NULL,
-      marcaModelo TEXT,
-      placa TEXT,
-      cor TEXT,
-      anoModelo TEXT,
-      criadoEm TEXT NOT NULL,
-      atualizadoEm TEXT NOT NULL,
-      FOREIGN KEY (pessoa_id) REFERENCES pessoas(id) ON DELETE CASCADE
-    )
-  `);
+  // Tabela de veículos com relacionamento 1:N com pessoas (pessoa_id opcional para veículos avulsos)
+  const veiculosInfo = await db.all("PRAGMA table_info('veiculos')");
+  const veiculosExiste = veiculosInfo && veiculosInfo.length > 0;
 
-  await db.run(`
-    CREATE INDEX IF NOT EXISTS idx_veiculos_pessoa_id ON veiculos(pessoa_id)
-  `);
+  const criarTabelaVeiculos = async () => {
+    await db.run(`
+      CREATE TABLE IF NOT EXISTS veiculos (
+        id TEXT PRIMARY KEY,
+        pessoa_id TEXT NULL,
+        proprietario TEXT,
+        cpfProprietario TEXT,
+        marcaModelo TEXT,
+        placa TEXT UNIQUE,
+        cor TEXT,
+        anoModelo TEXT,
+        criadoEm TEXT NOT NULL,
+        atualizadoEm TEXT NOT NULL,
+        FOREIGN KEY (pessoa_id) REFERENCES pessoas(id) ON DELETE SET NULL
+      )
+    `);
+
+    await db.run(
+      `CREATE INDEX IF NOT EXISTS idx_veiculos_pessoa_id ON veiculos(pessoa_id)`
+    );
+  };
+
+  if (!veiculosExiste) {
+    // Banco novo: cria a tabela já com as colunas necessárias e vínculo opcional
+    await criarTabelaVeiculos();
+  } else {
+    // Banco existente: se faltar coluna ou pessoa_id estiver NOT NULL, recria a tabela preservando dados
+    const colunas = veiculosInfo.map((c) => c.name);
+    const pessoaObrigatoria = veiculosInfo.some((c) => c.name === 'pessoa_id' && c.notnull === 1);
+    const precisaMigrar =
+      pessoaObrigatoria ||
+      !colunas.includes('proprietario') ||
+      !colunas.includes('cpfProprietario') ||
+      !veiculosInfo.some((c) => c.name === 'placa' && c.pk === 0);
+
+    if (precisaMigrar) {
+      await db.run(`
+        CREATE TABLE IF NOT EXISTS veiculos_tmp (
+          id TEXT PRIMARY KEY,
+          pessoa_id TEXT NULL,
+          proprietario TEXT,
+          cpfProprietario TEXT,
+          marcaModelo TEXT,
+          placa TEXT UNIQUE,
+          cor TEXT,
+          anoModelo TEXT,
+          criadoEm TEXT NOT NULL,
+          atualizadoEm TEXT NOT NULL,
+          FOREIGN KEY (pessoa_id) REFERENCES pessoas(id) ON DELETE SET NULL
+        )
+      `);
+
+      // Copia dados existentes preenchendo colunas novas com NULL
+      const exprId = colunas.includes('id') ? 'id' : "lower(hex(randomblob(16)))";
+      const exprPessoa = colunas.includes('pessoa_id') ? 'pessoa_id' : 'NULL';
+      const exprProp = colunas.includes('proprietario') ? 'proprietario' : 'NULL';
+      const exprCpf = colunas.includes('cpfProprietario') ? 'cpfProprietario' : 'NULL';
+      const exprMarca = colunas.includes('marcaModelo') ? 'marcaModelo' : 'NULL';
+      const exprPlaca = colunas.includes('placa') ? 'placa' : 'NULL';
+      const exprCor = colunas.includes('cor') ? 'cor' : 'NULL';
+      const exprAno = colunas.includes('anoModelo') ? 'anoModelo' : 'NULL';
+      const exprCriado = colunas.includes('criadoEm') ? 'criadoEm' : "datetime('now')";
+      const exprAtual = colunas.includes('atualizadoEm') ? 'atualizadoEm' : "datetime('now')";
+
+      await db.run(
+        `INSERT OR IGNORE INTO veiculos_tmp (
+          id, pessoa_id, proprietario, cpfProprietario, marcaModelo, placa, cor, anoModelo, criadoEm, atualizadoEm
+        )
+        SELECT ${exprId}, ${exprPessoa}, ${exprProp}, ${exprCpf}, ${exprMarca}, ${exprPlaca}, ${exprCor}, ${exprAno}, ${exprCriado}, ${exprAtual}
+        FROM veiculos`
+      );
+
+      await db.run('DROP TABLE veiculos');
+      await db.run('ALTER TABLE veiculos_tmp RENAME TO veiculos');
+      await db.run(
+        `CREATE INDEX IF NOT EXISTS idx_veiculos_pessoa_id ON veiculos(pessoa_id)`
+      );
+    } else {
+      // Caso já tenha as colunas, apenas garante o índice
+      await db.run(
+        `CREATE INDEX IF NOT EXISTS idx_veiculos_pessoa_id ON veiculos(pessoa_id)`
+      );
+    }
+  }
 
   // Tabela de vínculos de pessoas (pessoas relacionadas)
   await db.run(`

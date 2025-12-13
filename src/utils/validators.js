@@ -5,6 +5,7 @@ const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const TAMANHO_MAX_FOTO = 5 * 1024 * 1024; // 5MB
 const MIMES_PERMITIDOS = ['image/jpeg', 'image/png', 'image/webp'];
 const BASE_UPLOAD_DIR = path.join(__dirname, '../../public');
+const somenteDigitos = (valor) => String(valor || '').replace(/\D/g, '');
 
 function validarEmail(email) {
   const normalizado = normalizarEmail(email);
@@ -195,6 +196,8 @@ function validarVeiculos(veiculos) {
     throw criarErro('Veículos deve ser um array', 400);
   }
   return veiculos.map(v => ({
+    proprietario: normalizarOpcional(v.proprietario),
+    cpfProprietario: normalizarOpcional(somenteDigitos(v.cpfProprietario || v.cpf || '')),
     marcaModelo: normalizarOpcional(v.marcaModelo),
     placa: normalizarOpcional(v.placa ? String(v.placa).toUpperCase() : v.placa),
     cor: normalizarOpcional(v.cor),
@@ -251,11 +254,13 @@ function validarVinculos(vinculos) {
     observacoes: normalizarOpcional(e.observacoes),
   })).filter(e => e.nome || e.observacoes) : [];
   const veiculos = Array.isArray(vinculos.veiculos) ? vinculos.veiculos.map(v => ({
+    id: normalizarOpcional(v.id),
     marcaModelo: normalizarOpcional(v.marcaModelo),
     placa: normalizarOpcional(v.placa ? String(v.placa).toUpperCase() : v.placa),
     cor: normalizarOpcional(v.cor),
     anoModelo: normalizarOpcional(v.anoModelo ? String(v.anoModelo).replace(/\D/g, '').slice(0,4) : v.anoModelo),
-  })).filter(v => v.marcaModelo || v.placa || v.cor || v.anoModelo) : [];
+    cpfProprietario: normalizarOpcional(somenteDigitos(v.cpfProprietario || v.cpf || '')),
+  })).filter(v => v.id || v.marcaModelo || v.placa || v.cor || v.anoModelo || v.cpfProprietario) : [];
   const empregaticio = Array.isArray(vinculos.empregaticio) ? vinculos.empregaticio.map(e => ({
     info: normalizarOpcional(e.info),
   })).filter(e => e.info) : [];
