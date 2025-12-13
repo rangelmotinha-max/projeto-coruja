@@ -15,6 +15,15 @@ function wrapDatabase(db) {
         });
       });
     },
+    exec(sql) {
+      return new Promise((resolve, reject) => {
+        // Execução direta para scripts de migração com múltiplas instruções
+        db.exec(sql, (err) => {
+          if (err) return reject(err);
+          resolve();
+        });
+      });
+    },
     get(sql, params = []) {
       return new Promise((resolve, reject) => {
         db.get(sql, params, (err, row) => {
@@ -32,6 +41,82 @@ function wrapDatabase(db) {
       });
     },
   };
+}
+
+// Verifica se uma coluna existe na tabela antes de aplicar alterações destrutivas.
+async function columnExists(db, tabela, coluna) {
+  const colunas = await db.all(`PRAGMA table_info(${tabela})`);
+  return colunas.some((info) => info.name === coluna);
+}
+
+// Controla o histórico de migrações aplicadas para evitar reexecuções.
+async function markMigration(db, nome) {
+  await db.run(
+    'INSERT INTO migrations_history (name, applied_at) VALUES (?, ?)',
+    [nome, new Date().toISOString()],
+  );
+}
+
+async function isMigrationApplied(db, nome) {
+  const row = await db.get('SELECT 1 FROM migrations_history WHERE name = ?', [nome]);
+  return Boolean(row);
+}
+
+// Executa os arquivos SQL de migração em ordem, registrando o que já foi rodado.
+async function applyPendingMigrations(db) {
+  const migrationsDir = path.join(__dirname, '../../database/migrations');
+  if (!fs.existsSync(migrationsDir)) return;
+
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS migrations_history (
+      name TEXT PRIMARY KEY,
+      applied_at TEXT NOT NULL
+    )
+  `);
+
+  const arquivos = fs
+    .readdirSync(migrationsDir)
+    .filter((file) => file.endsWith('.sql'))
+    .sort();
+
+  for (const arquivo of arquivos) {
+    if (await isMigrationApplied(db, arquivo)) continue;
+
+    const caminho = path.join(migrationsDir, arquivo);
+    const sql = fs.readFileSync(caminho, 'utf8').trim();
+
+    // Evita falhar em bases novas onde a coluna já exista
+    if (arquivo.startsWith('005_')) {
+      const existeColuna = await columnExists(db, 'veiculos', 'proprietario');
+      if (existeColuna) {
+        await markMigration(db, arquivo);
+        continue;
+      }
+    }
+
+    if (!sql) {
+      await markMigration(db, arquivo);
+      continue;
+    }
+
+    try {
+      await db.exec(sql);
+    } catch (err) {
+      const mensagem = err.message || '';
+      const erroDeDuplicidade =
+        mensagem.includes('duplicate column name') || mensagem.includes('already exists');
+
+      // Marca como aplicada quando a estrutura já está presente para seguir com a fila
+      if (erroDeDuplicidade) {
+        await markMigration(db, arquivo);
+        continue;
+      }
+
+      throw err;
+    }
+
+    await markMigration(db, arquivo);
+  }
 }
 
 async function runMigrations(db) {
@@ -363,6 +448,9 @@ async function runMigrations(db) {
   await db.run(`
     CREATE INDEX IF NOT EXISTS idx_socios_cadastro_empresa_id ON socios_cadastro(empresa_id)
   `);
+
+  // Aplica migrações SQL versionadas para manter a base atualizada.
+  await applyPendingMigrations(db);
 }
 
 async function initDatabase() {
