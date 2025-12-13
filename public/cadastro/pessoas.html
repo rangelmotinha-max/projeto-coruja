@@ -432,13 +432,21 @@
         dados.emails = emails.filter(e => e.trim() !== '');
         dados.redesSociais = redes.filter(r => r.trim() !== '');
         // Adiciona veículos (ignora itens totalmente vazios)
-        dados.veiculos = veiculos.filter(v => {
-          const mm = String(v.marcaModelo || '').trim();
-          const p = String(v.placa || '').trim();
-          const c = String(v.cor || '').trim();
-          const am = String(v.anoModelo || '').trim();
-          return mm || p || c || am;
-        });
+        const nomeProprietario = String(pessoaForm?.elements['nomeCompleto']?.value || '').trim();
+        const cpfProprietario = String(pessoaForm?.elements['cpf']?.value || '').replace(/\D/g, '');
+        dados.veiculos = veiculos
+          .filter(v => {
+            const mm = String(v.marcaModelo || '').trim();
+            const p = String(v.placa || '').trim();
+            const c = String(v.cor || '').trim();
+            const am = String(v.anoModelo || '').trim();
+            return mm || p || c || am;
+          })
+          .map(v => ({
+            ...v,
+            proprietario: nomeProprietario || null,
+            cpfProprietario: cpfProprietario || null,
+          }));
 
         // Empresa removida desta tela; nenhuma coleta necessária aqui
 
@@ -467,7 +475,9 @@
             const p = String(v?.placa || '').trim();
             const c = String(v?.cor || '').trim();
             const am = String(v?.anoModelo || '').trim();
-            return (mm || p || c || am) ? { marcaModelo: mm, placa: p.toUpperCase(), cor: c, anoModelo: am } : null;
+            return (mm || p || c || am)
+              ? { marcaModelo: mm, placa: p.toUpperCase(), cor: c, anoModelo: am, cpfProprietario: cpfProprietario || null }
+              : null;
           })
           .filter(Boolean);
         if (vincVeic.length) vinculosObj.veiculos = vincVeic;
@@ -932,6 +942,12 @@
         return veiculosOpcoes.find((v) => normalizarPlaca(v.placa) === p) || null;
       };
 
+      const formatarCpf = (valor) => {
+        const dig = String(valor || '').replace(/\D/g, '').slice(0, 11);
+        if (dig.length !== 11) return dig;
+        return `${dig.slice(0,3)}.${dig.slice(3,6)}.${dig.slice(6,9)}-${dig.slice(9)}`;
+      };
+
       const renderizarResultadoBuscaVeiculo = (veiculo) => {
         const cont = document.getElementById('veiculo-busca-resultado');
         if (!cont) return;
@@ -949,6 +965,7 @@
             <tr style="background: var(--surface-muted);">
               <th style="text-align:left; padding:0.5rem;">Marca/Modelo</th>
               <th style="text-align:left; padding:0.5rem;">Placa</th>
+              <th style="text-align:left; padding:0.5rem;">CPF do Proprietário</th>
               <th style="text-align:left; padding:0.5rem;">Cor</th>
               <th style="text-align:left; padding:0.5rem;">Ano/Modelo</th>
               <th style="text-align:center; padding:0.5rem;">Confirmação</th>
@@ -961,6 +978,7 @@
         tr.style.borderBottom = '1px solid var(--border)';
         const tdMM = document.createElement('td'); tdMM.style.padding = '0.5rem'; tdMM.textContent = veiculo.marcaModelo || '';
         const tdPlaca = document.createElement('td'); tdPlaca.style.padding = '0.5rem'; tdPlaca.textContent = normalizarPlaca(veiculo.placa);
+        const tdCpf = document.createElement('td'); tdCpf.style.padding = '0.5rem'; tdCpf.textContent = formatarCpf(veiculo.cpfProprietario);
         const tdCor = document.createElement('td'); tdCor.style.padding = '0.5rem'; tdCor.textContent = veiculo.cor || '';
         const tdAno = document.createElement('td'); tdAno.style.padding = '0.5rem'; tdAno.textContent = veiculo.anoModelo || '';
         const tdConfirm = document.createElement('td'); tdConfirm.style.padding = '0.5rem'; tdConfirm.style.textAlign = 'center';
@@ -978,7 +996,7 @@
         btnNao.addEventListener('click', () => { document.getElementById('veiculo-busca-resultado').innerHTML = ''; });
         grupo.appendChild(btnSim); grupo.appendChild(btnNao);
         tdConfirm.appendChild(msg); tdConfirm.appendChild(grupo);
-        tr.appendChild(tdMM); tr.appendChild(tdPlaca); tr.appendChild(tdCor); tr.appendChild(tdAno); tr.appendChild(tdConfirm);
+        tr.appendChild(tdMM); tr.appendChild(tdPlaca); tr.appendChild(tdCpf); tr.appendChild(tdCor); tr.appendChild(tdAno); tr.appendChild(tdConfirm);
         tbody.appendChild(tr);
         cont.appendChild(table);
       };
@@ -999,14 +1017,15 @@
           <thead>
             <tr style="background: var(--surface-muted);">
               <th style="text-align:left; padding:0.5rem;">Marca/Modelo</th>
-              <th style="text-align:left; padding:0.5rem;">Placa</th>
-              <th style="text-align:left; padding:0.5rem;">Cor</th>
-              <th style="text-align:left; padding:0.5rem;">Ano/Modelo</th>
-              <th style="text-align:center; padding:0.5rem;">Ações</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        `;
+          <th style="text-align:left; padding:0.5rem;">Placa</th>
+          <th style="text-align:left; padding:0.5rem;">CPF do Proprietário</th>
+          <th style="text-align:left; padding:0.5rem;">Cor</th>
+          <th style="text-align:left; padding:0.5rem;">Ano/Modelo</th>
+          <th style="text-align:center; padding:0.5rem;">Ações</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    `;
         const tbody = table.querySelector('tbody');
         veiculosVinculadosIds.forEach((id) => {
           const v = veiculosOpcoes.find((x) => String(x.id) === String(id));
@@ -1014,18 +1033,19 @@
           const tr = document.createElement('tr'); tr.style.borderBottom = '1px solid var(--border)';
           const tdMM = document.createElement('td'); tdMM.style.padding = '0.5rem'; tdMM.textContent = v.marcaModelo || '';
           const tdPlaca = document.createElement('td'); tdPlaca.style.padding = '0.5rem'; tdPlaca.textContent = normalizarPlaca(v.placa);
-          const tdCor = document.createElement('td'); tdCor.style.padding = '0.5rem'; tdCor.textContent = v.cor || '';
-          const tdAno = document.createElement('td'); tdAno.style.padding = '0.5rem'; tdAno.textContent = v.anoModelo || '';
-          const tdAcoes = document.createElement('td'); tdAcoes.style.padding = '0.5rem'; tdAcoes.style.textAlign = 'center';
+        const tdCpf = document.createElement('td'); tdCpf.style.padding = '0.5rem'; tdCpf.textContent = formatarCpf(v.cpfProprietario);
+        const tdCor = document.createElement('td'); tdCor.style.padding = '0.5rem'; tdCor.textContent = v.cor || '';
+        const tdAno = document.createElement('td'); tdAno.style.padding = '0.5rem'; tdAno.textContent = v.anoModelo || '';
+        const tdAcoes = document.createElement('td'); tdAcoes.style.padding = '0.5rem'; tdAcoes.style.textAlign = 'center';
           const btnRemover = document.createElement('button'); btnRemover.type = 'button'; btnRemover.className = 'button button--danger'; btnRemover.textContent = 'Remover';
           btnRemover.addEventListener('click', () => {
             veiculosVinculadosIds = veiculosVinculadosIds.filter((x) => String(x) !== String(id));
             renderizarVeiculosVinculadosLista();
           });
           tdAcoes.appendChild(btnRemover);
-          tr.appendChild(tdMM); tr.appendChild(tdPlaca); tr.appendChild(tdCor); tr.appendChild(tdAno); tr.appendChild(tdAcoes);
-          tbody.appendChild(tr);
-        });
+        tr.appendChild(tdMM); tr.appendChild(tdPlaca); tr.appendChild(tdCpf); tr.appendChild(tdCor); tr.appendChild(tdAno); tr.appendChild(tdAcoes);
+        tbody.appendChild(tr);
+      });
         cont.appendChild(table);
       };
       let vinculosEmpregaticio = [];
@@ -1440,6 +1460,9 @@
           const titulo = document.createElement('span');
           titulo.style.cssText = 'font-weight:600; color: var(--text);';
           titulo.textContent = `Veículo ${indice + 1}`;
+          const aviso = document.createElement('small');
+          aviso.style.cssText = 'color: var(--muted); display:block; margin-top:0.25rem;';
+          aviso.textContent = 'O proprietário e CPF serão preenchidos com os dados da pessoa.';
           const removerBtn = document.createElement('button');
           removerBtn.type = 'button';
           removerBtn.className = 'button button--danger';
@@ -1454,6 +1477,7 @@
           header.appendChild(titulo);
           header.appendChild(removerBtn);
           div.appendChild(header);
+          div.appendChild(aviso);
 
           const grid = document.createElement('div');
           grid.className = 'form__grid form__grid--4';
