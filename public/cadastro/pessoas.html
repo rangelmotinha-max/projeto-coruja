@@ -580,8 +580,25 @@
 
         cont.innerHTML = '';
         if (!empresa) {
-          // Feedback rápido quando nenhum registro é localizado
-          cont.innerHTML = '<div class="list__item">Nenhuma empresa encontrada para o CNPJ informado.</div>';
+          // Feedback com convite para cadastro quando nenhum registro é localizado
+          const bloco = document.createElement('div');
+          bloco.className = 'list__item';
+          bloco.style.display = 'flex';
+          bloco.style.justifyContent = 'space-between';
+          bloco.style.alignItems = 'center';
+
+          const texto = document.createElement('div');
+          texto.innerHTML = '<strong>Empresa não encontrada.</strong><br />Deseja cadastrar a empresa?';
+
+          // Botão direcionando para a tela de cadastro de empresas
+          const acaoCadastrar = document.createElement('a');
+          acaoCadastrar.className = 'button button--primary';
+          acaoCadastrar.href = '/cadastro/empresas';
+          acaoCadastrar.textContent = 'Cadastrar empresa';
+
+          bloco.appendChild(texto);
+          bloco.appendChild(acaoCadastrar);
+          cont.appendChild(bloco);
           return;
         }
 
@@ -2514,7 +2531,8 @@
             }
             const empresa = buscarEmpresaPorCnpj(cnpjVal);
             renderizarResultadoBuscaEmpresa(empresa);
-            if (statusEl) statusEl.textContent = empresa ? 'Empresa encontrada.' : 'Empresa não encontrada.';
+            // Mensagem de status reforçando a possibilidade de cadastrar a empresa
+            if (statusEl) statusEl.textContent = empresa ? 'Empresa encontrada.' : 'Empresa não encontrada. Deseja cadastrar?';
           } catch (err) {
             if (statusEl) statusEl.textContent = 'Erro ao buscar empresa.';
           }
