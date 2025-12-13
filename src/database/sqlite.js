@@ -113,6 +113,31 @@ async function runMigrations(db) {
     CREATE INDEX IF NOT EXISTS idx_fotos_pessoa_id ON fotos_pessoas(pessoa_id)
   `);
 
+  // Tabela de veículos para o módulo de cadastro de frota
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS veiculos (
+      id TEXT PRIMARY KEY,
+      proprietario TEXT NOT NULL,
+      cpf TEXT NOT NULL,
+      marcaModelo TEXT,
+      placa TEXT,
+      cor TEXT,
+      anoModelo TEXT,
+      foto_caminho TEXT,
+      foto_nome TEXT,
+      foto_mime TEXT,
+      criadoEm TEXT NOT NULL,
+      atualizadoEm TEXT NOT NULL
+    )
+  `);
+
+  await db.run(`
+    CREATE INDEX IF NOT EXISTS idx_veiculos_cpf ON veiculos(cpf)
+  `);
+  await db.run(`
+    CREATE INDEX IF NOT EXISTS idx_veiculos_placa ON veiculos(placa)
+  `);
+
   // Tabela de telefones com relacionamento 1:N com pessoas
   await db.run(`
     CREATE TABLE IF NOT EXISTS telefones (
