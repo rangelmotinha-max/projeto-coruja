@@ -1,49 +1,94 @@
-const db = require('../database/sqlite');
+const { randomUUID } = require('crypto');
+const { initDatabase } = require('../database/sqlite');
 
-const createTableSQL = `
-CREATE TABLE IF NOT EXISTS veiculos (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  proprietario TEXT NOT NULL,
-  cpfProprietario TEXT NOT NULL,
-  marcaModelo TEXT NOT NULL,
-  placa TEXT NOT NULL UNIQUE,
-  cor TEXT,
-  anoModelo TEXT,
-  criadoEm DATETIME DEFAULT CURRENT_TIMESTAMP,
-  atualizadoEm DATETIME
-);
-`;
-
-async function init() {
-  await db.exec(createTableSQL);
-}
-
+// Modelo de veículos utilizado tanto pelo cadastro dedicado quanto pelos vínculos de pessoas.
+// Mantém proprietário e CPF cadastrados junto aos dados básicos do veículo.
 async function listAll() {
-  return db.all('SELECT * FROM veiculos ORDER BY atualizadoEm DESC NULLS LAST, criadoEm DESC');
+  const db = await initDatabase();
+  return db.all(
+    'SELECT * FROM veiculos ORDER BY atualizadoEm DESC, criadoEm DESC'
+  );
 }
 
 async function getByPlaca(placa) {
+  const db = await initDatabase();
   return db.get('SELECT * FROM veiculos WHERE placa = ?', [placa]);
 }
 
-async function create(veic) {
-  const stmt = await db.run(
-    'INSERT INTO veiculos (proprietario, cpfProprietario, marcaModelo, placa, cor, anoModelo) VALUES (?, ?, ?, ?, ?, ?)',
-    [veic.proprietario, veic.cpfProprietario, veic.marcaModelo, veic.placa, veic.cor || null, veic.anoModelo || null]
+async function create(veiculo) {
+  const db = await initDatabase();
+  const agora = new Date().toISOString();
+  const novo = {
+    id: randomUUID(),
+    pessoa_id: veiculo.pessoa_id || null,
+    proprietario: veiculo.proprietario || null,
+    cpfProprietario: veiculo.cpfProprietario || null,
+    marcaModelo: veiculo.marcaModelo || null,
+    placa: veiculo.placa || null,
+    cor: veiculo.cor || null,
+    anoModelo: veiculo.anoModelo || null,
+    criadoEm: agora,
+    atualizadoEm: agora,
+  };
+
+  await db.run(
+    `INSERT INTO veiculos (id, pessoa_id, proprietario, cpfProprietario, marcaModelo, placa, cor, anoModelo, criadoEm, atualizadoEm)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      novo.id,
+      novo.pessoa_id,
+      novo.proprietario,
+      novo.cpfProprietario,
+      novo.marcaModelo,
+      novo.placa,
+      novo.cor,
+      novo.anoModelo,
+      novo.criadoEm,
+      novo.atualizadoEm,
+    ]
   );
-  return { id: stmt.lastID, ...veic };
+
+  return novo;
 }
 
-async function update(id, veic) {
+async function update(id, veiculo) {
+  const db = await initDatabase();
+  const agora = new Date().toISOString();
   await db.run(
-    'UPDATE veiculos SET proprietario=?, cpfProprietario=?, marcaModelo=?, placa=?, cor=?, anoModelo=?, atualizadoEm=CURRENT_TIMESTAMP WHERE id=?',
-    [veic.proprietario, veic.cpfProprietario, veic.marcaModelo, veic.placa, veic.cor || null, veic.anoModelo || null, id]
+    `UPDATE veiculos
+      SET pessoa_id = ?, proprietario = ?, cpfProprietario = ?, marcaModelo = ?, placa = ?, cor = ?, anoModelo = ?, atualizadoEm = ?
+      WHERE id = ?`,
+    [
+      veiculo.pessoa_id || null,
+      veiculo.proprietario || null,
+      veiculo.cpfProprietario || null,
+      veiculo.marcaModelo || null,
+      veiculo.placa || null,
+      veiculo.cor || null,
+      veiculo.anoModelo || null,
+      agora,
+      id,
+    ]
   );
-  return { id, ...veic };
+
+  return { id, ...veiculo, atualizadoEm: agora };
+}
+
+async function updateOwnerData(veiculoId, pessoaId, proprietario, cpfProprietario) {
+  // Função usada ao vincular um veículo existente a uma pessoa.
+  const db = await initDatabase();
+  const agora = new Date().toISOString();
+  await db.run(
+    `UPDATE veiculos
+       SET pessoa_id = ?, proprietario = ?, cpfProprietario = ?, atualizadoEm = ?
+     WHERE id = ?`,
+    [pessoaId || null, proprietario || null, cpfProprietario || null, agora, veiculoId]
+  );
 }
 
 async function remove(id) {
+  const db = await initDatabase();
   await db.run('DELETE FROM veiculos WHERE id = ?', [id]);
 }
 
-module.exports = { init, listAll, getByPlaca, create, update, remove };
+module.exports = { listAll, getByPlaca, create, update, updateOwnerData, remove };

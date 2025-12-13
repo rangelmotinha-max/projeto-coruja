@@ -3,6 +3,9 @@ const path = require('path');
 const { randomUUID } = require('crypto');
 const { initDatabase } = require('../database/sqlite');
 
+// Normaliza CPF/CNPJ e outros numéricos mantendo apenas dígitos.
+const somenteDigitos = (valor) => String(valor || '').replace(/\D/g, '');
+
 function calcularIdadeDe(dataStr) {
   if (!dataStr) return null;
   const parts = String(dataStr).split('-');
@@ -131,8 +134,25 @@ class PessoaModel {
         const cr = (v.cor || '').trim();
         const am = (v.anoModelo || '').trim();
         if (mm || pl || cr || am) {
-          await this.adicionarVeiculo(pessoa.id, v);
+          // Vincula sempre ao proprietário correspondente aos dados da pessoa
+          await this.adicionarVeiculo(pessoa.id, v, {
+            nome: pessoa.nomeCompleto,
+            cpf: pessoa.cpf,
+          });
         }
+      }
+    }
+
+    // Vincular veículos já cadastrados via busca por placa
+    if (dados.vinculos && Array.isArray(dados.vinculos.veiculos)) {
+      const veiculosComId = dados.vinculos.veiculos.filter((v) => v.id);
+      if (veiculosComId.length) {
+        await this.vincularVeiculosExistentes(
+          pessoa.id,
+          veiculosComId.map((v) => v.id),
+          pessoa.nomeCompleto,
+          pessoa.cpf
+        );
       }
     }
 
@@ -542,17 +562,29 @@ class PessoaModel {
   static async obterVeiculosPorPessoa(pessoaId) {
     const db = await initDatabase();
     return db.all(
-      'SELECT id, marcaModelo, placa, cor, anoModelo FROM veiculos WHERE pessoa_id = ? ORDER BY criadoEm ASC',
+      'SELECT id, marcaModelo, placa, cor, anoModelo, proprietario, cpfProprietario FROM veiculos WHERE pessoa_id = ? ORDER BY criadoEm ASC',
       [pessoaId]
     );
   }
 
-  static async adicionarVeiculo(pessoaId, veiculo) {
+  static async obterDadosProprietario(pessoaId, fallback = {}) {
+    const db = await initDatabase();
+    const pessoa = await db.get('SELECT nomeCompleto, cpf FROM pessoas WHERE id = ?', [pessoaId]);
+    return {
+      nome: fallback.nome ?? pessoa?.nomeCompleto ?? null,
+      cpf: somenteDigitos(fallback.cpf ?? pessoa?.cpf ?? ''),
+    };
+  }
+
+  static async adicionarVeiculo(pessoaId, veiculo, proprietarioInfo = {}) {
     const db = await initDatabase();
     const agora = new Date().toISOString();
+    const dadosProprietario = await this.obterDadosProprietario(pessoaId, proprietarioInfo);
     const novo = {
       id: randomUUID(),
       pessoa_id: pessoaId,
+      proprietario: dadosProprietario.nome,
+      cpfProprietario: dadosProprietario.cpf || null,
       marcaModelo: veiculo.marcaModelo || null,
       placa: veiculo.placa || null,
       cor: veiculo.cor || null,
@@ -561,11 +593,13 @@ class PessoaModel {
       atualizadoEm: agora,
     };
     await db.run(
-      `INSERT INTO veiculos (id, pessoa_id, marcaModelo, placa, cor, anoModelo, criadoEm, atualizadoEm)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO veiculos (id, pessoa_id, proprietario, cpfProprietario, marcaModelo, placa, cor, anoModelo, criadoEm, atualizadoEm)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         novo.id,
         novo.pessoa_id,
+        novo.proprietario,
+        novo.cpfProprietario,
         novo.marcaModelo,
         novo.placa,
         novo.cor,
@@ -581,6 +615,21 @@ class PessoaModel {
     const db = await initDatabase();
     const resultado = await db.run('DELETE FROM veiculos WHERE id = ?', [veiculoId]);
     return resultado.changes > 0;
+  }
+
+  static async vincularVeiculosExistentes(pessoaId, veiculoIds = [], nomeProprietario, cpfProprietario) {
+    // Atualiza veículos já cadastrados para refletir vínculo com a pessoa atual
+    if (!veiculoIds.length) return;
+    const db = await initDatabase();
+    const agora = new Date().toISOString();
+    for (const veiculoId of veiculoIds) {
+      await db.run(
+        `UPDATE veiculos
+           SET pessoa_id = ?, proprietario = ?, cpfProprietario = ?, atualizadoEm = ?
+         WHERE id = ?`,
+        [pessoaId, nomeProprietario || null, somenteDigitos(cpfProprietario || ''), agora, veiculoId]
+      );
+    }
   }
 
   // Vínculos > Pessoas

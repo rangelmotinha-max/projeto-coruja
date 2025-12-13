@@ -1,12 +1,14 @@
 -- Create veiculos table
 CREATE TABLE IF NOT EXISTS veiculos (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  proprietario TEXT NOT NULL,
-  cpfProprietario TEXT NOT NULL,
-  marcaModelo TEXT NOT NULL,
-  placa TEXT NOT NULL UNIQUE,
+  id TEXT PRIMARY KEY,
+  pessoa_id TEXT NULL,
+  proprietario TEXT,
+  cpfProprietario TEXT,
+  marcaModelo TEXT,
+  placa TEXT UNIQUE,
   cor TEXT,
   anoModelo TEXT,
-  criadoEm DATETIME DEFAULT CURRENT_TIMESTAMP,
-  atualizadoEm DATETIME
+  criadoEm TEXT NOT NULL,
+  atualizadoEm TEXT NOT NULL,
+  FOREIGN KEY (pessoa_id) REFERENCES pessoas(id) ON DELETE SET NULL
 );

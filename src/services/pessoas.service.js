@@ -77,6 +77,10 @@ async function atualizar(id, payload, arquivos = []) {
   } = validarAtualizacaoPessoa(payload, arquivos);
   const existente = await PessoaModel.findById(id);
   if (!existente) throw criarErro('Pessoa não encontrada', 404);
+  const dadosProprietario = {
+    nome: atualizacoes.nomeCompleto ?? existente.nomeCompleto,
+    cpf: atualizacoes.cpf ?? existente.cpf,
+  };
 
   // Processar endereços validados, mantendo limpeza consistente antes de regravar.
   const enderecosValidados = Array.isArray(enderecos) ? enderecos.filter(Boolean) : null;
@@ -156,7 +160,7 @@ async function atualizar(id, payload, arquivos = []) {
       const cr = (v.cor || '').trim();
       const am = (v.anoModelo || '').trim();
       if (mm || pl || cr || am) {
-        await PessoaModel.adicionarVeiculo(id, v);
+        await PessoaModel.adicionarVeiculo(id, v, dadosProprietario);
       }
     }
   }
@@ -174,6 +178,19 @@ async function atualizar(id, payload, arquivos = []) {
       if ((vp.nome || vp.cpf || vp.tipo || '').toString().trim().length) {
         await PessoaModel.adicionarVinculoPessoa(id, vp);
       }
+    }
+  }
+
+  // Vincula veículos existentes encontrados via busca de placa
+  if (vinculos && Array.isArray(vinculos.veiculos)) {
+    const veiculosComId = vinculos.veiculos.filter((v) => v.id);
+    if (veiculosComId.length) {
+      await PessoaModel.vincularVeiculosExistentes(
+        id,
+        veiculosComId.map((v) => v.id),
+        dadosProprietario.nome,
+        dadosProprietario.cpf
+      );
     }
   }
 
