@@ -204,7 +204,7 @@
                   <div class="form__actions" style="margin:0;">
                     <button class="button button--secondary" id="buscar-vinculo-pessoa" type="button" aria-label="Buscar pessoa para vínculo" title="Procurar">Procurar</button>
                   </div>
-                  <small style="color: var(--muted);">Utilize o nome ou CPF para localizar e vincular uma pessoa já cadastrada.</small>
+                  
                 </div>
                 <div id="lista-vinculos-pessoas" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
               </div>
@@ -678,7 +678,7 @@
         if (!cont) return;
         cont.innerHTML = '';
         if (!empresasVinculadas.length) {
-          cont.innerHTML = '<div class="list__item">Nenhuma empresa vinculada.</div>';
+          cont.innerHTML = '';
           return;
         }
         const table = document.createElement('table');
