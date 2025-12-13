@@ -375,7 +375,12 @@
           headers.set('Content-Type', 'application/json');
         }
 
-        return fetch(url, { ...options, headers });
+        // Inclui cookies (credentials) por padrão para enviar o token armazenado
+        return fetch(url, {
+          ...options,
+          credentials: options.credentials ?? 'include',
+          headers,
+        });
       };
 
       const exibirMensagem = (texto, tipo = 'info') => {
