@@ -2,14 +2,21 @@ const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
 
-// Diretório de armazenamento de fotos de pessoas
-const uploadDir = path.join(__dirname, '../../public/uploads/pessoas');
-fs.mkdirSync(uploadDir, { recursive: true });
+// Diretórios de armazenamento para diferentes tipos de upload
+const uploadDirFotos = path.join(__dirname, '../../public/uploads/pessoas');
+const uploadDirDocumentos = path.join(__dirname, '../../public/uploads/ocorrencias');
+// Garante que os diretórios existam antes de receber arquivos
+fs.mkdirSync(uploadDirFotos, { recursive: true });
+fs.mkdirSync(uploadDirDocumentos, { recursive: true });
 
 // Configuração do multer com validações de tipo/tamanho no próprio middleware
 const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
-    cb(null, uploadDir);
+  destination: (_req, file, cb) => {
+    // Fotos continuam em "pessoas"; documentos de ocorrência vão para o diretório próprio
+    const destino = file.fieldname === 'documentosOcorrenciasPoliciais'
+      ? uploadDirDocumentos
+      : uploadDirFotos;
+    cb(null, destino);
   },
   filename: (_req, file, cb) => {
     const extensao = path.extname(file.originalname) || '';
@@ -19,18 +26,33 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (_req, file, cb) => {
-  const permitidos = ['image/jpeg', 'image/png', 'image/webp'];
-  if (!permitidos.includes(file.mimetype)) {
+  // Comentário: validação diferenciada por campo para manter segurança e flexibilidade
+  const tiposImagem = ['image/jpeg', 'image/png', 'image/webp'];
+  const tiposDocumento = [
+    ...tiposImagem,
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  ];
+
+  if (file.fieldname === 'documentosOcorrenciasPoliciais') {
+    if (!tiposDocumento.includes(file.mimetype)) {
+      return cb(new Error('Tipo de documento não suportado. Envie PDF, DOC, DOCX ou imagens.'));
+    }
+    return cb(null, true);
+  }
+
+  if (!tiposImagem.includes(file.mimetype)) {
     return cb(new Error('Tipo de imagem não suportado. Envie PNG, JPG ou WEBP.'));
   }
-  cb(null, true);
+  return cb(null, true);
 };
 
-// Limite de 5MB por imagem, coerente com a validação de negócio
-const uploadFotosPessoa = multer({
+// Limite de 10MB para contemplar documentos, mantendo fotos dentro do mesmo pipeline
+const uploadPessoaArquivos = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter,
 });
 
-module.exports = { uploadFotosPessoa };
+module.exports = { uploadPessoaArquivos };

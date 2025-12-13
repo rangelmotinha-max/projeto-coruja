@@ -479,10 +479,19 @@
 
         // Montar ocorrências
         const ocorrenciasObj = {};
-        const occPol = (ocorrenciasPoliciais || []).map(o => {
+        const occPol = (ocorrenciasPoliciais || []).map((o, index) => {
           const data = String(o?.data || '').trim();
           const info = String(o?.info || '').trim();
-          return (data || info) ? { data, info } : null;
+          const documento = String(o?.documento?.caminho || o?.documento || '').trim();
+          const documentoNome = String(o?.documento?.nome || o?.documentoNome || '').trim();
+          const possuiArquivo = !!o?.arquivo;
+          const possuiDados = data || info || documento || possuiArquivo;
+          if (!possuiDados) return null;
+          const item = { data, info };
+          if (documento) item.documento = documento;
+          if (documentoNome) item.documentoNome = documentoNome;
+          if (possuiArquivo) item.documentoUploadIndex = index;
+          return item;
         }).filter(Boolean);
         const procList = (processos || []).map(p => {
           const data = String(p?.data || '').trim();
@@ -540,6 +549,14 @@
         if (Array.isArray(dados?.fotosExistentes)) {
           formDataEnvio.append('fotosExistentes', JSON.stringify(dados.fotosExistentes));
         }
+
+        // Inclui documentos anexados nas ocorrências policiais
+        ocorrenciasPoliciais.forEach((ocorrencia, index) => {
+          if (ocorrencia?.arquivo) {
+            const nomeArquivo = ocorrencia.documentoNome || ocorrencia.arquivo.name || `documento-${index + 1}`;
+            formDataEnvio.append('documentosOcorrenciasPoliciais', ocorrencia.arquivo, nomeArquivo);
+          }
+        });
 
         return formDataEnvio;
       };
@@ -1540,12 +1557,98 @@
         });
       };
 
-      const renderizarOcorrenciasPoliciais = () => renderizarLinhaDataInfo(ocorrenciasPoliciais, 'lista-ocorrencias-policiais', 'Data', 'Informação');
+      const renderizarOcorrenciasPoliciais = () => {
+        const lista = document.getElementById('lista-ocorrencias-policiais');
+        if (!lista) return;
+        lista.innerHTML = '';
+
+        if (ocorrenciasPoliciais.length === 0) {
+          lista.innerHTML = '<p style="color: var(--muted); font-size: 0.85rem; margin: 0;">Nenhuma ocorrência adicionada. Clique para adicionar.</p>';
+          return;
+        }
+
+        ocorrenciasPoliciais.forEach((item, i) => {
+          const linha = document.createElement('div');
+          linha.style.cssText = 'display:grid; grid-template-columns: 10rem 1fr 15rem auto; gap:0.5rem; align-items:end;';
+
+          // Campo de data da ocorrência
+          const campoData = document.createElement('label');
+          campoData.className = 'form__field';
+          campoData.innerHTML = `<span class="form__label">Data</span><input class="form__input occ-data" type="date" data-index="${i}" />`;
+
+          // Campo de informações da ocorrência
+          const campoInfo = document.createElement('label');
+          campoInfo.className = 'form__field';
+          campoInfo.innerHTML = `<span class="form__label">Informação</span><input class="form__input occ-info" type="text" data-index="${i}" placeholder="Informação" />`;
+
+          // Campo para anexar documento
+          const campoDoc = document.createElement('div');
+          campoDoc.className = 'form__field';
+          const labelDoc = document.createElement('span');
+          labelDoc.className = 'form__label';
+          labelDoc.textContent = 'Documento';
+          const inputDoc = document.createElement('input');
+          inputDoc.type = 'file';
+          inputDoc.className = 'form__input occ-doc';
+          inputDoc.dataset.index = i;
+          inputDoc.accept = '.pdf,.doc,.docx,image/*';
+          const hintDoc = document.createElement('small');
+          hintDoc.className = 'form__hint';
+          const nomeDocumento = item?.arquivo?.name || item?.documento?.nome;
+          hintDoc.textContent = nomeDocumento ? `Selecionado: ${nomeDocumento}` : 'Nenhum documento anexado';
+          const linkDoc = document.createElement('a');
+          linkDoc.style.display = 'block';
+          linkDoc.style.marginTop = '0.25rem';
+          if (item?.documento?.caminho) {
+            linkDoc.href = item.documento.caminho;
+            linkDoc.target = '_blank';
+            linkDoc.rel = 'noreferrer noopener';
+            linkDoc.textContent = 'Visualizar documento salvo';
+          }
+
+          inputDoc.addEventListener('change', (e) => {
+            const arquivoSelecionado = e.target.files?.[0] || null;
+            ocorrenciasPoliciais[i].arquivo = arquivoSelecionado;
+            ocorrenciasPoliciais[i].documentoNome = arquivoSelecionado?.name || item?.documento?.nome || '';
+            // Comentário: ao selecionar novo arquivo, mantemos referência para envio posterior via FormData
+            hintDoc.textContent = arquivoSelecionado ? `Selecionado: ${arquivoSelecionado.name}` : 'Nenhum documento anexado';
+          });
+
+          campoDoc.appendChild(labelDoc);
+          campoDoc.appendChild(inputDoc);
+          campoDoc.appendChild(hintDoc);
+          if (linkDoc.href) campoDoc.appendChild(linkDoc);
+
+          const btnRemover = document.createElement('button');
+          btnRemover.className = 'button button--danger';
+          btnRemover.type = 'button';
+          btnRemover.title = 'Excluir';
+          btnRemover.setAttribute('aria-label', 'Remover');
+          btnRemover.textContent = '−';
+
+          const dataEl = campoData.querySelector('.occ-data');
+          const infoEl = campoInfo.querySelector('.occ-info');
+          dataEl.value = String(item?.data || '');
+          infoEl.value = String(item?.info || '');
+          dataEl.addEventListener('input', (e) => { ocorrenciasPoliciais[i].data = e.target.value; });
+          infoEl.addEventListener('input', (e) => { ocorrenciasPoliciais[i].info = e.target.value; });
+          btnRemover.addEventListener('click', () => { ocorrenciasPoliciais.splice(i,1); renderizarOcorrenciasPoliciais(); });
+
+          linha.appendChild(campoData);
+          linha.appendChild(campoInfo);
+          linha.appendChild(campoDoc);
+          linha.appendChild(btnRemover);
+          lista.appendChild(linha);
+        });
+      };
       const renderizarProcessos = () => renderizarLinhaDataInfo(processos, 'lista-processos', 'Data', 'Informação');
       const renderizarAbordagens = () => renderizarLinhaDataInfo(abordagens, 'lista-abordagens', 'Data', 'Informação');
       const renderizarPrisoes = () => renderizarLinhaDataInfo(prisoes, 'lista-prisoes', 'Data', 'Informação');
 
-      const adicionarOcorrenciaPolicial = () => { ocorrenciasPoliciais.push({ data: '', info: '' }); renderizarOcorrenciasPoliciais(); };
+      const adicionarOcorrenciaPolicial = () => {
+        ocorrenciasPoliciais.push({ data: '', info: '', documento: null, documentoNome: '', arquivo: null });
+        renderizarOcorrenciasPoliciais();
+      };
       const adicionarProcesso = () => { processos.push({ data: '', info: '' }); renderizarProcessos(); };
       const adicionarAbordagem = () => { abordagens.push({ data: '', info: '' }); renderizarAbordagens(); };
       const adicionarPrisao = () => { prisoes.push({ data: '', info: '' }); renderizarPrisoes(); };
@@ -2010,7 +2113,20 @@
 
         // Carrega ocorrências
         if (pessoa.ocorrencias) {
-          ocorrenciasPoliciais = Array.isArray(pessoa.ocorrencias.policiais) ? JSON.parse(JSON.stringify(pessoa.ocorrencias.policiais)) : [];
+          ocorrenciasPoliciais = Array.isArray(pessoa.ocorrencias.policiais)
+            ? pessoa.ocorrencias.policiais.map((ocorrencia) => ({
+                data: ocorrencia?.data || '',
+                info: ocorrencia?.info || '',
+                documento: ocorrencia?.documento
+                  ? {
+                      caminho: ocorrencia.documento.caminho || ocorrencia.documento,
+                      nome: ocorrencia.documento.nome || ocorrencia.documentoNome || ocorrencia.documento.caminho || '',
+                    }
+                  : null,
+                documentoNome: ocorrencia?.documentoNome || ocorrencia?.documento?.nome || '',
+                arquivo: null,
+              }))
+            : [];
           processos = Array.isArray(pessoa.ocorrencias.processos) ? JSON.parse(JSON.stringify(pessoa.ocorrencias.processos)) : [];
           abordagens = Array.isArray(pessoa.ocorrencias.abordagens) ? JSON.parse(JSON.stringify(pessoa.ocorrencias.abordagens)) : [];
           prisoes = Array.isArray(pessoa.ocorrencias.prisoes) ? JSON.parse(JSON.stringify(pessoa.ocorrencias.prisoes)) : [];
@@ -2337,7 +2453,9 @@
           exibirMensagemForm('Enviando dados...', 'info');
           submitButton.disabled = true;
 
-          const hasFiles = Array.isArray(fotosSelecionadas) && fotosSelecionadas.some(f => !!f.file);
+          const hasFotosNovas = Array.isArray(fotosSelecionadas) && fotosSelecionadas.some(f => !!f.file);
+          const hasDocsOcorrencia = Array.isArray(ocorrenciasPoliciais) && ocorrenciasPoliciais.some((o) => !!o.arquivo);
+          const hasFiles = hasFotosNovas || hasDocsOcorrencia;
           const body = hasFiles ? montarFormDataEnvio(payload) : JSON.stringify(payload);
 
           const response = await fetchAutenticado(url, {

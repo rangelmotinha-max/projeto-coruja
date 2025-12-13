@@ -110,6 +110,19 @@ function validarFotosUpload(arquivos) {
   });
 }
 
+function extrairArquivosCampo(arquivos, campo) {
+  // Comentário: permite receber tanto arrays quanto objetos retornados pelo multer.fields
+  if (!arquivos) return [];
+  if (Array.isArray(arquivos)) {
+    return arquivos.filter((arq) => arq?.fieldname === campo);
+  }
+  if (arquivos && typeof arquivos === 'object') {
+    const lista = arquivos[campo];
+    return Array.isArray(lista) ? lista : [];
+  }
+  return [];
+}
+
 // Validação de criação de pessoa com campos obrigatórios e opcionais.
 function limparListaStrings(lista, transform = (v) => v) {
   if (!lista) return [];
@@ -128,8 +141,9 @@ function validarCadastroPessoa(payload, arquivos = []) {
   const redesSociaisArray = limparListaStrings(payload.redesSociais || []);
   // Empresa removida do cadastro de Pessoas; não validar aqui
   const vinculosObj = validarVinculos(payload.vinculos);
-  const ocorrenciasObj = validarOcorrencias(payload.ocorrencias);
-  const fotosUpload = validarFotosUpload(arquivos);
+  const docsOcorrencias = extrairArquivosCampo(arquivos, 'documentosOcorrenciasPoliciais');
+  const ocorrenciasObj = validarOcorrencias(payload.ocorrencias, docsOcorrencias);
+  const fotosUpload = validarFotosUpload(extrairArquivosCampo(arquivos, 'fotos'));
 
   const primeiroTelefone = payload.telefone ? normalizarOpcional(payload.telefone) : (telefonesArray[0] || null);
 
@@ -252,13 +266,45 @@ function validarVinculos(vinculos) {
   return { pessoas, empresas, entidades, empregaticio };
 }
 
-function validarOcorrencias(ocorrencias) {
+function validarOcorrencias(ocorrencias, documentosOcorrencias = []) {
   if (!ocorrencias || typeof ocorrencias !== 'object') return undefined;
-  const normalizarItens = (lista) => Array.isArray(lista) ? lista.map(i => ({
-    data: normalizarOpcional(i.data),
-    info: normalizarOpcional(i.info),
-  })).filter(i => i.data || i.info) : [];
-  const policiais = normalizarItens(ocorrencias.policiais);
+  const normalizarItens = (lista, docs = []) => Array.isArray(lista) ? lista.map((i, idx) => {
+    const data = normalizarOpcional(i.data);
+    const info = normalizarOpcional(i.info);
+    const caminhoDoc = normalizarOpcional(i.documento);
+    const nomeDoc = normalizarOpcional(i.documentoNome);
+    const indiceUpload = Number.isInteger(i?.documentoUploadIndex)
+      ? i.documentoUploadIndex
+      : (i?.documentoUploadIndex !== undefined ? parseInt(i.documentoUploadIndex, 10) : null);
+    const arquivo = docs[idx] || (Number.isInteger(indiceUpload) ? docs[indiceUpload] : null);
+
+    // Monta representação do documento priorizando uploads novos
+    const documento = (() => {
+      if (arquivo) {
+        return {
+          caminho: `/uploads/ocorrencias/${arquivo.filename}`,
+          nome: arquivo.originalname,
+          mimeType: arquivo.mimetype,
+          tamanho: arquivo.size,
+        };
+      }
+      if (caminhoDoc) {
+        return {
+          caminho: caminhoDoc,
+          nome: nomeDoc || caminhoDoc,
+        };
+      }
+      return null;
+    })();
+
+    const temDados = data || info || documento;
+    if (!temDados) return null;
+    const item = { data, info };
+    if (documento) item.documento = documento;
+    return item;
+  }).filter(Boolean) : [];
+
+  const policiais = normalizarItens(ocorrencias.policiais, documentosOcorrencias);
   const processos = normalizarItens(ocorrencias.processos);
   const abordagens = normalizarItens(ocorrencias.abordagens);
   const prisoes = normalizarItens(ocorrencias.prisoes);
@@ -326,14 +372,15 @@ function validarAtualizacaoPessoa(payload, arquivos = []) {
     atualizacoes.redesSociais = limparListaStrings(payload.redesSociais || []);
   }
   // Validar fotos novas e remoções solicitadas
-  atualizacoes.fotos = validarFotosUpload(arquivos);
+  atualizacoes.fotos = validarFotosUpload(extrairArquivosCampo(arquivos, 'fotos'));
   atualizacoes.fotosParaRemover = normalizarListaIds(payload.fotosParaRemover);
   // Empresa removida do cadastro de Pessoas; ignorar atualizações
   if (payload.vinculos !== undefined) {
     atualizacoes.vinculos = validarVinculos(payload.vinculos);
   }
   if (payload.ocorrencias !== undefined) {
-    atualizacoes.ocorrencias = validarOcorrencias(payload.ocorrencias);
+    const docsOcorrencias = extrairArquivosCampo(arquivos, 'documentosOcorrenciasPoliciais');
+    atualizacoes.ocorrencias = validarOcorrencias(payload.ocorrencias, docsOcorrencias);
   }
 
   // Validar índice do endereço atual
