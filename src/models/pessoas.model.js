@@ -206,49 +206,58 @@ class PessoaModel {
     const where = ['1=1'];
     const params = [];
 
+    // Normaliza termo para comparação case-insensitive preservando curingas
+    const normalizarTermoLike = (valor) => `%${String(valor).toLowerCase()}%`;
+
     // Filtro de nome completo ou apelido.
     if (filtros.nomeOuApelido) {
-      where.push('(p.nomeCompleto LIKE ? OR p.apelido LIKE ?)');
-      const termo = `%${filtros.nomeOuApelido}%`;
-      params.push(termo, termo);
+      where.push('(LOWER(p.nomeCompleto) LIKE ? OR LOWER(p.apelido) LIKE ?)');
+      const termoNormalizado = normalizarTermoLike(filtros.nomeOuApelido);
+      params.push(termoNormalizado, termoNormalizado);
     }
 
     // Filtro por documento (CPF, RG ou CNH).
     if (filtros.documento) {
-      where.push('(p.cpf LIKE ? OR p.rg LIKE ? OR p.cnh LIKE ?)');
-      const termo = `%${filtros.documento}%`;
-      params.push(termo, termo, termo);
+      where.push('(LOWER(p.cpf) LIKE ? OR LOWER(p.rg) LIKE ? OR LOWER(p.cnh) LIKE ?)');
+      const termoNormalizado = normalizarTermoLike(filtros.documento);
+      params.push(termoNormalizado, termoNormalizado, termoNormalizado);
     }
 
     // Filtro por data de nascimento.
     if (filtros.dataNascimento) {
-      where.push('p.dataNascimento LIKE ?');
-      params.push(`%${filtros.dataNascimento}%`);
+      where.push('LOWER(p.dataNascimento) LIKE ?');
+      params.push(normalizarTermoLike(filtros.dataNascimento));
     }
 
     // Filtro por nome da mãe.
     if (filtros.nomeMae) {
-      where.push('p.nomeMae LIKE ?');
-      params.push(`%${filtros.nomeMae}%`);
+      where.push('LOWER(p.nomeMae) LIKE ?');
+      params.push(normalizarTermoLike(filtros.nomeMae));
     }
 
     // Filtro por nome do pai.
     if (filtros.nomePai) {
-      where.push('p.nomePai LIKE ?');
-      params.push(`%${filtros.nomePai}%`);
+      where.push('LOWER(p.nomePai) LIKE ?');
+      params.push(normalizarTermoLike(filtros.nomePai));
     }
 
     // Filtro por telefone considerando coluna legado e tabela de telefones.
     if (filtros.telefone) {
-      const termo = `%${filtros.telefone}%`;
-      where.push('(p.telefone LIKE ? OR EXISTS (SELECT 1 FROM telefones t WHERE t.pessoa_id = p.id AND t.numero LIKE ?))');
-      params.push(termo, termo);
+      const termoNormalizado = normalizarTermoLike(filtros.telefone);
+      where.push('(' +
+        'LOWER(p.telefone) LIKE ? OR EXISTS (' +
+          'SELECT 1 FROM telefones t WHERE t.pessoa_id = p.id AND LOWER(t.numero) LIKE ?' +
+        ')' +
+      ')');
+      params.push(termoNormalizado, termoNormalizado);
     }
 
     // Filtro por email vinculado.
     if (filtros.email) {
-      where.push('EXISTS (SELECT 1 FROM emails e WHERE e.pessoa_id = p.id AND e.email LIKE ?)');
-      params.push(`%${filtros.email}%`);
+      where.push(
+        'EXISTS (SELECT 1 FROM emails e WHERE e.pessoa_id = p.id AND LOWER(e.email) LIKE ?)' // comparação sem diferenciar maiúsculas
+      );
+      params.push(normalizarTermoLike(filtros.email));
     }
 
     const pessoas = await db.all(
