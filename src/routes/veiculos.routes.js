@@ -1,21 +1,15 @@
 const express = require('express');
-const veiculosController = require('../controllers/veiculos.controller');
-const authMiddleware = require('../middlewares/auth');
-const authorize = require('../middlewares/authorize');
-const { uploadFotosVeiculo } = require('../middlewares/upload');
-
 const router = express.Router();
+const ctrl = require('../controllers/veiculos.controller');
+const auth = require('../middlewares/auth');
+const authorize = require('../middlewares/authorize');
 
-// Todas as rotas exigem usuário autenticado.
-router.use(authMiddleware);
+// Require authentication for all vehicle routes
+router.use(auth);
 
-// Cadastro de veículos com upload opcional de foto.
-router.post('/', authorize(['admin', 'editor']), uploadFotosVeiculo.array('foto', 1), veiculosController.criar);
-
-// Listagem geral para popular a tabela da tela.
-router.get('/', authorize(['admin', 'editor', 'viewer', 'user', 'leitor']), veiculosController.listar);
-
-// Consulta individual por ID.
-router.get('/:id', authorize(['admin', 'editor', 'viewer', 'user', 'leitor']), veiculosController.buscarPorId);
+router.get('/', authorize(['admin','gestor','operador']), ctrl.list);
+router.post('/', authorize(['admin','gestor']), ctrl.create);
+router.put('/:id', authorize(['admin','gestor']), ctrl.update);
+router.delete('/:id', authorize(['admin']), ctrl.remove);
 
 module.exports = router;

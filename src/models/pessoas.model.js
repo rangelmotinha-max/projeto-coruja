@@ -123,6 +123,19 @@ class PessoaModel {
       await this.upsertEmpresa(pessoa.id, dados.empresa);
     }
 
+    // Salvar veículos se fornecidos
+    if (dados.veiculos && Array.isArray(dados.veiculos)) {
+      for (const v of dados.veiculos) {
+        const mm = (v.marcaModelo || '').trim();
+        const pl = (v.placa || '').trim();
+        const cr = (v.cor || '').trim();
+        const am = (v.anoModelo || '').trim();
+        if (mm || pl || cr || am) {
+          await this.adicionarVeiculo(pessoa.id, v);
+        }
+      }
+    }
+
     // Salvar vínculos (pessoas relacionadas)
     if (dados.vinculos && Array.isArray(dados.vinculos.pessoas)) {
       for (const vp of dados.vinculos.pessoas) {
@@ -172,6 +185,7 @@ class PessoaModel {
     pessoa.emails = (await this.obterEmailsPorPessoa(pessoa.id)).map(e => e.email);
     pessoa.redesSociais = (await this.obterRedesPorPessoa(pessoa.id)).map(r => r.perfil);
     pessoa.fotos = await this.obterFotosPorPessoa(pessoa.id);
+    pessoa.veiculos = await this.obterVeiculosPorPessoa(pessoa.id);
     pessoa.empresa = await this.obterEmpresaPorPessoa(pessoa.id);
     // Vinculos: preferir JSON quando existir, mas manter compatibilidade com tabela vinculos_pessoas
     let vinculosFromJson = {};
@@ -522,6 +536,51 @@ class PessoaModel {
     for (const foto of fotos) {
       await this.removerFoto(foto.id);
     }
+  }
+
+  // Veículos
+  static async obterVeiculosPorPessoa(pessoaId) {
+    const db = await initDatabase();
+    return db.all(
+      'SELECT id, marcaModelo, placa, cor, anoModelo FROM veiculos WHERE pessoa_id = ? ORDER BY criadoEm ASC',
+      [pessoaId]
+    );
+  }
+
+  static async adicionarVeiculo(pessoaId, veiculo) {
+    const db = await initDatabase();
+    const agora = new Date().toISOString();
+    const novo = {
+      id: randomUUID(),
+      pessoa_id: pessoaId,
+      marcaModelo: veiculo.marcaModelo || null,
+      placa: veiculo.placa || null,
+      cor: veiculo.cor || null,
+      anoModelo: veiculo.anoModelo || null,
+      criadoEm: agora,
+      atualizadoEm: agora,
+    };
+    await db.run(
+      `INSERT INTO veiculos (id, pessoa_id, marcaModelo, placa, cor, anoModelo, criadoEm, atualizadoEm)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        novo.id,
+        novo.pessoa_id,
+        novo.marcaModelo,
+        novo.placa,
+        novo.cor,
+        novo.anoModelo,
+        novo.criadoEm,
+        novo.atualizadoEm,
+      ]
+    );
+    return novo;
+  }
+
+  static async removerVeiculo(veiculoId) {
+    const db = await initDatabase();
+    const resultado = await db.run('DELETE FROM veiculos WHERE id = ?', [veiculoId]);
+    return resultado.changes > 0;
   }
 
   // Vínculos > Pessoas

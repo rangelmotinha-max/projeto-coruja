@@ -5,38 +5,6 @@ const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const TAMANHO_MAX_FOTO = 5 * 1024 * 1024; // 5MB
 const MIMES_PERMITIDOS = ['image/jpeg', 'image/png', 'image/webp'];
 const BASE_UPLOAD_DIR = path.join(__dirname, '../../public');
-const somenteDigitos = (valor) => String(valor || '').replace(/\D/g, '');
-
-// Validação de CPF reutilizável para cadastros que dependem do documento.
-function validarCpfObrigatorio(cpf) {
-  const numeros = somenteDigitos(cpf);
-  if (numeros.length !== 11) {
-    throw criarErro('CPF inválido: informe 11 dígitos.', 400);
-  }
-
-  // Rejeita sequências repetidas (ex.: 11111111111)
-  if (/^(\d)\1{10}$/.test(numeros)) {
-    throw criarErro('CPF inválido: sequência repetida.', 400);
-  }
-
-  // Calcula os dígitos verificadores para garantir integridade.
-  const calcularDigito = (base) => {
-    let soma = 0;
-    for (let i = 0; i < base.length; i += 1) {
-      soma += parseInt(base[i], 10) * (base.length + 1 - i);
-    }
-    const resto = soma % 11;
-    return resto < 2 ? '0' : String(11 - resto);
-  };
-
-  const primeiro = calcularDigito(numeros.slice(0, 9));
-  const segundo = calcularDigito(numeros.slice(0, 10));
-  if (numeros[9] !== primeiro || numeros[10] !== segundo) {
-    throw criarErro('CPF inválido: dígitos verificadores não conferem.', 400);
-  }
-
-  return numeros;
-}
 
 function validarEmail(email) {
   const normalizado = normalizarEmail(email);
@@ -158,6 +126,7 @@ function validarCadastroPessoa(payload, arquivos = []) {
   const telefonesArray = limparListaStrings(payload.telefones || []);
   const emailsArray = limparListaStrings(payload.emails || [], normalizarEmail);
   const redesSociaisArray = limparListaStrings(payload.redesSociais || []);
+  const veiculosArray = validarVeiculos(payload.veiculos || []);
   // Empresa removida do cadastro de Pessoas; não validar aqui
   const vinculosObj = validarVinculos(payload.vinculos);
   const ocorrenciasObj = validarOcorrencias(payload.ocorrencias);
@@ -191,6 +160,7 @@ function validarCadastroPessoa(payload, arquivos = []) {
     telefones: telefonesArray,
     emails: emailsArray,
     redesSociais: redesSociaisArray,
+    veiculos: veiculosArray,
     vinculos: vinculosObj,
     ocorrencias: ocorrenciasObj,
     fotos: fotosUpload,
@@ -215,6 +185,20 @@ function validarEnderecos(enderecos) {
     // Permite salvar latitude/longitude em formato livre (ex: "-23.5, -46.6")
     latLong: normalizarOpcional(endereco.latLong),
     cep: normalizarOpcional(endereco.cep),
+  }));
+}
+
+// Valida array de veículos
+function validarVeiculos(veiculos) {
+  if (!veiculos) return [];
+  if (!Array.isArray(veiculos)) {
+    throw criarErro('Veículos deve ser um array', 400);
+  }
+  return veiculos.map(v => ({
+    marcaModelo: normalizarOpcional(v.marcaModelo),
+    placa: normalizarOpcional(v.placa ? String(v.placa).toUpperCase() : v.placa),
+    cor: normalizarOpcional(v.cor),
+    anoModelo: normalizarOpcional(v.anoModelo ? String(v.anoModelo).replace(/\D/g, '').slice(0,4) : v.anoModelo),
   }));
 }
 
@@ -266,12 +250,18 @@ function validarVinculos(vinculos) {
     nome: normalizarOpcional(e.nome),
     observacoes: normalizarOpcional(e.observacoes),
   })).filter(e => e.nome || e.observacoes) : [];
+  const veiculos = Array.isArray(vinculos.veiculos) ? vinculos.veiculos.map(v => ({
+    marcaModelo: normalizarOpcional(v.marcaModelo),
+    placa: normalizarOpcional(v.placa ? String(v.placa).toUpperCase() : v.placa),
+    cor: normalizarOpcional(v.cor),
+    anoModelo: normalizarOpcional(v.anoModelo ? String(v.anoModelo).replace(/\D/g, '').slice(0,4) : v.anoModelo),
+  })).filter(v => v.marcaModelo || v.placa || v.cor || v.anoModelo) : [];
   const empregaticio = Array.isArray(vinculos.empregaticio) ? vinculos.empregaticio.map(e => ({
     info: normalizarOpcional(e.info),
   })).filter(e => e.info) : [];
-  const temAlgum = pessoas.length || empresas.length || entidades.length || empregaticio.length;
+  const temAlgum = pessoas.length || empresas.length || entidades.length || veiculos.length || empregaticio.length;
   if (!temAlgum) return undefined;
-  return { pessoas, empresas, entidades, empregaticio };
+  return { pessoas, empresas, entidades, veiculos, empregaticio };
 }
 
 function validarOcorrencias(ocorrencias) {
@@ -347,6 +337,9 @@ function validarAtualizacaoPessoa(payload, arquivos = []) {
   if (payload.redesSociais !== undefined) {
     atualizacoes.redesSociais = limparListaStrings(payload.redesSociais || []);
   }
+  if (payload.veiculos !== undefined) {
+    atualizacoes.veiculos = validarVeiculos(payload.veiculos || []);
+  }
 
   // Validar fotos novas e remoções solicitadas
   atualizacoes.fotos = validarFotosUpload(arquivos);
@@ -417,8 +410,8 @@ module.exports = {
   validarCadastroPessoa,
   validarAtualizacaoPessoa,
   validarEnderecos,
+  validarVeiculos,
   validarEmpresa,
   validarVinculos,
   validarOcorrencias,
-  validarCpfObrigatorio,
 };

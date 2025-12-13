@@ -1,31 +1,33 @@
-const veiculoService = require('../services/veiculos.service');
+const service = require('../services/veiculos.service');
 
-// Controlador responsável por lidar com a camada HTTP do cadastro de veículos.
-async function criar(req, res, next) {
+async function list(req, res, next) {
   try {
-    const veiculo = await veiculoService.criar(req.body || {}, req.files || []);
-    return res.status(201).json(veiculo);
-  } catch (error) {
-    return next(error);
-  }
+    const data = await service.list();
+    res.json(data);
+  } catch (err) { next(err); }
 }
 
-async function listar(_req, res, next) {
+async function create(req, res, next) {
   try {
-    const veiculos = await veiculoService.listar();
-    return res.json(veiculos);
-  } catch (error) {
-    return next(error);
-  }
+    const created = await service.create(req.body || {});
+    res.status(201).json(created);
+  } catch (err) { next(err); }
 }
 
-async function buscarPorId(req, res, next) {
+async function update(req, res, next) {
   try {
-    const veiculo = await veiculoService.buscarPorId(req.params.id);
-    return res.json(veiculo);
-  } catch (error) {
-    return next(error);
-  }
+    const { id } = req.params;
+    const updated = await service.update(id, req.body || {});
+    res.json(updated);
+  } catch (err) { next(err); }
 }
 
-module.exports = { criar, listar, buscarPorId };
+async function remove(req, res, next) {
+  try {
+    const { id } = req.params;
+    await service.remove(id);
+    res.status(204).end();
+  } catch (err) { next(err); }
+}
+
+module.exports = { list, create, update, remove };

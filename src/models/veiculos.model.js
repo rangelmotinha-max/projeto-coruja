@@ -1,79 +1,49 @@
-const { randomUUID } = require('crypto');
-const { initDatabase } = require('../database/sqlite');
+const db = require('../database/sqlite');
 
-// Converte o caminho salvo no banco para uma URL pública servida pelo Express.
-function gerarUrlPublica(caminhoRelativo) {
-  if (!caminhoRelativo) return null;
-  const normalizado = caminhoRelativo.replace(/\\/g, '/');
-  return `/${normalizado.replace(/^\//, '')}`;
+const createTableSQL = `
+CREATE TABLE IF NOT EXISTS veiculos (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  proprietario TEXT NOT NULL,
+  cpfProprietario TEXT NOT NULL,
+  marcaModelo TEXT NOT NULL,
+  placa TEXT NOT NULL UNIQUE,
+  cor TEXT,
+  anoModelo TEXT,
+  criadoEm DATETIME DEFAULT CURRENT_TIMESTAMP,
+  atualizadoEm DATETIME
+);
+`;
+
+async function init() {
+  await db.exec(createTableSQL);
 }
 
-// Modelo responsável pela persistência dos veículos.
-class VeiculoModel {
-  // Cria um novo veículo e retorna o registro completo.
-  static async create(dados) {
-    const db = await initDatabase();
-    const agora = new Date().toISOString();
-    const veiculo = {
-      id: randomUUID(),
-      proprietario: dados.proprietario,
-      cpf: dados.cpf,
-      marcaModelo: dados.marcaModelo || null,
-      placa: dados.placa || null,
-      cor: dados.cor || null,
-      anoModelo: dados.anoModelo || null,
-      foto_caminho: dados.foto?.caminho || null,
-      foto_nome: dados.foto?.nomeOriginal || null,
-      foto_mime: dados.foto?.mimeType || null,
-      criadoEm: agora,
-      atualizadoEm: agora,
-    };
-
-    await db.run(
-      `INSERT INTO veiculos (
-        id, proprietario, cpf, marcaModelo, placa, cor, anoModelo,
-        foto_caminho, foto_nome, foto_mime, criadoEm, atualizadoEm
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        veiculo.id,
-        veiculo.proprietario,
-        veiculo.cpf,
-        veiculo.marcaModelo,
-        veiculo.placa,
-        veiculo.cor,
-        veiculo.anoModelo,
-        veiculo.foto_caminho,
-        veiculo.foto_nome,
-        veiculo.foto_mime,
-        veiculo.criadoEm,
-        veiculo.atualizadoEm,
-      ],
-    );
-
-    return this.findById(veiculo.id);
-  }
-
-  // Retorna todos os veículos cadastrados.
-  static async findAll() {
-    const db = await initDatabase();
-    const registros = await db.all('SELECT * FROM veiculos ORDER BY criadoEm DESC');
-    return registros.map((row) => this.mapRow(row));
-  }
-
-  // Busca um veículo específico.
-  static async findById(id) {
-    const db = await initDatabase();
-    const registro = await db.get('SELECT * FROM veiculos WHERE id = ?', [id]);
-    return registro ? this.mapRow(registro) : null;
-  }
-
-  // Mapeia o registro do banco para o formato esperado pela API.
-  static mapRow(row) {
-    return {
-      ...row,
-      fotoUrl: gerarUrlPublica(row.foto_caminho),
-    };
-  }
+async function listAll() {
+  return db.all('SELECT * FROM veiculos ORDER BY atualizadoEm DESC NULLS LAST, criadoEm DESC');
 }
 
-module.exports = VeiculoModel;
+async function getByPlaca(placa) {
+  return db.get('SELECT * FROM veiculos WHERE placa = ?', [placa]);
+}
+
+async function create(veic) {
+  const stmt = await db.run(
+    'INSERT INTO veiculos (proprietario, cpfProprietario, marcaModelo, placa, cor, anoModelo) VALUES (?, ?, ?, ?, ?, ?)',
+    [veic.proprietario, veic.cpfProprietario, veic.marcaModelo, veic.placa, veic.cor || null, veic.anoModelo || null]
+  );
+  return { id: stmt.lastID, ...veic };
+}
+
+async function update(id, veic) {
+  await db.run(
+    'UPDATE veiculos SET proprietario=?, cpfProprietario=?, marcaModelo=?, placa=?, cor=?, anoModelo=?, atualizadoEm=CURRENT_TIMESTAMP WHERE id=?',
+    [veic.proprietario, veic.cpfProprietario, veic.marcaModelo, veic.placa, veic.cor || null, veic.anoModelo || null, id]
+  );
+  return { id, ...veic };
+}
+
+async function remove(id) {
+  await db.run('DELETE FROM veiculos WHERE id = ?', [id]);
+}
+
+module.exports = { init, listAll, getByPlaca, create, update, remove };
