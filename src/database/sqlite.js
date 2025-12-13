@@ -94,6 +94,15 @@ async function applyPendingMigrations(db) {
       }
     }
 
+    // Só recria a tabela de veículos quando a base antiga possui pessoa_id obrigatório
+    if (arquivo.startsWith('006_')) {
+      const possuiPessoaId = await columnExists(db, 'veiculos', 'pessoa_id');
+      if (!possuiPessoaId) {
+        await markMigration(db, arquivo);
+        continue;
+      }
+    }
+
     if (!sql) {
       await markMigration(db, arquivo);
       continue;
