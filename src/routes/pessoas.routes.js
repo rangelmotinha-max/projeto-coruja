@@ -2,7 +2,7 @@ const express = require('express');
 const pessoasController = require('../controllers/pessoas.controller');
 const authMiddleware = require('../middlewares/auth');
 const authorize = require('../middlewares/authorize');
-const { uploadFotosPessoa } = require('../middlewares/upload');
+const { uploadPessoaArquivos } = require('../middlewares/upload');
 
 const router = express.Router();
 
@@ -10,7 +10,15 @@ const router = express.Router();
 router.use(authMiddleware);
 
 // Criação de nova pessoa com suporte a upload de fotos.
-router.post('/', authorize(['admin', 'editor']), uploadFotosPessoa.array('fotos', 10), pessoasController.criar);
+router.post(
+  '/',
+  authorize(['admin', 'editor']),
+  uploadPessoaArquivos.fields([
+    { name: 'fotos', maxCount: 10 },
+    { name: 'documentosOcorrenciasPoliciais', maxCount: 20 },
+  ]),
+  pessoasController.criar,
+);
 
 // Listagem/busca de pessoas cadastradas com filtros por nome, documento, familiares e contatos.
 // A rota "/buscar" é um alias explícito para consultas filtradas via querystring.
@@ -21,7 +29,15 @@ router.get('/buscar', authorize(['admin', 'editor', 'viewer', 'user', 'leitor'])
 router.get('/:id', authorize(['admin', 'editor', 'viewer', 'user', 'leitor']), pessoasController.buscarPorId);
 
 // Atualização parcial ou completa de um registro existente (fotos incluídas).
-router.put('/:id', authorize(['admin', 'editor']), uploadFotosPessoa.array('fotos', 10), pessoasController.atualizar);
+router.put(
+  '/:id',
+  authorize(['admin', 'editor']),
+  uploadPessoaArquivos.fields([
+    { name: 'fotos', maxCount: 10 },
+    { name: 'documentosOcorrenciasPoliciais', maxCount: 20 },
+  ]),
+  pessoasController.atualizar,
+);
 
 // Exclusão definitiva de um registro.
 router.delete('/:id', authorize(['admin']), pessoasController.remover);
