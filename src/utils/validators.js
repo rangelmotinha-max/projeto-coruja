@@ -167,6 +167,8 @@ function validarCadastroPessoa(payload, arquivos = []) {
     cnh: normalizarOpcional(payload.cnh),
     nomeMae: normalizarOpcional(payload.nomeMae),
     nomePai: normalizarOpcional(payload.nomePai),
+    // Campo opcional para registrar sinais físicos ou marcas identificadoras
+    sinais: normalizarOpcional(payload.sinais),
     telefone: primeiroTelefone,
     endereco_atual_index: payload.endereco_atual_index || 0,
     enderecos: validarEnderecos(payload.enderecos),
@@ -346,6 +348,7 @@ function validarAtualizacaoPessoa(payload, arquivos = []) {
     'cnh',
     'nomeMae',
     'nomePai',
+    'sinais',
     'telefone',
     'apelido',
   ];
