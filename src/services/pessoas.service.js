@@ -1,6 +1,6 @@
 const PessoaModel = require('../models/pessoas.model');
 const { criarErro } = require('../utils/helpers');
-const { validarCadastroPessoa, validarAtualizacaoPessoa } = require('../utils/validators');
+const { validarCadastroPessoa, validarAtualizacaoPessoa, validarCadastroVeiculo } = require('../utils/validators');
 
 // Serviços de negócio para Pessoas encapsulando validações e regras.
 async function criar(payload, arquivos = []) {
@@ -80,6 +80,7 @@ async function atualizar(id, payload, arquivos = []) {
     redesSociais,
     vinculos,
     ocorrencias,
+    veiculo,
     ...atualizacoes
   } = validarAtualizacaoPessoa(payload, arquivos);
   const existente = await PessoaModel.findById(id);
@@ -200,6 +201,18 @@ async function atualizar(id, payload, arquivos = []) {
   }
 
   const atualizada = await PessoaModel.update(id, atualizacoes);
+
+  // Sincroniza veículo associado quando solicitado na atualização
+  if (veiculo !== undefined && veiculo !== null) {
+    const veiculoValidado = validarCadastroVeiculo({
+      ...veiculo,
+      nomeProprietario: veiculo.nomeProprietario || atualizacoes.nomeCompleto || existente.nomeCompleto,
+      cpf: veiculo.cpf || atualizacoes.cpf || existente.cpf,
+    });
+    const veiculoAtualizado = await PessoaModel.sincronizarVeiculo(atualizada, veiculoValidado);
+    atualizada.veiculo = veiculoAtualizado;
+  }
+
   return atualizada;
 }
 

@@ -180,6 +180,14 @@ function validarCadastroPessoa(payload, arquivos = []) {
   const docsOcorrencias = extrairArquivosCampo(arquivos, 'documentosOcorrenciasPoliciais');
   const ocorrenciasObj = validarOcorrencias(payload.ocorrencias, docsOcorrencias);
   const fotosUpload = validarFotosUpload(extrairArquivosCampo(arquivos, 'fotos'));
+  // Veículo associado ao cadastro de pessoa pode herdar dados do titular
+  const veiculo = payload.veiculo
+    ? validarCadastroVeiculo({
+        ...payload.veiculo,
+        nomeProprietario: payload.veiculo.nomeProprietario || payload.nomeCompleto,
+        cpf: payload.veiculo.cpf || payload.cpf,
+      })
+    : undefined;
 
   const primeiroTelefone = payload.telefone ? normalizarOpcional(payload.telefone) : (telefonesArray[0] || null);
 
@@ -214,6 +222,7 @@ function validarCadastroPessoa(payload, arquivos = []) {
     vinculos: vinculosObj,
     ocorrencias: ocorrenciasObj,
     fotos: fotosUpload,
+    veiculo,
   };
 }
 
@@ -420,6 +429,11 @@ function validarAtualizacaoPessoa(payload, arquivos = []) {
   if (payload.ocorrencias !== undefined) {
     const docsOcorrencias = extrairArquivosCampo(arquivos, 'documentosOcorrenciasPoliciais');
     atualizacoes.ocorrencias = validarOcorrencias(payload.ocorrencias, docsOcorrencias);
+  }
+
+  // Veículo na atualização será validado posteriormente com dados completos do titular
+  if (payload.veiculo !== undefined) {
+    atualizacoes.veiculo = payload.veiculo;
   }
 
   // Validar índice do endereço atual
