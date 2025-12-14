@@ -185,7 +185,7 @@
           const validacao = validarCpf(valorMascarado);
           if (!validacao.valido) {
             erroEl.style.display = 'block';
-            erroEl.textContent = validacao.mensagem;
+            erroEl.textContent = 'CPF inválido';
           } else {
             erroEl.style.display = 'none';
           }
@@ -219,7 +219,7 @@
         let segundoDigito = 11 - (soma % 11);
         segundoDigito = segundoDigito > 9 ? 0 : segundoDigito;
         if (parseInt(somenteNumeros[10]) !== segundoDigito) {
-          return { valido: false, mensagem: 'CPF inválido: segundo dígito verificador incorreto.' };
+          return { valido: false, mensagem: 'CFP inválido' };
         }
         return { valido: true, mensagem: 'CPF válido.' };
       };
@@ -341,7 +341,7 @@
         if (payload.cpf) {
           const validacao = validarCpf(payload.cpf);
           if (!validacao.valido) {
-            exibirMensagem(formMsgEl, validacao.mensagem, 'error');
+            exibirMensagem(formMsgEl, 'CPF inválido', 'error');
             return;
           }
         }
@@ -418,11 +418,24 @@
       // Botão de reset volta para modo de criação
       document.getElementById('btn-limpar').addEventListener('click', resetarFormulario);
 
-      // Botão "Listar" com mesma função da listagem de pessoas
-      document.getElementById('btn-listar').addEventListener('click', async () => {
-        await carregarVeiculos();
-        exibirMensagem(mensagemListaEl, 'Lista atualizada.', 'info');
-      });
+      // Lista somente os 10 últimos registros (cadastrados/alterados)
+      const listarUltimosDez = async () => {
+        exibirMensagem(mensagemListaEl, 'Carregando últimos 10...', 'info');
+        try {
+          const resposta = await fetchAutenticado(API_VEICULOS);
+          const dados = await resposta.json();
+          veiculosCache = Array.isArray(dados) ? dados : [];
+          campoBusca.value = '';
+          const ultimosDez = veiculosCache.slice(0, 10);
+          renderizarLista(ultimosDez);
+          exibirMensagem(mensagemListaEl, 'Exibindo últimos 10 registros.', 'info');
+        } catch (erro) {
+          exibirMensagem(mensagemListaEl, 'Erro ao carregar últimos registros.', 'error');
+        }
+      };
+
+      // Botão "Listar" aplica a regra dos 10 últimos
+      document.getElementById('btn-listar').addEventListener('click', listarUltimosDez);
 
       // Carregamento inicial dos dados
       carregarVeiculos();
