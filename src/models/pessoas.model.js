@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { randomUUID } = require('crypto');
 const { initDatabase } = require('../database/sqlite');
-const VeiculoModel = require('./veiculos.model');
+const VeiculoPessoaModel = require('./veiculos-pessoas.model');
 
 function calcularIdadeDe(dataStr) {
   if (!dataStr) return null;
@@ -41,6 +41,7 @@ async function upsertVeiculoParaPessoa(pessoa, veiculoDados) {
   // Garante preenchimento dos campos essenciais herdando do cadastro principal
   const veiculo = {
     ...veiculoDados,
+    pessoaId: pessoa.id,
     nomeProprietario: veiculoDados.nomeProprietario || pessoa.nomeCompleto,
     cpf: limparCpf(veiculoDados.cpf || pessoa.cpf),
   };
@@ -48,19 +49,19 @@ async function upsertVeiculoParaPessoa(pessoa, veiculoDados) {
   // Comentário: só reaproveitamos quando a placa bate; sem placa, usamos CPF ou nome
   let existente = null;
   if (veiculo.placa) {
-    existente = await VeiculoModel.findByPlaca(veiculo.placa);
+    existente = await VeiculoPessoaModel.findByPlaca(pessoa.id, veiculo.placa);
   } else if (veiculo.cpf) {
-    existente = await VeiculoModel.findByCpf(veiculo.cpf);
+    existente = await VeiculoPessoaModel.findByCpf(pessoa.id, veiculo.cpf);
   } else if (veiculo.nomeProprietario) {
-    existente = await VeiculoModel.findByNomeProprietario(veiculo.nomeProprietario);
+    existente = await VeiculoPessoaModel.findByNomeProprietario(pessoa.id, veiculo.nomeProprietario);
   }
 
   if (existente) {
     // Comentário: atualiza mantendo o vínculo com o cadastro mais recente
-    return VeiculoModel.update(existente.id, veiculo);
+    return VeiculoPessoaModel.update(existente.id, veiculo);
   }
 
-  return VeiculoModel.create(veiculo);
+  return VeiculoPessoaModel.create(veiculo);
 }
 
 // Sincroniza a lista de veículos de uma pessoa, preservando apenas os enviados
@@ -84,14 +85,11 @@ async function sincronizarVeiculosParaPessoa(pessoa, listaVeiculos) {
   }
 
   // Remove veículos que pertenciam ao titular mas não foram reenviados (por placa)
-  const cpf = limparCpf(pessoa.cpf);
-  const veiculosDoTitular = cpf
-    ? await VeiculoModel.findAllByCpf(cpf)
-    : await VeiculoModel.findAllByNomeProprietario(pessoa.nomeCompleto);
+  const veiculosDoTitular = await VeiculoPessoaModel.findAllByPessoaId(pessoa.id);
   const placasEnviadas = new Set(veiculosValidos.map((v) => v.placa).filter(Boolean));
   for (const existente of veiculosDoTitular) {
     if (existente.placa && !placasEnviadas.has(existente.placa)) {
-      await VeiculoModel.delete(existente.id);
+      await VeiculoPessoaModel.delete(existente.id);
     }
   }
 
@@ -102,16 +100,8 @@ async function sincronizarVeiculosParaPessoa(pessoa, listaVeiculos) {
 async function localizarVeiculosAssociados(pessoa) {
   if (!pessoa) return [];
 
-  const veiculosPorCpf = limparCpf(pessoa.cpf)
-    ? await VeiculoModel.findAllByCpf(limparCpf(pessoa.cpf))
-    : [];
-  if (veiculosPorCpf.length) return veiculosPorCpf;
-
-  if (pessoa.nomeCompleto) {
-    return VeiculoModel.findAllByNomeProprietario(pessoa.nomeCompleto);
-  }
-
-  return [];
+  // Comentário: agora todos os veículos vinculados ficam na tabela dedicada
+  return VeiculoPessoaModel.findAllByPessoaId(pessoa.id);
 }
 
 // Remove o arquivo físico, mas não interrompe o fluxo se algo falhar.
