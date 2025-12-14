@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { initDatabase } = require('../src/database/sqlite');
 const pessoasService = require('../src/services/pessoas.service');
-const VeiculoModel = require('../src/models/veiculos.model');
+const VeiculoPessoaModel = require('../src/models/veiculos-pessoas.model');
 
 // Limpa tabelas afetadas para isolar cada cenário de teste
 async function limparBanco() {
@@ -15,6 +15,7 @@ async function limparBanco() {
   await db.run('DELETE FROM vinculos_pessoas');
   await db.run('DELETE FROM socios');
   await db.run('DELETE FROM empresas');
+  await db.run('DELETE FROM veiculos_pessoas');
   await db.run('DELETE FROM veiculos');
   await db.run('DELETE FROM pessoas');
 }
@@ -42,7 +43,7 @@ test('criar pessoa com veículo sincroniza veiculos e retorna dados completos', 
   assert.equal(pessoaCriada.veiculo.nomeProprietario, 'Fulano Teste');
 
   // Confirma persistência do registro na tabela de veículos
-  const veiculoBanco = await VeiculoModel.findByPlaca('ABC1D23');
+  const veiculoBanco = await VeiculoPessoaModel.findByPlaca(pessoaCriada.id, 'ABC1D23');
   assert.ok(veiculoBanco, 'Veículo deve existir no banco após criação');
 });
 
@@ -61,8 +62,8 @@ test('criar pessoa com múltiplos veículos mantém todos os registros vinculado
   assert.ok(Array.isArray(pessoaCriada.veiculos), 'Lista de veículos deve existir na resposta');
   assert.equal(pessoaCriada.veiculos.length, 2, 'Ambos os veículos precisam ser retornados');
 
-  const primeiro = await VeiculoModel.findByPlaca('AAA1A11');
-  const segundo = await VeiculoModel.findByPlaca('BBB1B22');
+  const primeiro = await VeiculoPessoaModel.findByPlaca(pessoaCriada.id, 'AAA1A11');
+  const segundo = await VeiculoPessoaModel.findByPlaca(pessoaCriada.id, 'BBB1B22');
   assert.ok(primeiro, 'Primeiro veículo deve ter sido persistido');
   assert.ok(segundo, 'Segundo veículo deve ter sido persistido');
   assert.equal(primeiro.nomeProprietario, 'Maria Motorista');
@@ -83,8 +84,8 @@ test('pessoa com CPF recebe múltiplos veículos diferentes sem sobrescrever por
   // Comentário: ambos devem estar presentes no retorno e no banco
   assert.equal(pessoaCriada.veiculos.length, 2, 'Deve retornar dois veículos distintos');
 
-  const terceiro = await VeiculoModel.findByPlaca('CCC1C33');
-  const quarto = await VeiculoModel.findByPlaca('DDD1D44');
+  const terceiro = await VeiculoPessoaModel.findByPlaca(pessoaCriada.id, 'CCC1C33');
+  const quarto = await VeiculoPessoaModel.findByPlaca(pessoaCriada.id, 'DDD1D44');
   assert.ok(terceiro, 'Primeiro veículo precisa existir no banco');
   assert.ok(quarto, 'Segundo veículo precisa existir no banco');
   assert.notEqual(terceiro.id, quarto.id, 'IDs de veículos diferentes não podem coincidir');
@@ -115,7 +116,7 @@ test('atualizar pessoa com veículo reaproveita vínculo existente e devolve alt
   assert.equal(pessoaAtualizada.veiculo.cor, 'Vermelho');
 
   // Verifica que o registro único de veículo foi atualizado e não duplicado
-  const veiculoBanco = await VeiculoModel.findByPlaca('ABC1D23');
+  const veiculoBanco = await VeiculoPessoaModel.findByPlaca(pessoaCriada.id, 'ABC1D23');
   assert.equal(veiculoBanco.cor, 'Vermelho');
   assert.equal(veiculoBanco.nomeProprietario, 'Fulano Teste');
 });
