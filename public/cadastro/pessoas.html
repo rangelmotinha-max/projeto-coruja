@@ -154,19 +154,22 @@
                 <!-- Campo de facção permanece na seção de identificação logo abaixo de Sinais -->
                 <label class="form__field">
                   <span class="form__label">Facção ou Organização Criminosa (opcional)</span>
-                  <div style="display:flex; flex-direction:column; gap:0.35rem;">
+                  <div class="form__grid form__grid--2" style="grid-template-columns: 1fr 10rem; gap: 0.5rem; align-items: end;">
                     <input
                       class="form__input"
                       type="text"
                       id="faccao-input"
                       name="faccaoNome"
-                      placeholder="Digite sigla ou nome para buscar"
+                      placeholder="Digite sigla ou nome"
                       autocomplete="off"
                     />
-                    <input type="hidden" name="faccaoId" id="faccao-id" />
-                    <div id="faccao-sugestoes" class="panel" style="display:none; padding:0.5rem; gap:0.35rem;"></div>
-                    <small id="faccao-feedback" style="color: var(--muted);">Deixe em branco se a pessoa não tiver vínculo.</small>
+                    <div class="form__actions" style="margin:0;">
+                      <button class="button button--secondary" type="button" id="faccao-buscar" title="Procurar" aria-label="Buscar facção" style="min-width:8rem;">Procurar</button>
+                    </div>
                   </div>
+                  <input type="hidden" name="faccaoId" id="faccao-id" />
+                  <div id="faccao-sugestoes" class="panel" style="display:none; padding:0.5rem; gap:0.35rem;"></div>
+                  <small id="faccao-feedback" style="color: var(--muted);">Deixe em branco se a pessoa não tiver vínculo.</small>
                 </label>
               </div>
             </div>
@@ -3227,6 +3230,19 @@
           if (termo && (!faccaoSugestoesEl || faccaoSugestoesEl.style.display === 'none')) {
             buscarFaccoes(termo);
           }
+        });
+
+        const faccaoBuscarBtn = document.getElementById('faccao-buscar');
+        faccaoBuscarBtn?.addEventListener('click', () => {
+          const termo = (faccaoInput?.value || '').trim();
+          if (!termo) {
+            atualizarFeedbackFaccao('Digite uma sigla ou nome para buscar.');
+            if (faccaoSugestoesEl) faccaoSugestoesEl.style.display = 'none';
+            return;
+          }
+          if (faccaoIdInput) faccaoIdInput.value = '';
+          faccaoSelecionada = null;
+          buscarFaccoes(termo);
         });
 
         // Event listener para adicionar novo endereço
