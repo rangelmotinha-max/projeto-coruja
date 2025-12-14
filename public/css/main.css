@@ -461,6 +461,11 @@ body {
   color: var(--text);
 }
 
+/* Remover negrito do título de seção "Sócios" apenas na página de Empresas */
+[data-page="cadastro-empresas"] .form__section-title {
+  font-weight: 400;
+}
+
 .form__subsection {
   padding: 1rem;
   border: 1px solid var(--border);
