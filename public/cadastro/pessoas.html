@@ -607,6 +607,9 @@
       const montarFormDataEnvio = (dados) => {
         const formDataEnvio = new FormData();
 
+        // Garante envio explícito do nome para evitar perda em mutações ou quando o payload veio de um FormData original
+        formDataEnvio.append('nomeCompleto', dados.nomeCompleto ? String(dados.nomeCompleto).trim() : '');
+
         // Serializa todos os campos para o FormData (listas vão em JSON)
         Object.entries(dados || {}).forEach(([chave, valor]) => {
           if (valor === undefined || valor === null || chave === 'fotosExistentes') return;
