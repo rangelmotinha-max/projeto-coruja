@@ -327,9 +327,21 @@ function validarVinculos(vinculos) {
   const empregaticio = Array.isArray(vinculos.empregaticio) ? vinculos.empregaticio.map(e => ({
     info: normalizarOpcional(e.info),
   })).filter(e => e.info) : [];
-  const temAlgum = pessoas.length || empresas.length || entidades.length || empregaticio.length;
+  const veiculos = Array.isArray(vinculos.veiculos) ? vinculos.veiculos
+    .map((veiculo) => {
+      const placa = veiculo?.placa ? validarPlaca(veiculo.placa) : null;
+      const marcaModelo = normalizarOpcional(veiculo?.marcaModelo);
+      const nome = normalizarOpcional(veiculo?.nome || veiculo?.nomeProprietario);
+      const cpf = normalizarOpcional((veiculo?.cpf || '').replace(/\D/g, ''));
+      const possuiDados = placa || marcaModelo || nome || cpf;
+      if (!possuiDados) return null;
+      return { placa, marcaModelo, nome, cpf };
+    })
+    .filter(Boolean)
+    : [];
+  const temAlgum = pessoas.length || empresas.length || entidades.length || empregaticio.length || veiculos.length;
   if (!temAlgum) return undefined;
-  return { pessoas, empresas, entidades, empregaticio };
+  return { pessoas, empresas, entidades, empregaticio, veiculos };
 }
 
 function validarOcorrencias(ocorrencias, documentosOcorrencias = []) {
