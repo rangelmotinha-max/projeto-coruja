@@ -31,377 +31,83 @@ function wrapDatabase(db) {
         });
       });
     },
+    exec(sql) {
+      // Executa múltiplas instruções SQL em bloco (útil para migrações)
+      return new Promise((resolve, reject) => {
+        db.exec(sql, (err) => {
+          if (err) return reject(err);
+          resolve();
+        });
+      });
+    },
   };
 }
 
-async function runMigrations(db) {
-  // Garantir integridade referencial
-  try {
-    await db.run('PRAGMA foreign_keys = ON');
-  } catch (_) {}
+async function applyPendingMigrations(db) {
+  const migrationsDir = path.join(__dirname, '../../database/migrations');
 
+  // Garante que as constraints de chave estrangeira estejam ativas
+  await db.run('PRAGMA foreign_keys = ON');
+
+  // Tabela de controle de versão das migrações
   await db.run(`
-    CREATE TABLE IF NOT EXISTS usuarios (
-      id TEXT PRIMARY KEY,
-      nome TEXT NOT NULL,
-      email TEXT NOT NULL UNIQUE,
-      senhaHash TEXT NOT NULL,
-      role TEXT NOT NULL,
-      criadoEm TEXT NOT NULL,
-      atualizadoEm TEXT NOT NULL
+    CREATE TABLE IF NOT EXISTS _migrations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE,
+      applied_at TEXT NOT NULL DEFAULT (datetime('now'))
     )
   `);
 
-  // Tabela de pessoas centralizando dados civis e de contato.
-  await db.run(`
-    CREATE TABLE IF NOT EXISTS pessoas (
-      id TEXT PRIMARY KEY,
-      nomeCompleto TEXT NOT NULL,
-      apelido TEXT,
-      dataNascimento TEXT,
-      cpf TEXT,
-      rg TEXT,
-      cnh TEXT,
-      nomeMae TEXT,
-      nomePai TEXT,
-      sinais TEXT,
-      telefone TEXT,
-      endereco_atual_index INTEGER DEFAULT 0,
-      criadoEm TEXT NOT NULL,
-      atualizadoEm TEXT NOT NULL
-    )
-  `);
+  const migrationFiles = fs
+    .readdirSync(migrationsDir)
+    .filter((file) => file.endsWith('.sql'))
+    .sort();
 
-  // Tabela de endereços com relacionamento 1:N com pessoas
-  await db.run(`
-    CREATE TABLE IF NOT EXISTS enderecos (
-      id TEXT PRIMARY KEY,
-      pessoa_id TEXT NOT NULL,
-      uf TEXT,
-      logradouro TEXT,
-      bairro TEXT,
-      complemento TEXT,
-      -- Guarda latitude e longitude informadas manualmente
-      lat_long TEXT,
-      cep TEXT,
-      criadoEm TEXT NOT NULL,
-      atualizadoEm TEXT NOT NULL,
-      FOREIGN KEY (pessoa_id) REFERENCES pessoas(id) ON DELETE CASCADE
-    )
-  `);
+  for (const file of migrationFiles) {
+    const alreadyApplied = await db.get('SELECT 1 FROM _migrations WHERE name = ?', [file]);
+    if (alreadyApplied) continue;
 
-  // Criar índice para queries de endereços por pessoa
-  await db.run(`
-    CREATE INDEX IF NOT EXISTS idx_enderecos_pessoa_id ON enderecos(pessoa_id)
-  `);
+    const filePath = path.join(migrationsDir, file);
+    const sql = fs.readFileSync(filePath, 'utf-8');
 
-  // Tabela de fotos vinculadas a pessoas (permite múltiplas imagens por cadastro)
-  await db.run(`
-    CREATE TABLE IF NOT EXISTS fotos_pessoas (
-      id TEXT PRIMARY KEY,
-      pessoa_id TEXT NOT NULL,
-      nome_arquivo TEXT,
-      caminho TEXT NOT NULL,
-      mime_type TEXT,
-      tamanho INTEGER,
-      criadoEm TEXT NOT NULL,
-      atualizadoEm TEXT NOT NULL,
-      FOREIGN KEY (pessoa_id) REFERENCES pessoas(id) ON DELETE CASCADE
-    )
-  `);
+    // Remove linhas de comentário para evitar quebras na divisão das sentenças
+    const normalized = sql
+      .split(/\r?\n/)
+      .filter((line) => !line.trim().startsWith('--'))
+      .join('\n');
 
-  await db.run(`
-    CREATE INDEX IF NOT EXISTS idx_fotos_pessoa_id ON fotos_pessoas(pessoa_id)
-  `);
+    // Divide o arquivo em sentenças SQL individuais
+    const statements = normalized
+      .split(/;\s*(?:\r?\n|$)/)
+      .map((sentence) => sentence.trim())
+      .filter(Boolean);
 
-  // Tabela de telefones com relacionamento 1:N com pessoas
-  await db.run(`
-    CREATE TABLE IF NOT EXISTS telefones (
-      id TEXT PRIMARY KEY,
-      pessoa_id TEXT NOT NULL,
-      numero TEXT NOT NULL,
-      criadoEm TEXT NOT NULL,
-      atualizadoEm TEXT NOT NULL,
-      FOREIGN KEY (pessoa_id) REFERENCES pessoas(id) ON DELETE CASCADE
-    )
-  `);
+    console.info(`[migrations] Aplicando ${file}`);
 
-  // Criar índice para queries de telefones por pessoa
-  await db.run(`
-    CREATE INDEX IF NOT EXISTS idx_telefones_pessoa_id ON telefones(pessoa_id)
-  `);
+    try {
+      for (const statement of statements) {
+        try {
+          await db.run(statement);
+        } catch (err) {
+          const isDuplicateError =
+            err.message.includes('duplicate column name') || err.message.includes('already exists');
 
-  // Tabela de emails com relacionamento 1:N com pessoas
-  await db.run(`
-    CREATE TABLE IF NOT EXISTS emails (
-      id TEXT PRIMARY KEY,
-      pessoa_id TEXT NOT NULL,
-      email TEXT NOT NULL,
-      criadoEm TEXT NOT NULL,
-      atualizadoEm TEXT NOT NULL,
-      FOREIGN KEY (pessoa_id) REFERENCES pessoas(id) ON DELETE CASCADE
-    )
-  `);
+          if (isDuplicateError) {
+            console.warn(`[migrations] Aviso em ${file}: ${err.message}`);
+            continue;
+          }
 
-  await db.run(`
-    CREATE INDEX IF NOT EXISTS idx_emails_pessoa_id ON emails(pessoa_id)
-  `);
+          throw err;
+        }
+      }
 
-  // Tabela de redes sociais com relacionamento 1:N com pessoas
-  await db.run(`
-    CREATE TABLE IF NOT EXISTS redes_sociais (
-      id TEXT PRIMARY KEY,
-      pessoa_id TEXT NOT NULL,
-      perfil TEXT NOT NULL,
-      criadoEm TEXT NOT NULL,
-      atualizadoEm TEXT NOT NULL,
-      FOREIGN KEY (pessoa_id) REFERENCES pessoas(id) ON DELETE CASCADE
-    )
-  `);
-
-  await db.run(`
-    CREATE INDEX IF NOT EXISTS idx_redes_pessoa_id ON redes_sociais(pessoa_id)
-  `);
-
-  // Tabela de dados de empresa (1:1) com pessoa
-  await db.run(`
-    CREATE TABLE IF NOT EXISTS empresas (
-      id TEXT PRIMARY KEY,
-      pessoa_id TEXT NOT NULL UNIQUE,
-      cnpj TEXT,
-      razaoSocial TEXT,
-      nomeFantasia TEXT,
-      naturezaJuridica TEXT,
-      dataInicioAtividade TEXT,
-      situacaoCadastral TEXT,
-      cep TEXT,
-      endereco TEXT,
-      telefone TEXT,
-      criadoEm TEXT NOT NULL,
-      atualizadoEm TEXT NOT NULL,
-      FOREIGN KEY (pessoa_id) REFERENCES pessoas(id) ON DELETE CASCADE
-    )
-  `);
-
-  // Sócios da empresa (1:N)
-  await db.run(`
-    CREATE TABLE IF NOT EXISTS socios (
-      id TEXT PRIMARY KEY,
-      empresa_id TEXT NOT NULL,
-      nome TEXT,
-      cpf TEXT,
-      criadoEm TEXT NOT NULL,
-      atualizadoEm TEXT NOT NULL,
-      FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE
-    )
-  `);
-
-  await db.run(`
-    CREATE INDEX IF NOT EXISTS idx_socios_empresa_id ON socios(empresa_id)
-  `);
-
-  // Tabela de vínculos de pessoas (pessoas relacionadas)
-  await db.run(`
-    CREATE TABLE IF NOT EXISTS vinculos_pessoas (
-      id TEXT PRIMARY KEY,
-      pessoa_id TEXT NOT NULL,
-      nome TEXT,
-      cpf TEXT,
-      tipo TEXT,
-      criadoEm TEXT NOT NULL,
-      atualizadoEm TEXT NOT NULL,
-      FOREIGN KEY (pessoa_id) REFERENCES pessoas(id) ON DELETE CASCADE
-    )
-  `);
-
-  await db.run(`
-    CREATE INDEX IF NOT EXISTS idx_vinc_pessoas_pessoa_id ON vinculos_pessoas(pessoa_id)
-  `);
-
-  // Tentar adicionar coluna endereco_atual_index se ela não existir (para bancos existentes)
-  try {
-    await db.run(`
-      ALTER TABLE pessoas ADD COLUMN endereco_atual_index INTEGER DEFAULT 0
-    `);
-  } catch (err) {
-    // Coluna já existe, ignorar erro
-    if (!err.message.includes('duplicate column name')) {
+      await db.run('INSERT INTO _migrations (name) VALUES (?)', [file]);
+      console.info(`[migrations] ${file} aplicada com sucesso.`);
+    } catch (err) {
+      console.error(`[migrations] Falha ao aplicar ${file}: ${err.message}`);
       throw err;
     }
   }
-
-  // Adiciona coluna "sinais" para registrar características físicas no cadastro de pessoas
-  try {
-    await db.run(`
-      ALTER TABLE pessoas ADD COLUMN sinais TEXT
-    `);
-  } catch (err) {
-    if (!err.message.includes('duplicate column name')) {
-      throw err;
-    }
-  }
-
-  // Tentar adicionar coluna apelido, caso o banco já exista sem ela
-  try {
-    await db.run(`
-      ALTER TABLE pessoas ADD COLUMN apelido TEXT
-    `);
-  } catch (err) {
-    if (!err.message.includes('duplicate column name')) {
-      throw err;
-    }
-  }
-
-  // Tentar adicionar coluna complemento nos endereços para retrocompatibilidade
-  try {
-    await db.run(`
-      ALTER TABLE enderecos ADD COLUMN complemento TEXT
-    `);
-  } catch (err) {
-    // Coluna já existe, ignorar erro
-    if (!err.message.includes('duplicate column name')) {
-      throw err;
-    }
-  }
-
-  // Tenta adicionar coluna de latitude/longitude para bancos antigos
-  try {
-    await db.run(`
-      ALTER TABLE enderecos ADD COLUMN lat_long TEXT
-    `);
-  } catch (err) {
-    if (!err.message.includes('duplicate column name')) {
-      throw err;
-    }
-  }
-
-  // Adicionar coluna cep na tabela empresas caso não exista
-  try {
-    await db.run(`
-      ALTER TABLE empresas ADD COLUMN cep TEXT
-    `);
-  } catch (err) {
-    if (!err.message.includes('duplicate column name')) {
-      throw err;
-    }
-  }
-
-  // Adicionar colunas JSON para vinculos e ocorrencias na tabela pessoas
-  try {
-    await db.run(`
-      ALTER TABLE pessoas ADD COLUMN vinculos_json TEXT
-    `);
-  } catch (err) {
-    if (!err.message.includes('duplicate column name')) {
-      throw err;
-    }
-  }
-  try {
-    await db.run(`
-      ALTER TABLE pessoas ADD COLUMN ocorrencias_json TEXT
-    `);
-  } catch (err) {
-    if (!err.message.includes('duplicate column name')) {
-      throw err;
-    }
-  }
-
-  // Adicionar coluna idade na tabela pessoas para persistir valor calculado
-  try {
-    await db.run(`
-      ALTER TABLE pessoas ADD COLUMN idade INTEGER
-    `);
-  } catch (err) {
-    if (!err.message.includes('duplicate column name')) {
-      throw err;
-    }
-  }
-
-  // Empresas independentes (cadastro geral) e seus sócios
-  await db.run(`
-    CREATE TABLE IF NOT EXISTS empresas_cadastro (
-      id TEXT PRIMARY KEY,
-      cnpj TEXT,
-      razaoSocial TEXT,
-      nomeFantasia TEXT,
-      naturezaJuridica TEXT,
-      dataInicioAtividade TEXT,
-      situacaoCadastral TEXT,
-      endereco TEXT,
-      cep TEXT,
-      telefone TEXT,
-      criadoEm TEXT NOT NULL,
-      atualizadoEm TEXT NOT NULL
-    )
-  `);
-
-  // Cadastro de veículos com vínculo livre ao proprietário informado
-  await db.run(`
-    CREATE TABLE IF NOT EXISTS veiculos (
-      id TEXT PRIMARY KEY,
-      nomeProprietario TEXT NOT NULL,
-      cpf TEXT,
-      placa TEXT NOT NULL,
-      marcaModelo TEXT,
-      cor TEXT,
-      anoModelo INTEGER,
-      criadoEm TEXT NOT NULL,
-      atualizadoEm TEXT NOT NULL
-    )
-  `);
-
-  await db.run(`
-    CREATE INDEX IF NOT EXISTS idx_veiculos_placa ON veiculos(placa)
-  `);
-
-  await db.run(`
-    CREATE INDEX IF NOT EXISTS idx_veiculos_cpf ON veiculos(cpf)
-  `);
-
-  // Tabela dedicada para veículos vinculados diretamente a cadastros de pessoas
-  await db.run(`
-    CREATE TABLE IF NOT EXISTS veiculos_pessoas (
-      id TEXT PRIMARY KEY,
-      pessoa_id TEXT NOT NULL,
-      nomeProprietario TEXT NOT NULL,
-      cpf TEXT,
-      placa TEXT NOT NULL,
-      marcaModelo TEXT,
-      cor TEXT,
-      anoModelo INTEGER,
-      criadoEm TEXT NOT NULL,
-      atualizadoEm TEXT NOT NULL,
-      FOREIGN KEY (pessoa_id) REFERENCES pessoas(id) ON DELETE CASCADE
-    )
-  `);
-
-  await db.run(`
-    CREATE INDEX IF NOT EXISTS idx_veiculos_pessoas_placa ON veiculos_pessoas(placa)
-  `);
-
-  await db.run(`
-    CREATE INDEX IF NOT EXISTS idx_veiculos_pessoas_cpf ON veiculos_pessoas(cpf)
-  `);
-
-  await db.run(`
-    CREATE INDEX IF NOT EXISTS idx_veiculos_pessoas_pessoa_id ON veiculos_pessoas(pessoa_id)
-  `);
-
-  await db.run(`
-    CREATE TABLE IF NOT EXISTS socios_cadastro (
-      id TEXT PRIMARY KEY,
-      empresa_id TEXT NOT NULL,
-      nome TEXT,
-      cpf TEXT,
-      criadoEm TEXT NOT NULL,
-      atualizadoEm TEXT NOT NULL,
-      FOREIGN KEY (empresa_id) REFERENCES empresas_cadastro(id) ON DELETE CASCADE
-    )
-  `);
-
-  await db.run(`
-    CREATE INDEX IF NOT EXISTS idx_socios_cadastro_empresa_id ON socios_cadastro(empresa_id)
-  `);
 }
 
 async function initDatabase() {
@@ -413,7 +119,14 @@ async function initDatabase() {
         resolve(wrapDatabase(db));
       });
     }).then(async (db) => {
-      await runMigrations(db);
+      try {
+        // Dispara executor de migrações baseado em arquivos numerados
+        await applyPendingMigrations(db);
+      } catch (err) {
+        console.error('[database] Falha ao inicializar migrações SQLite');
+        console.error(err.message);
+        throw err;
+      }
       return db;
     });
   }
