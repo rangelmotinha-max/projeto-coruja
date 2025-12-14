@@ -81,6 +81,7 @@ async function atualizar(id, payload, arquivos = []) {
     vinculos,
     ocorrencias,
     veiculo,
+    veiculos,
     ...atualizacoes
   } = validarAtualizacaoPessoa(payload, arquivos);
   const existente = await PessoaModel.findById(id);
@@ -202,8 +203,17 @@ async function atualizar(id, payload, arquivos = []) {
 
   const atualizada = await PessoaModel.update(id, atualizacoes);
 
-  // Sincroniza veículo associado quando solicitado na atualização
-  if (veiculo !== undefined && veiculo !== null) {
+  // Sincroniza veículos associados quando solicitado na atualização
+  if (veiculos !== undefined && veiculos !== null) {
+    const listaValidada = (veiculos || []).map((v) => validarCadastroVeiculo({
+      ...v,
+      nomeProprietario: v.nomeProprietario || atualizacoes.nomeCompleto || existente.nomeCompleto,
+      cpf: v.cpf || atualizacoes.cpf || existente.cpf,
+    }));
+    const veiculosSincronizados = await PessoaModel.sincronizarVeiculos(atualizada, listaValidada);
+    atualizada.veiculos = veiculosSincronizados;
+    atualizada.veiculo = veiculosSincronizados[0] || null;
+  } else if (veiculo !== undefined && veiculo !== null) {
     const veiculoValidado = validarCadastroVeiculo({
       ...veiculo,
       nomeProprietario: veiculo.nomeProprietario || atualizacoes.nomeCompleto || existente.nomeCompleto,

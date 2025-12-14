@@ -45,13 +45,13 @@ async function upsertVeiculoParaPessoa(pessoa, veiculoDados) {
     cpf: limparCpf(veiculoDados.cpf || pessoa.cpf),
   };
 
-  // Tenta encontrar veículo existente por CPF, depois placa e por fim nome
-  const existentePorCpf = veiculo.cpf ? await VeiculoModel.findByCpf(veiculo.cpf) : null;
-  const existentePorPlaca = !existentePorCpf ? await VeiculoModel.findByPlaca(veiculo.placa) : null;
-  const existentePorNome = !existentePorCpf && !existentePorPlaca
+  // Prioriza a placa para evitar sobrescrever outros veículos do mesmo CPF
+  const existentePorPlaca = veiculo.placa ? await VeiculoModel.findByPlaca(veiculo.placa) : null;
+  const existentePorCpf = !existentePorPlaca && veiculo.cpf ? await VeiculoModel.findByCpf(veiculo.cpf) : null;
+  const existentePorNome = (!existentePorPlaca && !existentePorCpf && !veiculo.placa)
     ? await VeiculoModel.findByNomeProprietario(veiculo.nomeProprietario)
     : null;
-  const existente = existentePorCpf || existentePorPlaca || existentePorNome;
+  const existente = existentePorPlaca || existentePorCpf || existentePorNome;
 
   if (existente) {
     // Comentário: atualiza mantendo o vínculo com o cadastro mais recente
@@ -61,20 +61,55 @@ async function upsertVeiculoParaPessoa(pessoa, veiculoDados) {
   return VeiculoModel.create(veiculo);
 }
 
-// Hidrata veículo vinculado ao CPF ou nome do titular para pré-preenchimento do formulário
-async function localizarVeiculoAssociado(pessoa) {
-  if (!pessoa) return null;
+// Sincroniza a lista de veículos de uma pessoa, preservando apenas os enviados
+async function sincronizarVeiculosParaPessoa(pessoa, listaVeiculos) {
+  if (!Array.isArray(listaVeiculos)) return [];
 
-  const veiculoPorCpf = limparCpf(pessoa.cpf)
-    ? await VeiculoModel.findByCpf(limparCpf(pessoa.cpf))
-    : null;
-  if (veiculoPorCpf) return veiculoPorCpf;
+  const veiculosValidos = listaVeiculos
+    .map((v) => ({
+      ...v,
+      nomeProprietario: v.nomeProprietario || pessoa.nomeCompleto,
+      cpf: limparCpf(v.cpf || pessoa.cpf),
+    }))
+    // Mantém apenas veículos com alguma informação relevante
+    .filter((v) => Object.values({ ...v, anoModelo: v.anoModelo ?? '' })
+      .some((valor) => String(valor ?? '').trim() !== ''));
 
-  if (pessoa.nomeCompleto) {
-    return VeiculoModel.findByNomeProprietario(pessoa.nomeCompleto);
+  const veiculosPersistidos = [];
+  for (const veiculo of veiculosValidos) {
+    const salvo = await upsertVeiculoParaPessoa(pessoa, veiculo);
+    if (salvo) veiculosPersistidos.push(salvo);
   }
 
-  return null;
+  // Remove veículos que pertenciam ao titular mas não foram reenviados (por placa)
+  const cpf = limparCpf(pessoa.cpf);
+  const veiculosDoTitular = cpf
+    ? await VeiculoModel.findAllByCpf(cpf)
+    : await VeiculoModel.findAllByNomeProprietario(pessoa.nomeCompleto);
+  const placasEnviadas = new Set(veiculosValidos.map((v) => v.placa).filter(Boolean));
+  for (const existente of veiculosDoTitular) {
+    if (existente.placa && !placasEnviadas.has(existente.placa)) {
+      await VeiculoModel.delete(existente.id);
+    }
+  }
+
+  return veiculosPersistidos;
+}
+
+// Hidrata veículos vinculados ao CPF ou nome do titular para pré-preenchimento do formulário
+async function localizarVeiculosAssociados(pessoa) {
+  if (!pessoa) return [];
+
+  const veiculosPorCpf = limparCpf(pessoa.cpf)
+    ? await VeiculoModel.findAllByCpf(limparCpf(pessoa.cpf))
+    : [];
+  if (veiculosPorCpf.length) return veiculosPorCpf;
+
+  if (pessoa.nomeCompleto) {
+    return VeiculoModel.findAllByNomeProprietario(pessoa.nomeCompleto);
+  }
+
+  return [];
 }
 
 // Remove o arquivo físico, mas não interrompe o fluxo se algo falhar.
@@ -191,8 +226,10 @@ class PessoaModel {
       }
     }
 
-    // Sincroniza veículo vinculado antes de hidratar o retorno
-    if (dados.veiculo) {
+    // Sincroniza veículos vinculados antes de hidratar o retorno
+    if (Array.isArray(dados.veiculos) && dados.veiculos.length) {
+      await sincronizarVeiculosParaPessoa(pessoa, dados.veiculos);
+    } else if (dados.veiculo) {
       await upsertVeiculoParaPessoa(pessoa, dados.veiculo);
     }
 
@@ -230,6 +267,11 @@ class PessoaModel {
     return upsertVeiculoParaPessoa(pessoa, veiculoDados);
   }
 
+  // Mantém múltiplos veículos vinculados alinhados ao cadastro principal
+  static async sincronizarVeiculos(pessoa, veiculosDados) {
+    return sincronizarVeiculosParaPessoa(pessoa, veiculosDados);
+  }
+
   // Hidrata o objeto de pessoa com relacionamentos e campos derivados.
   static async hidratarPessoa(pessoa) {
     pessoa.enderecos = await this.obterEnderecosPorPessoa(pessoa.id);
@@ -238,8 +280,9 @@ class PessoaModel {
     pessoa.redesSociais = (await this.obterRedesPorPessoa(pessoa.id)).map(r => r.perfil);
     pessoa.fotos = await this.obterFotosPorPessoa(pessoa.id);
     pessoa.empresa = await this.obterEmpresaPorPessoa(pessoa.id);
-    // Inclui veículo associado por CPF ou nome para facilitar edição
-    pessoa.veiculo = await localizarVeiculoAssociado(pessoa);
+    // Inclui veículos associados por CPF ou nome para facilitar edição
+    pessoa.veiculos = await localizarVeiculosAssociados(pessoa);
+    pessoa.veiculo = pessoa.veiculos[0] || null;
     // Vinculos: preferir JSON quando existir, mas manter compatibilidade com tabela vinculos_pessoas
     let vinculosFromJson = {};
     if (pessoa.vinculos_json) {

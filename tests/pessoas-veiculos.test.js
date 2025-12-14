@@ -46,6 +46,29 @@ test('criar pessoa com veículo sincroniza veiculos e retorna dados completos', 
   assert.ok(veiculoBanco, 'Veículo deve existir no banco após criação');
 });
 
+test('criar pessoa com múltiplos veículos mantém todos os registros vinculados', async () => {
+  // Cria cadastro com dois veículos distintos para o mesmo titular
+  const pessoaCriada = await pessoasService.criar({
+    nomeCompleto: 'Maria Motorista',
+    dataNascimento: '1985-03-20',
+    veiculos: [
+      { placa: 'AAA1A11', cor: 'Prata', marcaModelo: 'Hatch' },
+      { placa: 'BBB1B22', cor: 'Preto', marcaModelo: 'SUV' },
+    ],
+  });
+
+  // Comentário: o retorno deve trazer ambos os veículos já hidratados
+  assert.ok(Array.isArray(pessoaCriada.veiculos), 'Lista de veículos deve existir na resposta');
+  assert.equal(pessoaCriada.veiculos.length, 2, 'Ambos os veículos precisam ser retornados');
+
+  const primeiro = await VeiculoModel.findByPlaca('AAA1A11');
+  const segundo = await VeiculoModel.findByPlaca('BBB1B22');
+  assert.ok(primeiro, 'Primeiro veículo deve ter sido persistido');
+  assert.ok(segundo, 'Segundo veículo deve ter sido persistido');
+  assert.equal(primeiro.nomeProprietario, 'Maria Motorista');
+  assert.equal(segundo.nomeProprietario, 'Maria Motorista');
+});
+
 test('atualizar pessoa com veículo reaproveita vínculo existente e devolve alteração', async () => {
   // Cria base inicial com veículo associado
   const pessoaCriada = await pessoasService.criar({
