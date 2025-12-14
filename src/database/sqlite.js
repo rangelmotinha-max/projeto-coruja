@@ -335,6 +335,29 @@ async function runMigrations(db) {
     )
   `);
 
+  // Cadastro de veículos com vínculo livre ao proprietário informado
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS veiculos (
+      id TEXT PRIMARY KEY,
+      nomeProprietario TEXT NOT NULL,
+      cpf TEXT,
+      placa TEXT NOT NULL,
+      marcaModelo TEXT,
+      cor TEXT,
+      anoModelo INTEGER,
+      criadoEm TEXT NOT NULL,
+      atualizadoEm TEXT NOT NULL
+    )
+  `);
+
+  await db.run(`
+    CREATE INDEX IF NOT EXISTS idx_veiculos_placa ON veiculos(placa)
+  `);
+
+  await db.run(`
+    CREATE INDEX IF NOT EXISTS idx_veiculos_cpf ON veiculos(cpf)
+  `);
+
   await db.run(`
     CREATE TABLE IF NOT EXISTS socios_cadastro (
       id TEXT PRIMARY KEY,
