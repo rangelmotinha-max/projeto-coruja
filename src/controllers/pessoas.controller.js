@@ -41,6 +41,8 @@ function normalizarPayload(req) {
   if (payload.nomeMae !== undefined) payload.nomeMae = String(payload.nomeMae || '').trim();
   if (payload.nomePai !== undefined) payload.nomePai = String(payload.nomePai || '').trim();
   if (payload.sinais !== undefined) payload.sinais = String(payload.sinais || '').trim();
+  if (payload.faccaoId !== undefined) payload.faccaoId = String(payload.faccaoId || '').trim();
+  if (payload.faccaoNome !== undefined) payload.faccaoNome = String(payload.faccaoNome || '').trim();
 
   return payload;
 }

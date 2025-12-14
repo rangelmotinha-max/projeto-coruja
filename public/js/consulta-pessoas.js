@@ -57,6 +57,7 @@
       telefone: formData.get('telefone'),
       email: formData.get('email'),
       pesquisaGeral: formData.get('pesquisaGeral'),
+      faccao: formData.get('faccao'),
     };
 
     Object.entries(rawFields).forEach(([key, value]) => {
@@ -93,7 +94,7 @@
 
     const header = document.createElement('thead');
     const headerRow = document.createElement('tr');
-    ['Nome', 'Documentos', 'Contatos', 'Nascimento', 'Filiação', 'Sinais'].forEach((heading) => {
+    ['Nome', 'Documentos', 'Contatos', 'Nascimento', 'Filiação', 'Sinais', 'Facção'].forEach((heading) => {
       const th = document.createElement('th');
       th.textContent = heading;
       headerRow.appendChild(th);
@@ -128,6 +129,9 @@
       const contatos = [telefones, emails].filter(Boolean).join(' | ');
       const filiacao = [pessoa.nomeMae, pessoa.nomePai].filter(Boolean).join(' / ');
       const sinais = pessoa.sinais || '';
+      const faccao = pessoa.faccao
+        ? [pessoa.faccao.sigla, pessoa.faccao.nome].filter(Boolean).join(' - ')
+        : '';
 
       row.appendChild(createCell(`${nomePrincipal}${apelido}`));
       row.appendChild(createCell(documentos));
@@ -135,6 +139,7 @@
       row.appendChild(createCell(pessoa.dataNascimento));
       row.appendChild(createCell(filiacao));
       row.appendChild(createCell(sinais));
+      row.appendChild(createCell(faccao));
 
       body.appendChild(row);
     });

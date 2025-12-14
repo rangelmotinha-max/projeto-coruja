@@ -1,11 +1,35 @@
 const PessoaModel = require('../models/pessoas.model');
 const { criarErro } = require('../utils/helpers');
 const { validarCadastroPessoa, validarAtualizacaoPessoa, validarCadastroVeiculo } = require('../utils/validators');
+const FaccaoModel = require('../models/faccoes.model');
+
+// Resolve facção opcional criando nova entrada quando necessário
+async function resolverFaccaoAssociada({ faccaoId, faccaoNome }) {
+  const nomeLimpo = (faccaoNome || '').trim();
+  const idLimpo = (faccaoId || '').trim();
+
+  if (idLimpo) {
+    const existente = await FaccaoModel.findById(idLimpo);
+    if (existente) return existente.id;
+  }
+
+  if (nomeLimpo) {
+    const existentePorNome = await FaccaoModel.findByNomeOuSigla(nomeLimpo);
+    if (existentePorNome) return existentePorNome.id;
+
+    const criada = await FaccaoModel.create({ nome: nomeLimpo, sigla: nomeLimpo.toUpperCase() });
+    return criada.id;
+  }
+
+  return null;
+}
 
 // Serviços de negócio para Pessoas encapsulando validações e regras.
 async function criar(payload, arquivos = []) {
   // Validação centralizada garante integridade antes da persistência.
   const dados = validarCadastroPessoa(payload, arquivos);
+  dados.faccaoId = await resolverFaccaoAssociada({ faccaoId: dados.faccaoId, faccaoNome: dados.faccaoNome });
+  delete dados.faccaoNome;
   return PessoaModel.create(dados);
 }
 
@@ -38,6 +62,12 @@ function normalizarFiltros(filtrosBrutos = {}) {
   // Sinais ou características físicas para filtrar cadastros
   const sinais = limpar(filtrosBrutos.sinais);
   if (sinais) filtros.sinais = sinais;
+
+  // Facção/organização criminosa vinculada
+  const faccaoId = limpar(filtrosBrutos.faccaoId || filtrosBrutos.faccao_id);
+  if (faccaoId) filtros.faccaoId = faccaoId;
+  const faccaoNome = limpar(filtrosBrutos.faccao || filtrosBrutos.faccaoNome);
+  if (faccaoNome) filtros.faccaoNome = faccaoNome;
 
   // Telefone vinculado.
   const telefone = limpar(filtrosBrutos.telefone);
@@ -86,6 +116,14 @@ async function atualizar(id, payload, arquivos = []) {
   } = validarAtualizacaoPessoa(payload, arquivos);
   const existente = await PessoaModel.findById(id);
   if (!existente) throw criarErro('Pessoa não encontrada', 404);
+
+  if (atualizacoes.faccao_id !== undefined || atualizacoes.faccaoNome) {
+    atualizacoes.faccao_id = await resolverFaccaoAssociada({
+      faccaoId: atualizacoes.faccao_id,
+      faccaoNome: atualizacoes.faccaoNome,
+    });
+    delete atualizacoes.faccaoNome;
+  }
 
   // Processar endereços validados, mantendo limpeza consistente antes de regravar.
   const enderecosValidados = Array.isArray(enderecos) ? enderecos.filter(Boolean) : null;
