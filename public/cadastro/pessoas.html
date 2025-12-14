@@ -1760,29 +1760,42 @@
             throw erroBusca;
           }
 
-          const veiculo = data?.data || data;
-          if (!veiculo) {
+          const veiculoResposta = data?.data ?? data; // Comentário: API pode retornar objeto único ou lista
+          const veiculosEncontrados = Array.isArray(veiculoResposta)
+            ? veiculoResposta
+            : veiculoResposta
+              ? [veiculoResposta]
+              : [];
+
+          if (!veiculosEncontrados.length) {
             throw new Error('Veículo não encontrado.');
           }
 
-          const resumoVeiculo = `${veiculo.placa || placaNormalizada}${veiculo.marcaModelo ? ` - ${veiculo.marcaModelo}` : ''}`;
-          const confirmar = confirm(`Veículo ${resumoVeiculo} localizado. Deseja vincular este veículo?`);
-          if (!confirmar) {
+          const veiculoSelecionado = veiculosEncontrados[0];
+          const placaSelecionada = normalizarPlaca(veiculoSelecionado.placa || placaNormalizada);
+          const placaFormatada = aplicarMascaraPlaca(placaSelecionada);
+          const resumoVeiculo = `${placaFormatada || placaNormalizada}${veiculoSelecionado.marcaModelo ? ` - ${veiculoSelecionado.marcaModelo}` : ''}`;
+
+          const confirmarPrimeiroDaLista =
+            veiculosEncontrados.length > 1
+              ? confirm(`Foram encontrados ${veiculosEncontrados.length} veículos. Deseja vincular o primeiro: ${resumoVeiculo}?`)
+              : confirm(`Veículo ${resumoVeiculo} localizado. Deseja vincular este veículo?`);
+          if (!confirmarPrimeiroDaLista) {
             exibirMensagemVinculoVeiculo('Vínculo de veículo cancelado pelo usuário.', 'info');
             return;
           }
 
-          const jaVinculado = vinculosVeiculos.some((item) => normalizarPlaca(item.placa) === normalizarPlaca(veiculo.placa));
+          const jaVinculado = vinculosVeiculos.some((item) => normalizarPlaca(item.placa) === placaSelecionada);
           if (jaVinculado) {
             exibirMensagemVinculoVeiculo('Este veículo já está vinculado.', 'info');
             return;
           }
 
           vinculosVeiculos.push({
-            placa: normalizarPlaca(veiculo.placa),
-            marcaModelo: veiculo.marcaModelo || '',
-            nome: veiculo.nomeProprietario || veiculo.nome || '',
-            cpf: veiculo.cpf || '',
+            placa: placaSelecionada,
+            marcaModelo: veiculoSelecionado.marcaModelo || '',
+            nome: (veiculoSelecionado.nomeProprietario || veiculoSelecionado.nome || '').trim(),
+            cpf: normalizarCpfSomenteDigitos(veiculoSelecionado.cpf || ''),
           });
 
           renderizarVinculosVeiculos();
