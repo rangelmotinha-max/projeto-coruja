@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cadastro de Veículos | Projeto Coruja</title>
+    <link rel="stylesheet" href="/css/main.css" />
+  </head>
+  <body class="theme-dark">
+    <div class="app">
+      <div class="user-menu" id="user-menu" aria-expanded="false">
+        <button class="user-menu__button" type="button" id="user-menu-button" aria-haspopup="true" aria-expanded="false">
+          <span class="user-menu__avatar" id="user-avatar" aria-hidden="true">U</span>
+          <span id="user-button-name">Usuário</span>
+        </button>
+        <div class="user-menu__dropdown" id="user-menu-dropdown" role="menu" aria-label="Menu do usuário">
+          <div class="user-menu__item"><span class="user-menu__label">Nome Completo:</span><span class="user-menu__value" id="um-nome">—</span></div>
+          <div class="user-menu__item"><span class="user-menu__label">Email:</span><span class="user-menu__value" id="um-email">—</span></div>
+          <div class="user-menu__item"><span class="user-menu__label">Perfil:</span><span class="user-menu__value" id="um-perfil">—</span></div>
+          <div class="user-menu__separator"></div>
+          <div class="user-menu__item"><span class="user-menu__label">Senha:</span><span class="user-menu__link" id="um-alterar-senha">Alterar senha</span></div>
+          <div class="user-menu__separator"></div>
+          <div class="user-menu__item"><span class="user-menu__link" id="um-sair">Sair</span></div>
+        </div>
+      </div>
+      <aside class="sidebar">
+        <div class="sidebar__header">
+          <div class="sidebar__brand">Projeto Coruja</div>
+          <!-- Botão dedicado para alternar entre tema claro e escuro -->
+          <button
+            class="theme-toggle"
+            type="button"
+            data-theme-toggle
+            aria-pressed="false"
+            aria-label="Alternar tema visual"
+          >
+            <span class="theme-toggle__icon" aria-hidden="true" data-theme-icon>🌙</span>
+            <span class="theme-toggle__label" data-theme-label>Modo escuro</span>
+          </button>
+        </div>
+        <nav class="sidebar__nav" aria-label="Menu principal">
+          <a class="sidebar__link" href="/home">Home</a>
+          <a class="sidebar__link" href="/usuarios">Usuários</a>
+          <details class="sidebar__section sidebar__section--active" open>
+            <summary class="sidebar__link sidebar__link--parent" aria-label="Abrir menu Cadastro">Cadastro</summary>
+            <div class="sidebar__subnav">
+              <a class="sidebar__link sidebar__link--child" href="/cadastro/pessoas">Pessoas</a>
+              <a class="sidebar__link sidebar__link--child" href="/cadastro/empresas">Empresas</a>
+              <a class="sidebar__link sidebar__link--child sidebar__link--active" href="/cadastro/veiculos">Veículos</a>
+            </div>
+          </details>
+          <details class="sidebar__section">
+            <summary class="sidebar__link sidebar__link--parent" aria-label="Abrir menu Consulta">Consulta</summary>
+            <div class="sidebar__subnav">
+              <a class="sidebar__link sidebar__link--child" href="/consulta/pessoas">Pessoas</a>
+              <a class="sidebar__link sidebar__link--child" href="/consulta/empresas">Empresas</a>
+            </div>
+          </details>
+        </nav>
+      </aside>
+
+      <main class="content" data-page="cadastro-veiculos">
+        <header class="content__header">
+          <p class="content__eyebrow">Cadastro</p>
+          <h1 class="content__title">Veículos</h1>
+        </header>
+
+        <section class="panel" aria-label="Formulário de veículos">
+          <div class="panel__header panel__header--stacked"></div>
+          <div id="veiculo-form-message" class="message" role="status" aria-live="polite"></div>
+          <form class="form" id="veiculo-form" action="/api/veiculos" method="post">
+            <div class="form__grid form__grid--2">
+              <label class="form__field">
+                <span class="form__label">Nome do Proprietário</span>
+                <input class="form__input" type="text" name="nomeProprietario" id="campo-nome" required />
+              </label>
+              <label class="form__field">
+                <span class="form__label">CPF</span>
+                <input class="form__input" type="text" name="cpf" id="campo-cpf" inputmode="numeric" placeholder="000.000.000-00" />
+                <span id="erro-cpf-veiculo" class="form__error" style="display: none;">CPF inválido!</span>
+              </label>
+            </div>
+            <div class="form__grid form__grid--3">
+              <label class="form__field">
+                <span class="form__label">Placa</span>
+                <input class="form__input" type="text" name="placa" id="campo-placa" required maxlength="8" placeholder="ABC1D23" />
+              </label>
+              <label class="form__field">
+                <span class="form__label">Marca/Modelo</span>
+                <input class="form__input" type="text" name="marcaModelo" id="campo-marca" />
+              </label>
+              <label class="form__field">
+                <span class="form__label">Cor</span>
+                <input class="form__input" type="text" name="cor" id="campo-cor" />
+              </label>
+            </div>
+            <div class="form__grid form__grid--3">
+              <label class="form__field">
+                <span class="form__label">Ano/Modelo</span>
+                <input class="form__input" type="number" name="anoModelo" id="campo-ano" min="1900" max="2100" placeholder="2024" />
+              </label>
+            </div>
+            <div class="form__actions">
+              <button class="button button--primary" id="submit-veiculo" type="submit">Incluir</button>
+              <button class="button" id="btn-limpar" type="reset">Limpar</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="panel" aria-label="Listagem de veículos">
+          <div class="panel__header panel__header--stacked">
+            <h3 class="panel__title">Veículos cadastrados</h3>
+            <div class="panel__actions page-actions">
+              <input
+                type="text"
+                id="campo-busca"
+                class="search-input"
+                placeholder="Buscar por proprietário, placa, marca ou cor"
+                aria-label="Campo de busca de veículos"
+              />
+            </div>
+          </div>
+          <div id="veiculos-message" class="message" role="status" aria-live="polite"></div>
+          <div class="panel__body">
+            <div id="lista-veiculos" class="list"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="/js/main.js"></script>
+    <script>
+      // API base para operações com veículos
+      const API_VEICULOS = '/api/veiculos';
+      const form = document.getElementById('veiculo-form');
+      const formMsgEl = document.getElementById('veiculo-form-message');
+      const listaEl = document.getElementById('lista-veiculos');
+      const mensagemListaEl = document.getElementById('veiculos-message');
+      const submitBtn = document.getElementById('submit-veiculo');
+      const campoBusca = document.getElementById('campo-busca');
+      const campoCpf = document.getElementById('campo-cpf');
+      const campoPlaca = document.getElementById('campo-placa');
+      let veiculoEmEdicao = null;
+      let veiculosCache = [];
+
+      // Recupera token JWT armazenado para chamadas autenticadas
+      const getCookie = (name) => document.cookie.split(';').map(c => c.trim()).find(c => c.startsWith(`${name}=`))?.split('=')[1];
+      const obterToken = () => localStorage.getItem('authToken') || getCookie('authToken');
+      const fetchAutenticado = (url, options = {}) => {
+        const token = obterToken();
+        const headers = {
+          'Content-Type': 'application/json',
+          ...(options.headers || {}),
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        };
+        return fetch(url, { ...options, headers });
+      };
+
+      // Exibe mensagens padronizadas para feedback rápido
+      const exibirMensagem = (elemento, texto, tipo = 'info') => {
+        if (!elemento) return;
+        elemento.textContent = texto || '';
+        elemento.className = 'message';
+        if (texto) elemento.classList.add(`message--${tipo}`);
+      };
+
+      // Aplica máscara e validação de CPF igual à tela de Pessoas
+      const aplicarMascaraCpf = (event) => {
+        const somenteNumeros = event.target.value.replace(/\D/g, '').slice(0, 11);
+        let valorMascarado = somenteNumeros;
+        if (somenteNumeros.length > 3) {
+          valorMascarado = `${somenteNumeros.slice(0, 3)}.${somenteNumeros.slice(3, 6)}`;
+        }
+        if (somenteNumeros.length > 6) {
+          valorMascarado = `${valorMascarado}.${somenteNumeros.slice(6, 9)}`;
+        }
+        if (somenteNumeros.length > 9) {
+          valorMascarado = `${valorMascarado}-${somenteNumeros.slice(9, 11)}`;
+        }
+        event.target.value = valorMascarado;
+
+        const erroEl = document.getElementById('erro-cpf-veiculo');
+        if (somenteNumeros.length === 11) {
+          const validacao = validarCpf(valorMascarado);
+          if (!validacao.valido) {
+            erroEl.style.display = 'block';
+            erroEl.textContent = validacao.mensagem;
+          } else {
+            erroEl.style.display = 'none';
+          }
+        } else {
+          erroEl.style.display = 'none';
+        }
+      };
+
+      // Validação de CPF replicando a lógica do cadastro de pessoas
+      const validarCpf = (cpf) => {
+        const somenteNumeros = cpf.replace(/\D/g, '');
+        if (somenteNumeros.length !== 11) {
+          return { valido: false, mensagem: 'CPF deve ter 11 dígitos.' };
+        }
+        if (/^(\d)\1{10}$/.test(somenteNumeros)) {
+          return { valido: false, mensagem: 'CPF inválido: todos os dígitos são iguais.' };
+        }
+        let soma = 0;
+        for (let i = 0; i < 9; i++) {
+          soma += parseInt(somenteNumeros[i]) * (10 - i);
+        }
+        let primeiroDigito = 11 - (soma % 11);
+        primeiroDigito = primeiroDigito > 9 ? 0 : primeiroDigito;
+        if (parseInt(somenteNumeros[9]) !== primeiroDigito) {
+          return { valido: false, mensagem: 'CPF inválido: primeiro dígito verificador incorreto.' };
+        }
+        soma = 0;
+        for (let i = 0; i < 10; i++) {
+          soma += parseInt(somenteNumeros[i]) * (11 - i);
+        }
+        let segundoDigito = 11 - (soma % 11);
+        segundoDigito = segundoDigito > 9 ? 0 : segundoDigito;
+        if (parseInt(somenteNumeros[10]) !== segundoDigito) {
+          return { valido: false, mensagem: 'CPF inválido: segundo dígito verificador incorreto.' };
+        }
+        return { valido: true, mensagem: 'CPF válido.' };
+      };
+
+      // Normaliza os dados enviados ao backend
+      const montarPayload = () => {
+        const formData = new FormData(form);
+        const dados = Object.fromEntries(formData.entries());
+        const cpfLimpo = dados.cpf ? dados.cpf.replace(/\D/g, '') : null;
+        return {
+          nomeProprietario: dados.nomeProprietario?.trim(),
+          cpf: cpfLimpo,
+          placa: dados.placa?.toUpperCase().trim(),
+          marcaModelo: dados.marcaModelo?.trim(),
+          cor: dados.cor?.trim(),
+          anoModelo: dados.anoModelo?.trim(),
+        };
+      };
+
+      // Renderiza lista de veículos com ações de edição e exclusão
+      const renderizarLista = (veiculos) => {
+        listaEl.innerHTML = '';
+        if (!veiculos.length) {
+          listaEl.innerHTML = '<p style="color: var(--muted); margin: 0;">Nenhum veículo cadastrado.</p>';
+          return;
+        }
+
+        veiculos.forEach((veiculo) => {
+          const item = document.createElement('div');
+          item.className = 'list__item';
+          item.innerHTML = `
+            <div>
+              <p class="list__title">${veiculo.nomeProprietario || '—'} (${veiculo.placa})</p>
+              <p class="list__meta">CPF: ${veiculo.cpf || '—'} | Marca/Modelo: ${veiculo.marcaModelo || '—'} | Cor: ${veiculo.cor || '—'} | Ano/Modelo: ${veiculo.anoModelo || '—'}</p>
+            </div>
+            <div class="list__actions">
+              <button class="button button--ghost" data-editar="${veiculo.id}">Editar</button>
+              <button class="button button--danger" data-remover="${veiculo.id}">Excluir</button>
+            </div>
+          `;
+          listaEl.appendChild(item);
+        });
+      };
+
+      // Busca veículos e aplica filtro de texto simples
+      const carregarVeiculos = async () => {
+        exibirMensagem(mensagemListaEl, 'Carregando veículos...', 'info');
+        try {
+          const resposta = await fetchAutenticado(API_VEICULOS);
+          const dados = await resposta.json();
+          veiculosCache = Array.isArray(dados) ? dados : [];
+          aplicarFiltro();
+          exibirMensagem(mensagemListaEl, '', 'info');
+        } catch (erro) {
+          exibirMensagem(mensagemListaEl, 'Erro ao carregar veículos.', 'error');
+        }
+      };
+
+      // Filtra lista em memória conforme busca digitada
+      const aplicarFiltro = () => {
+        const termo = (campoBusca.value || '').toLowerCase();
+        const filtrados = veiculosCache.filter((v) => {
+          return [v.nomeProprietario, v.placa, v.marcaModelo, v.cor]
+            .some((campo) => String(campo || '').toLowerCase().includes(termo));
+        });
+        renderizarLista(filtrados);
+      };
+
+      // Preenche formulário com dados existentes
+      const iniciarEdicao = (veiculo) => {
+        veiculoEmEdicao = veiculo;
+        form.nomeProprietario.value = veiculo.nomeProprietario || '';
+        form.cpf.value = veiculo.cpf || '';
+        form.placa.value = veiculo.placa || '';
+        form.marcaModelo.value = veiculo.marcaModelo || '';
+        form.cor.value = veiculo.cor || '';
+        form.anoModelo.value = veiculo.anoModelo || '';
+        submitBtn.textContent = 'Salvar alterações';
+        exibirMensagem(formMsgEl, 'Editando veículo selecionado.', 'info');
+      };
+
+      // Limpa formulário e volta ao modo inclusão
+      const resetarFormulario = () => {
+        veiculoEmEdicao = null;
+        form.reset();
+        submitBtn.textContent = 'Incluir';
+        exibirMensagem(formMsgEl, '', 'info');
+        const erroEl = document.getElementById('erro-cpf-veiculo');
+        erroEl.style.display = 'none';
+      };
+
+      // Submete formulário criando ou atualizando registro
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const payload = montarPayload();
+
+        if (payload.cpf) {
+          const validacao = validarCpf(payload.cpf);
+          if (!validacao.valido) {
+            exibirMensagem(formMsgEl, validacao.mensagem, 'error');
+            return;
+          }
+        }
+
+        exibirMensagem(formMsgEl, veiculoEmEdicao ? 'Salvando alterações...' : 'Incluindo veículo...', 'info');
+        submitBtn.disabled = true;
+        try {
+          const metodo = veiculoEmEdicao ? 'PUT' : 'POST';
+          const endpoint = veiculoEmEdicao ? `${API_VEICULOS}/${veiculoEmEdicao.id}` : API_VEICULOS;
+          const resposta = await fetchAutenticado(endpoint, {
+            method: metodo,
+            body: JSON.stringify(payload),
+          });
+          if (!resposta.ok) {
+            const erro = await resposta.json().catch(() => ({}));
+            throw new Error(erro.message || 'Falha ao salvar veículo');
+          }
+          await carregarVeiculos();
+          resetarFormulario();
+          exibirMensagem(formMsgEl, 'Veículo salvo com sucesso.', 'success');
+        } catch (erro) {
+          exibirMensagem(formMsgEl, erro.message || 'Não foi possível salvar o veículo.', 'error');
+        } finally {
+          submitBtn.disabled = false;
+        }
+      });
+
+      // Escuta cliques na lista para editar ou remover
+      listaEl.addEventListener('click', async (event) => {
+        const botao = event.target.closest('button');
+        if (!botao) return;
+        const id = botao.dataset.editar || botao.dataset.remover;
+        const veiculo = veiculosCache.find((v) => v.id === id);
+        if (!veiculo) return;
+
+        if (botao.dataset.editar) {
+          iniciarEdicao(veiculo);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          return;
+        }
+
+        if (botao.dataset.remover) {
+          if (!confirm('Confirma a exclusão deste veículo?')) return;
+          exibirMensagem(mensagemListaEl, 'Removendo veículo...', 'info');
+          try {
+            const resposta = await fetchAutenticado(`${API_VEICULOS}/${id}`, { method: 'DELETE' });
+            if (!resposta.ok) {
+              const erro = await resposta.json().catch(() => ({}));
+              throw new Error(erro.message || 'Falha ao remover veículo');
+            }
+            await carregarVeiculos();
+            exibirMensagem(mensagemListaEl, 'Veículo removido.', 'success');
+            if (veiculoEmEdicao?.id === id) {
+              resetarFormulario();
+            }
+          } catch (erro) {
+            exibirMensagem(mensagemListaEl, erro.message || 'Erro ao remover veículo.', 'error');
+          }
+        }
+      });
+
+      // Normaliza a placa para letras maiúsculas e remove espaços
+      campoPlaca.addEventListener('input', (event) => {
+        const texto = event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 7);
+        event.target.value = texto;
+      });
+
+      // Liga máscara de CPF no input dedicado
+      campoCpf.addEventListener('input', aplicarMascaraCpf);
+
+      // Busca incremental na lista de veículos
+      campoBusca.addEventListener('input', aplicarFiltro);
+
+      // Botão de reset volta para modo de criação
+      document.getElementById('btn-limpar').addEventListener('click', resetarFormulario);
+
+      // Carregamento inicial dos dados
+      carregarVeiculos();
+    </script>
+  </body>
+</html>

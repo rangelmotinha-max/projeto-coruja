@@ -63,6 +63,42 @@ function normalizarOpcional(texto) {
   return valor.length ? valor : null;
 }
 
+// Remove caracteres não numéricos e limita a 11 dígitos
+function normalizarCpf(cpf) {
+  return String(cpf || '')
+    .replace(/\D/g, '')
+    .slice(0, 11);
+}
+
+// Validação de CPF com os mesmos dígitos verificadores usados no frontend
+function validarCpfOpcional(cpf) {
+  const somenteNumeros = normalizarCpf(cpf);
+  if (!somenteNumeros) return null;
+
+  if (somenteNumeros.length !== 11 || /^(\d)\1{10}$/.test(somenteNumeros)) {
+    throw criarErro('CPF inválido', 400);
+  }
+
+  // Calcula dígitos verificadores para conferir integridade
+  const calcularDigito = (base) => {
+    let soma = 0;
+    for (let i = 0; i < base.length; i += 1) {
+      soma += parseInt(base[i], 10) * (base.length + 1 - i);
+    }
+    const resto = soma % 11;
+    return resto < 2 ? 0 : 11 - resto;
+  };
+
+  const primeiro = calcularDigito(somenteNumeros.slice(0, 9));
+  const segundo = calcularDigito(somenteNumeros.slice(0, 10));
+
+  if (primeiro !== parseInt(somenteNumeros[9], 10) || segundo !== parseInt(somenteNumeros[10], 10)) {
+    throw criarErro('CPF inválido', 400);
+  }
+
+  return somenteNumeros;
+}
+
 // Converte lista de IDs (string ou array) em array sanitizado.
 function normalizarListaIds(listaIds) {
   if (!listaIds) return [];
@@ -437,6 +473,73 @@ function validarAtualizacao(payload) {
   return atualizacoes;
 }
 
+// Validação específica para placas seguindo padrão Mercosul e antigo
+function validarPlaca(placa) {
+  const valorLimpo = String(placa || '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '')
+    .slice(0, 7);
+
+  const padrao = /^(?=.{7}$)[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/;
+  if (!valorLimpo || !padrao.test(valorLimpo)) {
+    throw criarErro('Placa inválida. Use o padrão Mercosul ou antigo.', 400);
+  }
+
+  return valorLimpo;
+}
+
+// Valida ano/modelo opcional com faixa segura
+function validarAnoModelo(anoModelo) {
+  if (anoModelo === undefined || anoModelo === null || anoModelo === '') return null;
+  const numero = parseInt(String(anoModelo).replace(/\D/g, ''), 10);
+  if (Number.isNaN(numero) || numero < 1900 || numero > 2100) {
+    throw criarErro('Ano/modelo inválido. Informe um ano entre 1900 e 2100.', 400);
+  }
+  return numero;
+}
+
+// Cadastro de veículo exige proprietário e placa
+function validarCadastroVeiculo(payload) {
+  return {
+    nomeProprietario: validarNome(payload.nomeProprietario || payload.nome || ''),
+    cpf: validarCpfOpcional(payload.cpf),
+    placa: validarPlaca(payload.placa),
+    marcaModelo: normalizarOpcional(payload.marcaModelo),
+    cor: normalizarOpcional(payload.cor),
+    anoModelo: validarAnoModelo(payload.anoModelo),
+  };
+}
+
+// Atualização permite campos parciais, mantendo validações
+function validarAtualizacaoVeiculo(payload) {
+  const atualizacoes = {};
+
+  if (payload.nomeProprietario !== undefined) {
+    atualizacoes.nomeProprietario = validarNome(payload.nomeProprietario);
+  }
+  if (payload.cpf !== undefined) {
+    atualizacoes.cpf = validarCpfOpcional(payload.cpf);
+  }
+  if (payload.placa !== undefined) {
+    atualizacoes.placa = validarPlaca(payload.placa);
+  }
+  if (payload.marcaModelo !== undefined) {
+    atualizacoes.marcaModelo = normalizarOpcional(payload.marcaModelo);
+  }
+  if (payload.cor !== undefined) {
+    atualizacoes.cor = normalizarOpcional(payload.cor);
+  }
+  if (payload.anoModelo !== undefined) {
+    atualizacoes.anoModelo = validarAnoModelo(payload.anoModelo);
+  }
+
+  if (Object.keys(atualizacoes).length === 0) {
+    throw criarErro('Nenhum dado para atualizar foi enviado', 400);
+  }
+
+  return atualizacoes;
+}
+
 module.exports = {
   validarCadastro,
   validarLogin,
@@ -447,4 +550,8 @@ module.exports = {
   validarEmpresa,
   validarVinculos,
   validarOcorrencias,
+  validarCadastroVeiculo,
+  validarAtualizacaoVeiculo,
+  validarCpfOpcional,
+  validarPlaca,
 };
