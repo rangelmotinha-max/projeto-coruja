@@ -851,11 +851,16 @@
 
       const sincronizarCamposVeiculo = () => {
         // Mantém os veículos alinhados com o nome/CPF preenchidos na Identificação
-        veiculos = veiculos.map((veiculo) => ({
-          ...veiculo,
-          nomeProprietario: veiculo.nomeProprietario || nomeCompletoInput?.value || '',
-          cpf: veiculo.cpf || cpfInput?.value || '',
-        }));
+        // Somente sincroniza proprietário/CPF se houver outros dados do veículo para evitar incluir veículo vazio
+        veiculos = veiculos.map((veiculo) => {
+          const temDadosVeiculo = [veiculo.placa, veiculo.marcaModelo, veiculo.cor, veiculo.anoModelo]
+            .some((v) => String(v ?? '').trim().length > 0);
+          return {
+            ...veiculo,
+            nomeProprietario: temDadosVeiculo ? (veiculo.nomeProprietario || nomeCompletoInput?.value || '') : (veiculo.nomeProprietario || ''),
+            cpf: temDadosVeiculo ? (veiculo.cpf || cpfInput?.value || '') : (veiculo.cpf || ''),
+          };
+        });
 
         // Atualiza os campos ocultos renderizados para que o payload herde os dados corretos
         const nomesOcultos = listaVeiculosEl?.querySelectorAll('[data-veiculo-nome-proprietario]');
@@ -1366,10 +1371,8 @@
       };
 
       const adicionarVeiculo = () => {
-        veiculos.push({
-          nomeProprietario: nomeCompletoInput?.value || '',
-          cpf: cpfInput?.value || '',
-        });
+        // Inicia veículo realmente vazio; só será enviado se preencher algum campo
+        veiculos.push({});
         renderizarVeiculos();
       };
 
@@ -2948,11 +2951,8 @@
           return;
         }
 
-        if (!veiculos.length) {
-          adicionarVeiculo(); // Comentário: inicia com um veículo vazio para manter experiência anterior
-        } else {
-          renderizarVeiculos();
-        }
+        // Não adiciona veículo automaticamente; usuário decide incluir quando necessário
+        renderizarVeiculos();
         sincronizarCamposVeiculo(); // Alinha campos ocultos com o estado inicial da Identificação
         atualizarRotuloSubmit();
         pessoaForm.addEventListener('submit', salvarPessoa);
