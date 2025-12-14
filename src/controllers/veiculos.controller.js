@@ -28,10 +28,11 @@ async function buscarPorId(req, res, next) {
   }
 }
 
-async function buscarPorPlaca(req, res, next) {
+// Consulta flexível por placa, CPF, nome ou marca/modelo
+async function buscar(req, res, next) {
   try {
-    const veiculo = await veiculosService.buscarPorPlaca(req.query.placa);
-    return res.json(veiculo);
+    const veiculos = await veiculosService.buscar(req.query);
+    return res.json(veiculos);
   } catch (error) {
     return next(error);
   }
@@ -55,4 +56,4 @@ async function remover(req, res, next) {
   }
 }
 
-module.exports = { criar, listar, buscarPorId, buscarPorPlaca, atualizar, remover };
+module.exports = { criar, listar, buscarPorId, buscar, atualizar, remover };

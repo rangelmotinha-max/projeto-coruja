@@ -76,6 +76,37 @@ class VeiculoPessoaModel {
     );
   }
 
+  // Consulta veículos vinculados com filtros para composição de buscas globais
+  static async search(filtros = {}) {
+    const db = await initDatabase();
+    const clausulas = [];
+    const valores = [];
+
+    if (filtros.placa) {
+      clausulas.push('placa = ?');
+      valores.push(filtros.placa);
+    }
+    if (filtros.cpf) {
+      clausulas.push('cpf = ?');
+      valores.push(filtros.cpf);
+    }
+    if (filtros.nomeProprietario) {
+      clausulas.push('LOWER(nomeProprietario) LIKE LOWER(?)');
+      valores.push(`%${filtros.nomeProprietario}%`);
+    }
+    if (filtros.marcaModelo) {
+      clausulas.push('LOWER(marcaModelo) LIKE LOWER(?)');
+      valores.push(`%${filtros.marcaModelo}%`);
+    }
+
+    const where = clausulas.length ? `WHERE ${clausulas.join(' AND ')}` : '';
+
+    return db.all(
+      `SELECT placa, marcaModelo, nomeProprietario, cpf FROM veiculos_pessoas ${where} ORDER BY atualizadoEm DESC`,
+      valores,
+    );
+  }
+
   // Atualiza os campos editáveis de um veículo vinculado
   static async update(id, updates) {
     const db = await initDatabase();
