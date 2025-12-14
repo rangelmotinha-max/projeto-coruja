@@ -9,6 +9,9 @@
       /* Oculta o texto padrão do input file ("nenhum arquivo escolhido") nas ocorrências policiais */
       .form__input.occ-doc { font-size: 0; }
       .form__input.occ-doc::file-selector-button { font-size: 0.875rem; }
+      /* Oculta o texto padrão do input file em Fotos do cadastro */
+      #pessoa-fotos { font-size: 0; }
+      #pessoa-fotos::file-selector-button { font-size: 0.875rem; }
     </style>
   </head>
   <body class="theme-dark">
@@ -94,7 +97,7 @@
                     accept="image/*"
                     multiple
                   />
-                  <small>Adicione uma ou mais imagens para a ficha da pessoa.</small>
+                  
                 </div>
                 <div id="lista-fotos" style="display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));"></div>
               </div>
@@ -869,7 +872,7 @@
         container.innerHTML = '';
 
         if (!fotosSelecionadas.length) {
-          container.innerHTML = '<div class="list__item">Nenhuma foto selecionada.</div>';
+          container.innerHTML = '';
           return;
         }
 
