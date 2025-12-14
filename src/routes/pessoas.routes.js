@@ -6,6 +6,23 @@ const { uploadPessoaArquivos } = require('../middlewares/upload');
 
 const router = express.Router();
 
+// Middleware condicional para preservar req.body quando o corpo é JSON puro.
+const conditionalUploadPessoaArquivos = (req, res, next) => {
+  const contentType = req.headers['content-type'] || '';
+
+  if (contentType.includes('application/json')) {
+    // Comentário: pula o multer para não limpar o corpo em requisições JSON.
+    return next();
+  }
+
+  const uploadFields = uploadPessoaArquivos.fields([
+    { name: 'fotos', maxCount: 10 },
+    { name: 'documentosOcorrenciasPoliciais', maxCount: 20 },
+  ]);
+
+  return uploadFields(req, res, next);
+};
+
 // Protege todas as rotas garantindo que apenas usuários autenticados acessem.
 router.use(authMiddleware);
 
@@ -13,10 +30,7 @@ router.use(authMiddleware);
 router.post(
   '/',
   authorize(['admin', 'editor']),
-  uploadPessoaArquivos.fields([
-    { name: 'fotos', maxCount: 10 },
-    { name: 'documentosOcorrenciasPoliciais', maxCount: 20 },
-  ]),
+  conditionalUploadPessoaArquivos,
   pessoasController.criar,
 );
 
