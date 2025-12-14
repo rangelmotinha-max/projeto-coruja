@@ -87,14 +87,14 @@
               <label class="form__field">
                 <span class="form__label">Marca/Modelo</span>
                 <!-- Campo para pesquisar por marca ou modelo combinados -->
-                <input class="form__input" type="text" name="modelo" placeholder="Ex.: Toyota Corolla" />
+                <input class="form__input" type="text" name="marcaModelo" placeholder="Ex.: Toyota Corolla" />
               </label>
             </div>
             <div class="form__grid form__grid--2">
               <label class="form__field">
                 <span class="form__label">Nome do Proprietário</span>
                 <!-- Campo dedicado a localizar veículos pelo proprietário principal -->
-                <input class="form__input" type="text" name="proprietario" placeholder="Digite o nome do proprietário" />
+                <input class="form__input" type="text" name="nomeProprietario" placeholder="Digite o nome do proprietário" />
               </label>
               <label class="form__field">
                 <span class="form__label">CPF do Proprietário</span>
@@ -115,26 +115,7 @@
             <!-- Espaço reservado para ações extras (ex.: exportação) se necessário no futuro -->
           </div>
           <div class="message" role="status" aria-live="polite" data-results-message>Aguardando consulta...</div>
-          <div class="message message--warning" role="status" aria-live="polite" data-empty-message style="display: none;">Veículo não encontrado!</div>
-          <div class="results" data-results-container aria-live="polite">
-            <div class="table-wrapper" role="region" aria-label="Tabela de veículos">
-              <table class="table">
-                <thead>
-                  <tr>
-                    <th scope="col">Placa</th>
-                    <th scope="col">Marca/Modelo</th>
-                    <th scope="col">Nome do Proprietário</th>
-                    <th scope="col">CPF</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td colspan="4">Preencha os filtros para iniciar a consulta.</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <div class="results" data-results-container aria-live="polite"></div>
         </section>
       </main>
     </div>
