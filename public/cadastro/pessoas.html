@@ -1052,7 +1052,8 @@
         fotosParaRemover = [];
         fotosSelecionadas = fotos.map((foto, index) => {
           const referencia = foto?.id || foto?.url || foto;
-          const nome = foto?.nomeArquivo || foto?.nome || `Foto ${index + 1}`;
+          // Comentário: aceita tanto o alias camelCase quanto o snake_case retornado pelo backend
+          const nome = foto?.nomeArquivo || foto?.nome_arquivo || foto?.nome || `Foto ${index + 1}`;
           return {
             existing: true,
             referencia,

@@ -644,10 +644,16 @@ class PessoaModel {
   static async obterFotosPorPessoa(pessoaId) {
     const db = await initDatabase();
     const registros = await db.all(
-      'SELECT id, nome_arquivo, caminho, mime_type AS mimeType, tamanho FROM fotos_pessoas WHERE pessoa_id = ? ORDER BY criadoEm ASC',
+      // Comentário: aplicamos alias para manter o padrão camelCase antes do mapeamento
+      'SELECT id, nome_arquivo AS nomeArquivo, caminho, mime_type AS mimeType, tamanho FROM fotos_pessoas WHERE pessoa_id = ? ORDER BY criadoEm ASC',
       [pessoaId]
     );
-    return registros.map((foto) => ({ ...foto, url: gerarUrlPublica(foto.caminho) }));
+    return registros.map((foto) => ({
+      ...foto,
+      nome_arquivo: foto.nomeArquivo,
+      mime_type: foto.mimeType,
+      url: gerarUrlPublica(foto.caminho),
+    }));
   }
 
   static async adicionarFoto(pessoaId, foto) {
@@ -679,7 +685,13 @@ class PessoaModel {
       ]
     );
 
-    return { ...novaFoto, url: gerarUrlPublica(novaFoto.caminho) };
+    // Comentário: devolvemos também o alias em camelCase para consumo direto no frontend
+    return {
+      ...novaFoto,
+      nomeArquivo: novaFoto.nome_arquivo,
+      mimeType: novaFoto.mime_type,
+      url: gerarUrlPublica(novaFoto.caminho),
+    };
   }
 
   static async removerFoto(fotoId) {
