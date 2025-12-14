@@ -27,7 +27,13 @@ function normalizarPayload(req) {
   });
 
   // Coerção básica de campos de texto para evitar erros de trim quando multipart envia objetos
-  if (payload.nomeCompleto !== undefined) payload.nomeCompleto = String(payload.nomeCompleto || '').trim();
+  if (payload.nomeCompleto !== undefined) {
+    // Comentário: aceita array (FormData duplicado) e mantém apenas o primeiro valor normalizado
+    const nomeCompletoNormalizado = Array.isArray(payload.nomeCompleto)
+      ? payload.nomeCompleto[0]
+      : payload.nomeCompleto;
+    payload.nomeCompleto = String(nomeCompletoNormalizado || '').trim();
+  }
   if (payload.apelido !== undefined) payload.apelido = String(payload.apelido || '').trim();
   if (payload.cpf !== undefined) payload.cpf = String(payload.cpf || '').trim();
   if (payload.rg !== undefined) payload.rg = String(payload.rg || '').trim();
