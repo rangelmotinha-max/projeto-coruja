@@ -9,9 +9,10 @@ const router = express.Router();
 // Middleware condicional para preservar req.body quando o corpo é JSON puro.
 const conditionalUploadPessoaArquivos = (req, res, next) => {
   const contentType = req.headers['content-type'] || '';
+  const isMultipart = contentType.includes('multipart/form-data');
 
-  if (contentType.includes('application/json')) {
-    // Comentário: pula o multer para não limpar o corpo em requisições JSON.
+  if (!isMultipart) {
+    // Comentário: pula o multer para não limpar o corpo em requisições JSON ou outros formatos.
     return next();
   }
 
@@ -46,14 +47,14 @@ router.get('/:id', authorize(['admin', 'editor', 'viewer', 'user', 'leitor']), p
 router.put(
   '/:id',
   authorize(['admin', 'editor']),
-  uploadPessoaArquivos.fields([
-    { name: 'fotos', maxCount: 10 },
-    { name: 'documentosOcorrenciasPoliciais', maxCount: 20 },
-  ]),
+  conditionalUploadPessoaArquivos,
   pessoasController.atualizar,
 );
 
 // Exclusão definitiva de um registro.
 router.delete('/:id', authorize(['admin']), pessoasController.remover);
+
+// Comentário: expõe middleware condicional para facilitar reutilização em testes automatizados.
+router.conditionalUploadPessoaArquivos = conditionalUploadPessoaArquivos;
 
 module.exports = router;
