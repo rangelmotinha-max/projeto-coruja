@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { randomUUID } = require('crypto');
 const { initDatabase } = require('../database/sqlite');
+const VeiculoModel = require('./veiculos.model');
 
 function calcularIdadeDe(dataStr) {
   if (!dataStr) return null;
@@ -26,6 +27,54 @@ function gerarUrlPublica(caminhoRelativo) {
   if (!caminhoRelativo) return null;
   const normalizado = caminhoRelativo.replace(/\\/g, '/');
   return `/${normalizado.replace(/^\//, '')}`;
+}
+
+// Normaliza o CPF para busca/armazenamento sem caracteres especiais
+function limparCpf(cpf) {
+  return cpf ? String(cpf).replace(/\D/g, '') : null;
+}
+
+// Localiza ou atualiza veículo associado usando CPF, placa ou nome do proprietário
+async function upsertVeiculoParaPessoa(pessoa, veiculoDados) {
+  if (!veiculoDados) return null;
+
+  // Garante preenchimento dos campos essenciais herdando do cadastro principal
+  const veiculo = {
+    ...veiculoDados,
+    nomeProprietario: veiculoDados.nomeProprietario || pessoa.nomeCompleto,
+    cpf: limparCpf(veiculoDados.cpf || pessoa.cpf),
+  };
+
+  // Tenta encontrar veículo existente por CPF, depois placa e por fim nome
+  const existentePorCpf = veiculo.cpf ? await VeiculoModel.findByCpf(veiculo.cpf) : null;
+  const existentePorPlaca = !existentePorCpf ? await VeiculoModel.findByPlaca(veiculo.placa) : null;
+  const existentePorNome = !existentePorCpf && !existentePorPlaca
+    ? await VeiculoModel.findByNomeProprietario(veiculo.nomeProprietario)
+    : null;
+  const existente = existentePorCpf || existentePorPlaca || existentePorNome;
+
+  if (existente) {
+    // Comentário: atualiza mantendo o vínculo com o cadastro mais recente
+    return VeiculoModel.update(existente.id, veiculo);
+  }
+
+  return VeiculoModel.create(veiculo);
+}
+
+// Hidrata veículo vinculado ao CPF ou nome do titular para pré-preenchimento do formulário
+async function localizarVeiculoAssociado(pessoa) {
+  if (!pessoa) return null;
+
+  const veiculoPorCpf = limparCpf(pessoa.cpf)
+    ? await VeiculoModel.findByCpf(limparCpf(pessoa.cpf))
+    : null;
+  if (veiculoPorCpf) return veiculoPorCpf;
+
+  if (pessoa.nomeCompleto) {
+    return VeiculoModel.findByNomeProprietario(pessoa.nomeCompleto);
+  }
+
+  return null;
 }
 
 // Remove o arquivo físico, mas não interrompe o fluxo se algo falhar.
@@ -142,6 +191,11 @@ class PessoaModel {
       }
     }
 
+    // Sincroniza veículo vinculado antes de hidratar o retorno
+    if (dados.veiculo) {
+      await upsertVeiculoParaPessoa(pessoa, dados.veiculo);
+    }
+
     // Reidrata a pessoa recém-criada para devolver todas as relações populadas
     // (enderecos, telefones, emails, redes sociais, vínculos, empresa e fotos persistidas).
     const pessoaHidratada = await this.findById(pessoa.id);
@@ -171,6 +225,11 @@ class PessoaModel {
     return pessoa;
   }
 
+  // Exposto para permitir que serviços sincronizem veículo com dados atualizados
+  static async sincronizarVeiculo(pessoa, veiculoDados) {
+    return upsertVeiculoParaPessoa(pessoa, veiculoDados);
+  }
+
   // Hidrata o objeto de pessoa com relacionamentos e campos derivados.
   static async hidratarPessoa(pessoa) {
     pessoa.enderecos = await this.obterEnderecosPorPessoa(pessoa.id);
@@ -179,6 +238,8 @@ class PessoaModel {
     pessoa.redesSociais = (await this.obterRedesPorPessoa(pessoa.id)).map(r => r.perfil);
     pessoa.fotos = await this.obterFotosPorPessoa(pessoa.id);
     pessoa.empresa = await this.obterEmpresaPorPessoa(pessoa.id);
+    // Inclui veículo associado por CPF ou nome para facilitar edição
+    pessoa.veiculo = await localizarVeiculoAssociado(pessoa);
     // Vinculos: preferir JSON quando existir, mas manter compatibilidade com tabela vinculos_pessoas
     let vinculosFromJson = {};
     if (pessoa.vinculos_json) {

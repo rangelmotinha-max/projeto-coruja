@@ -41,6 +41,30 @@ class VeiculoModel {
     return db.get('SELECT * FROM veiculos WHERE id = ?', [id]);
   }
 
+  // Recupera veículo pelo CPF do proprietário para permitir vínculo com pessoas
+  static async findByCpf(cpf) {
+    if (!cpf) return null;
+    const db = await initDatabase();
+    return db.get('SELECT * FROM veiculos WHERE cpf = ? ORDER BY atualizadoEm DESC', [cpf]);
+  }
+
+  // Recupera veículo pela placa quando não houver CPF disponível
+  static async findByPlaca(placa) {
+    if (!placa) return null;
+    const db = await initDatabase();
+    return db.get('SELECT * FROM veiculos WHERE placa = ? ORDER BY atualizadoEm DESC', [placa]);
+  }
+
+  // Recupera veículo pelo nome do proprietário para cenários sem CPF definido
+  static async findByNomeProprietario(nomeProprietario) {
+    if (!nomeProprietario) return null;
+    const db = await initDatabase();
+    return db.get(
+      'SELECT * FROM veiculos WHERE LOWER(nomeProprietario) = LOWER(?) ORDER BY atualizadoEm DESC',
+      [nomeProprietario],
+    );
+  }
+
   // Atualiza campos permitidos de um veículo
   static async update(id, updates) {
     const db = await initDatabase();
