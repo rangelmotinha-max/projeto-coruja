@@ -15,6 +15,16 @@ function normalizarPayload(req) {
     }
   });
 
+  // Coerção básica de campos de texto para evitar erros de trim quando multipart envia objetos
+  if (payload.nomeCompleto !== undefined) payload.nomeCompleto = String(payload.nomeCompleto || '').trim();
+  if (payload.apelido !== undefined) payload.apelido = String(payload.apelido || '').trim();
+  if (payload.cpf !== undefined) payload.cpf = String(payload.cpf || '').trim();
+  if (payload.rg !== undefined) payload.rg = String(payload.rg || '').trim();
+  if (payload.cnh !== undefined) payload.cnh = String(payload.cnh || '').trim();
+  if (payload.nomeMae !== undefined) payload.nomeMae = String(payload.nomeMae || '').trim();
+  if (payload.nomePai !== undefined) payload.nomePai = String(payload.nomePai || '').trim();
+  if (payload.sinais !== undefined) payload.sinais = String(payload.sinais || '').trim();
+
   return payload;
 }
 
