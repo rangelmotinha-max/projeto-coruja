@@ -56,6 +56,7 @@
       sinais: formData.get('sinais'),
       telefone: formData.get('telefone'),
       email: formData.get('email'),
+      pesquisaGeral: formData.get('pesquisaGeral'),
     };
 
     Object.entries(rawFields).forEach(([key, value]) => {
