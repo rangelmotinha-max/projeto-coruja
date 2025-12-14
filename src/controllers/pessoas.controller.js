@@ -3,11 +3,22 @@ const pessoaService = require('../services/pessoas.service');
 // Normaliza payloads vindos de multipart/form-data convertendo campos JSON.
 function normalizarPayload(req) {
   const payload = { ...req.body };
-  const camposJson = ['enderecos', 'telefones', 'emails', 'redesSociais', 'vinculos', 'ocorrencias', 'fotosParaRemover'];
+  const camposJson = [
+    'enderecos',
+    'telefones',
+    'emails',
+    'redesSociais',
+    'vinculos',
+    'ocorrencias',
+    'fotosParaRemover',
+    'veiculos',
+    'veiculo',
+  ];
 
   camposJson.forEach((campo) => {
     if (typeof payload[campo] === 'string') {
       try {
+        // Comentário: converte strings JSON enviadas via multipart para objetos/arrays
         payload[campo] = JSON.parse(payload[campo]);
       } catch (_) {
         // Mantém valor original caso não seja JSON; validação tratará
