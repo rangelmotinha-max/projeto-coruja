@@ -83,7 +83,8 @@
     resultsContainer.innerHTML = '';
 
     if (!Array.isArray(pessoas) || pessoas.length === 0) {
-      setMessage('Nenhum resultado encontrado para os filtros informados.', 'info');
+      // Mensagem neutra para ausência de dados, aplicável a filtros específicos ou pesquisa geral.
+      setMessage('Nenhum dado foi encontado!', 'info');
       return;
     }
 
