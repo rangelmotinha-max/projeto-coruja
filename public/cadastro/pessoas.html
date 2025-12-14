@@ -168,7 +168,7 @@
                     </div>
                   </div>
                   <input type="hidden" name="faccaoId" id="faccao-id" />
-                  <div id="faccao-sugestoes" class="panel" style="display:none; padding:0.5rem; gap:0.35rem;"></div>
+                  <div id="faccao-sugestoes" style="display:none; padding:0.5rem; gap:0.35rem;"></div>
                   <small id="faccao-feedback" style="color: var(--muted);">Deixe em branco se a pessoa não tiver vínculo.</small>
                 </label>
               </div>
@@ -386,6 +386,20 @@
     </div>
 
     <script src="/js/main.js"></script>
+    <div id="faccao-confirmar-modal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="faccao-confirmar-title">
+      <div class="modal__overlay" data-modal-close></div>
+      <div class="modal__panel modal__panel--sm" role="document">
+        <button class="modal__close" id="faccao-confirmar-close" aria-label="Fechar">×</button>
+        <h3 id="faccao-confirmar-title">Confirmação</h3>
+        <div class="form" style="padding-top:0.5rem;">
+          <p id="faccao-confirmar-texto">Facção ou Organização não encontrada! Deseja incluir?</p>
+          <div class="form__actions">
+            <button class="button button--secondary" type="button" id="faccao-confirmar-sim">Sim</button>
+            <button class="button button--ghost" type="button" id="faccao-confirmar-nao">Não</button>
+          </div>
+        </div>
+      </div>
+    </div>
     <div id="alterar-senha-modal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="alterar-senha-title">
       <div class="modal__overlay" data-modal-close></div>
       <div class="modal__panel modal__panel--sm" role="document">
@@ -531,37 +545,7 @@
             faccaoSugestoesEl.style.display = 'none';
             return;
           }
-
-          const aviso = document.createElement('div');
-          aviso.style.display = 'flex';
-          aviso.style.flexDirection = 'column';
-          aviso.style.gap = '0.5rem';
-          aviso.innerHTML = `<strong>Facção ou Organização não encontrada. Deseja incluir: sim ou não</strong>`;
-
-          const acoes = document.createElement('div');
-          acoes.style.display = 'flex';
-          acoes.style.gap = '0.5rem';
-
-          const botaoSim = document.createElement('button');
-          botaoSim.type = 'button';
-          botaoSim.className = 'button button--secondary';
-          botaoSim.textContent = 'Sim';
-          botaoSim.addEventListener('click', () => criarFaccao(termoAtual));
-
-          const botaoNao = document.createElement('button');
-          botaoNao.type = 'button';
-          botaoNao.className = 'button button--ghost';
-          botaoNao.textContent = 'Não';
-          botaoNao.addEventListener('click', () => {
-            faccaoSugestoesEl.style.display = 'none';
-            atualizarFeedbackFaccao('Deixe em branco se a pessoa não tiver vínculo.');
-          });
-
-          acoes.appendChild(botaoSim);
-          acoes.appendChild(botaoNao);
-          aviso.appendChild(acoes);
-          faccaoSugestoesEl.appendChild(aviso);
-          faccaoSugestoesEl.style.display = 'flex';
+          abrirConfirmacaoIncluirFaccao(termoAtual);
           return;
         }
 
@@ -570,6 +554,8 @@
           opcao.type = 'button';
           opcao.className = 'button button--ghost';
           opcao.style.justifyContent = 'flex-start';
+          opcao.style.background = 'transparent';
+          opcao.style.border = 'none';
           opcao.textContent = formatarNomeFaccao(faccao);
           opcao.addEventListener('click', () => selecionarFaccao(faccao));
           faccaoSugestoesEl.appendChild(opcao);
@@ -617,6 +603,36 @@
           atualizarFeedbackFaccao(error?.message || 'Erro ao cadastrar facção.', 'error');
         }
       };
+
+      // Modal de confirmação para inclusão de facção
+      const faccaoConfirmarModal = document.getElementById('faccao-confirmar-modal');
+      const faccaoConfirmarClose = document.getElementById('faccao-confirmar-close');
+      const faccaoConfirmarSim = document.getElementById('faccao-confirmar-sim');
+      const faccaoConfirmarNao = document.getElementById('faccao-confirmar-nao');
+      const faccaoConfirmarTexto = document.getElementById('faccao-confirmar-texto');
+      const abrirConfirmacaoIncluirFaccao = (termoAtual = '') => {
+        if (!faccaoConfirmarModal) return;
+        faccaoConfirmarTexto.textContent = 'Facção ou Organização não encontrada! Deseja incluir?';
+        faccaoConfirmarModal.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+        // Vincula ações
+        faccaoConfirmarSim.onclick = () => {
+          fecharConfirmacaoIncluirFaccao();
+          criarFaccao(termoAtual);
+        };
+        faccaoConfirmarNao.onclick = () => {
+          fecharConfirmacaoIncluirFaccao();
+          atualizarFeedbackFaccao('Deixe em branco se a pessoa não tiver vínculo.');
+        };
+      };
+      const fecharConfirmacaoIncluirFaccao = () => {
+        if (!faccaoConfirmarModal) return;
+        faccaoConfirmarModal.setAttribute('aria-hidden', 'true');
+        document.body.style.overflow = '';
+      };
+      document.querySelector('#faccao-confirmar-modal [data-modal-close]')?.addEventListener('click', fecharConfirmacaoIncluirFaccao);
+      faccaoConfirmarClose?.addEventListener('click', fecharConfirmacaoIncluirFaccao);
+      faccaoConfirmarNao?.addEventListener('click', fecharConfirmacaoIncluirFaccao);
 
       // Recupera o ID da pessoa a partir da URL (?pessoaId= ou ?id=)
       const obterPessoaIdDaUrl = () => {
