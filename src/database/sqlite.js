@@ -7,6 +7,18 @@ let dbPromise;
 
 function wrapDatabase(db) {
   return {
+    // Inicia uma transação explícita para garantir atomicidade
+    beginTransaction() {
+      return this.run('BEGIN TRANSACTION');
+    },
+    // Finaliza a transação gravando todas as alterações
+    commit() {
+      return this.run('COMMIT');
+    },
+    // Desfaz todas as operações realizadas desde o BEGIN
+    rollback() {
+      return this.run('ROLLBACK');
+    },
     run(sql, params = []) {
       return new Promise((resolve, reject) => {
         db.run(sql, params, function callback(err) {

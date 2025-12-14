@@ -35,7 +35,7 @@ function limparCpf(cpf) {
 }
 
 // Localiza ou atualiza veículo associado usando CPF, placa ou nome do proprietário
-async function upsertVeiculoParaPessoa(pessoa, veiculoDados) {
+async function upsertVeiculoParaPessoa(pessoa, veiculoDados, dbArg) {
   if (!veiculoDados) return null;
 
   // Garante preenchimento dos campos essenciais herdando do cadastro principal
@@ -49,23 +49,23 @@ async function upsertVeiculoParaPessoa(pessoa, veiculoDados) {
   // Comentário: só reaproveitamos quando a placa bate; sem placa, usamos CPF ou nome
   let existente = null;
   if (veiculo.placa) {
-    existente = await VeiculoPessoaModel.findByPlaca(pessoa.id, veiculo.placa);
+    existente = await VeiculoPessoaModel.findByPlaca(pessoa.id, veiculo.placa, dbArg);
   } else if (veiculo.cpf) {
-    existente = await VeiculoPessoaModel.findByCpf(pessoa.id, veiculo.cpf);
+    existente = await VeiculoPessoaModel.findByCpf(pessoa.id, veiculo.cpf, dbArg);
   } else if (veiculo.nomeProprietario) {
-    existente = await VeiculoPessoaModel.findByNomeProprietario(pessoa.id, veiculo.nomeProprietario);
+    existente = await VeiculoPessoaModel.findByNomeProprietario(pessoa.id, veiculo.nomeProprietario, dbArg);
   }
 
   if (existente) {
     // Comentário: atualiza mantendo o vínculo com o cadastro mais recente
-    return VeiculoPessoaModel.update(existente.id, veiculo);
+    return VeiculoPessoaModel.update(existente.id, veiculo, dbArg);
   }
 
-  return VeiculoPessoaModel.create(veiculo);
+  return VeiculoPessoaModel.create(veiculo, dbArg);
 }
 
 // Sincroniza a lista de veículos de uma pessoa, preservando apenas os enviados
-async function sincronizarVeiculosParaPessoa(pessoa, listaVeiculos) {
+async function sincronizarVeiculosParaPessoa(pessoa, listaVeiculos, dbArg) {
   if (!Array.isArray(listaVeiculos)) return [];
 
   const veiculosValidos = listaVeiculos
@@ -80,16 +80,16 @@ async function sincronizarVeiculosParaPessoa(pessoa, listaVeiculos) {
 
   const veiculosPersistidos = [];
   for (const veiculo of veiculosValidos) {
-    const salvo = await upsertVeiculoParaPessoa(pessoa, veiculo);
+    const salvo = await upsertVeiculoParaPessoa(pessoa, veiculo, dbArg);
     if (salvo) veiculosPersistidos.push(salvo);
   }
 
   // Remove veículos que pertenciam ao titular mas não foram reenviados (por placa)
-  const veiculosDoTitular = await VeiculoPessoaModel.findAllByPessoaId(pessoa.id);
+  const veiculosDoTitular = await VeiculoPessoaModel.findAllByPessoaId(pessoa.id, dbArg);
   const placasEnviadas = new Set(veiculosValidos.map((v) => v.placa).filter(Boolean));
   for (const existente of veiculosDoTitular) {
     if (existente.placa && !placasEnviadas.has(existente.placa)) {
-      await VeiculoPessoaModel.delete(existente.id);
+      await VeiculoPessoaModel.delete(existente.id, dbArg);
     }
   }
 
@@ -138,91 +138,103 @@ class PessoaModel {
       atualizadoEm: agora,
     };
 
-    await db.run(
-      `INSERT INTO pessoas (
-        id, nomeCompleto, apelido, dataNascimento, idade, cpf, rg, cnh, nomeMae, nomePai, sinais,
-        endereco_atual_index, vinculos_json, ocorrencias_json, criadoEm, atualizadoEm
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        pessoa.id,
-        pessoa.nomeCompleto,
-        pessoa.apelido,
-        pessoa.dataNascimento,
-        pessoa.idade,
-        pessoa.cpf,
-        pessoa.rg,
-        pessoa.cnh,
-        pessoa.nomeMae,
-        pessoa.nomePai,
-        pessoa.sinais,
-        pessoa.endereco_atual_index,
-        pessoa.vinculos_json,
-        pessoa.ocorrencias_json,
-        pessoa.criadoEm,
-        pessoa.atualizadoEm,
-      ]
-    );
+    // Inicia transação para garantir consistência entre pessoa e relacionamentos
+    await db.beginTransaction();
 
-    // Salvar endereços se fornecidos
-    if (dados.enderecos && Array.isArray(dados.enderecos)) {
-      for (const endereco of dados.enderecos) {
-        await this.adicionarEndereco(pessoa.id, endereco);
-      }
-    }
+    try {
+      await db.run(
+        `INSERT INTO pessoas (
+          id, nomeCompleto, apelido, dataNascimento, idade, cpf, rg, cnh, nomeMae, nomePai, sinais,
+          endereco_atual_index, vinculos_json, ocorrencias_json, criadoEm, atualizadoEm
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          pessoa.id,
+          pessoa.nomeCompleto,
+          pessoa.apelido,
+          pessoa.dataNascimento,
+          pessoa.idade,
+          pessoa.cpf,
+          pessoa.rg,
+          pessoa.cnh,
+          pessoa.nomeMae,
+          pessoa.nomePai,
+          pessoa.sinais,
+          pessoa.endereco_atual_index,
+          pessoa.vinculos_json,
+          pessoa.ocorrencias_json,
+          pessoa.criadoEm,
+          pessoa.atualizadoEm,
+        ]
+      );
 
-    // Salvar telefones se fornecidos
-    if (dados.telefones && Array.isArray(dados.telefones)) {
-      for (const telefone of dados.telefones) {
-        if (telefone.trim()) {
-          await this.adicionarTelefone(pessoa.id, telefone);
+      // Salvar endereços se fornecidos
+      if (dados.enderecos && Array.isArray(dados.enderecos)) {
+        for (const endereco of dados.enderecos) {
+          await this.adicionarEndereco(pessoa.id, endereco, db);
         }
       }
-    }
 
-    // Salvar emails se fornecidos
-    if (dados.emails && Array.isArray(dados.emails)) {
-      for (const email of dados.emails) {
-        if (email.trim()) {
-          await this.adicionarEmail(pessoa.id, email);
+      // Salvar telefones se fornecidos
+      if (dados.telefones && Array.isArray(dados.telefones)) {
+        for (const telefone of dados.telefones) {
+          if (telefone.trim()) {
+            await this.adicionarTelefone(pessoa.id, telefone, db);
+          }
         }
       }
-    }
 
-    // Salvar redes sociais se fornecidas
-    if (dados.redesSociais && Array.isArray(dados.redesSociais)) {
-      for (const perfil of dados.redesSociais) {
-        if (perfil.trim()) {
-          await this.adicionarRedeSocial(pessoa.id, perfil);
+      // Salvar emails se fornecidos
+      if (dados.emails && Array.isArray(dados.emails)) {
+        for (const email of dados.emails) {
+          if (email.trim()) {
+            await this.adicionarEmail(pessoa.id, email, db);
+          }
         }
       }
-    }
 
-    // Salvar empresa e sócios se fornecidos
-    if (dados.empresa && typeof dados.empresa === 'object') {
-      await this.upsertEmpresa(pessoa.id, dados.empresa);
-    }
-
-    // Salvar vínculos (pessoas relacionadas)
-    if (dados.vinculos && Array.isArray(dados.vinculos.pessoas)) {
-      for (const vp of dados.vinculos.pessoas) {
-        if ((vp.nome||vp.cpf||vp.tipo||'').toString().trim().length) {
-          await this.adicionarVinculoPessoa(pessoa.id, vp);
+      // Salvar redes sociais se fornecidas
+      if (dados.redesSociais && Array.isArray(dados.redesSociais)) {
+        for (const perfil of dados.redesSociais) {
+          if (perfil.trim()) {
+            await this.adicionarRedeSocial(pessoa.id, perfil, db);
+          }
         }
       }
-    }
 
-    // Salvar fotos carregadas durante o cadastro
-    if (dados.fotos && Array.isArray(dados.fotos)) {
-      for (const foto of dados.fotos) {
-        await this.adicionarFoto(pessoa.id, foto);
+      // Salvar empresa e sócios se fornecidos
+      if (dados.empresa && typeof dados.empresa === 'object') {
+        await this.upsertEmpresa(pessoa.id, dados.empresa, db);
       }
-    }
 
-    // Sincroniza veículos vinculados antes de hidratar o retorno
-    if (Array.isArray(dados.veiculos) && dados.veiculos.length) {
-      await sincronizarVeiculosParaPessoa(pessoa, dados.veiculos);
-    } else if (dados.veiculo) {
-      await upsertVeiculoParaPessoa(pessoa, dados.veiculo);
+      // Salvar vínculos (pessoas relacionadas)
+      if (dados.vinculos && Array.isArray(dados.vinculos.pessoas)) {
+        for (const vp of dados.vinculos.pessoas) {
+          if ((vp.nome||vp.cpf||vp.tipo||'').toString().trim().length) {
+            await this.adicionarVinculoPessoa(pessoa.id, vp, db);
+          }
+        }
+      }
+
+      // Salvar fotos carregadas durante o cadastro
+      if (dados.fotos && Array.isArray(dados.fotos)) {
+        for (const foto of dados.fotos) {
+          await this.adicionarFoto(pessoa.id, foto, db);
+        }
+      }
+
+      // Sincroniza veículos vinculados antes de hidratar o retorno
+      if (Array.isArray(dados.veiculos) && dados.veiculos.length) {
+        await sincronizarVeiculosParaPessoa(pessoa, dados.veiculos, db);
+      } else if (dados.veiculo) {
+        await upsertVeiculoParaPessoa(pessoa, dados.veiculo, db);
+      }
+
+      // Finaliza transação somente após todas as operações concluírem
+      await db.commit();
+    } catch (erro) {
+      // Reverte qualquer alteração parcial e propaga exceção original
+      await db.rollback();
+      throw erro;
     }
 
     // Reidrata a pessoa recém-criada para devolver todas as relações populadas
@@ -255,13 +267,13 @@ class PessoaModel {
   }
 
   // Exposto para permitir que serviços sincronizem veículo com dados atualizados
-  static async sincronizarVeiculo(pessoa, veiculoDados) {
-    return upsertVeiculoParaPessoa(pessoa, veiculoDados);
+  static async sincronizarVeiculo(pessoa, veiculoDados, dbArg) {
+    return upsertVeiculoParaPessoa(pessoa, veiculoDados, dbArg);
   }
 
   // Mantém múltiplos veículos vinculados alinhados ao cadastro principal
-  static async sincronizarVeiculos(pessoa, veiculosDados) {
-    return sincronizarVeiculosParaPessoa(pessoa, veiculosDados);
+  static async sincronizarVeiculos(pessoa, veiculosDados, dbArg) {
+    return sincronizarVeiculosParaPessoa(pessoa, veiculosDados, dbArg);
   }
 
   // Hidrata o objeto de pessoa com relacionamentos e campos derivados.
@@ -438,8 +450,8 @@ class PessoaModel {
   }
 
   // Obtém todos os endereços de uma pessoa
-  static async obterEnderecosPorPessoa(pessoaId) {
-    const db = await initDatabase();
+  static async obterEnderecosPorPessoa(pessoaId, dbArg) {
+    const db = dbArg || await initDatabase();
     return db.all(
       // Retorna lat/long com alias em camelCase para o frontend
       'SELECT id, uf, logradouro, bairro, complemento, cep, lat_long AS latLong FROM enderecos WHERE pessoa_id = ? ORDER BY criadoEm ASC',
@@ -448,8 +460,8 @@ class PessoaModel {
   }
 
   // Adiciona um novo endereço para uma pessoa
-  static async adicionarEndereco(pessoaId, endereco) {
-    const db = await initDatabase();
+  static async adicionarEndereco(pessoaId, endereco, dbArg) {
+    const db = dbArg || await initDatabase();
     const agora = new Date().toISOString();
     
     const novoEndereco = {
@@ -488,8 +500,8 @@ class PessoaModel {
   }
 
   // Atualiza um endereço específico
-  static async atualizarEndereco(enderecoId, updates) {
-    const db = await initDatabase();
+  static async atualizarEndereco(enderecoId, updates, dbArg) {
+    const db = dbArg || await initDatabase();
     const campos = [];
     const valores = [];
 
@@ -519,15 +531,15 @@ class PessoaModel {
   }
 
   // Remove um endereço específico
-  static async removerEndereco(enderecoId) {
-    const db = await initDatabase();
+  static async removerEndereco(enderecoId, dbArg) {
+    const db = dbArg || await initDatabase();
     const resultado = await db.run('DELETE FROM enderecos WHERE id = ?', [enderecoId]);
     return resultado.changes > 0;
   }
 
   // Obtém todos os telefones de uma pessoa
-  static async obterTelefonesPorPessoa(pessoaId) {
-    const db = await initDatabase();
+  static async obterTelefonesPorPessoa(pessoaId, dbArg) {
+    const db = dbArg || await initDatabase();
     return db.all(
       'SELECT id, numero FROM telefones WHERE pessoa_id = ? ORDER BY criadoEm ASC',
       [pessoaId]
@@ -535,8 +547,8 @@ class PessoaModel {
   }
 
   // Adiciona um novo telefone para uma pessoa
-  static async adicionarTelefone(pessoaId, numero) {
-    const db = await initDatabase();
+  static async adicionarTelefone(pessoaId, numero, dbArg) {
+    const db = dbArg || await initDatabase();
     const agora = new Date().toISOString();
     
     const novoTelefone = {
@@ -557,8 +569,8 @@ class PessoaModel {
   }
 
   // Atualiza um telefone específico
-  static async atualizarTelefone(telefoneId, numero) {
-    const db = await initDatabase();
+  static async atualizarTelefone(telefoneId, numero, dbArg) {
+    const db = dbArg || await initDatabase();
     const agora = new Date().toISOString();
 
     const resultado = await db.run(
@@ -570,23 +582,23 @@ class PessoaModel {
   }
 
   // Remove um telefone específico
-  static async removerTelefone(telefoneId) {
-    const db = await initDatabase();
+  static async removerTelefone(telefoneId, dbArg) {
+    const db = dbArg || await initDatabase();
     const resultado = await db.run('DELETE FROM telefones WHERE id = ?', [telefoneId]);
     return resultado.changes > 0;
   }
 
   // Emails
-  static async obterEmailsPorPessoa(pessoaId) {
-    const db = await initDatabase();
+  static async obterEmailsPorPessoa(pessoaId, dbArg) {
+    const db = dbArg || await initDatabase();
     return db.all(
       'SELECT id, email FROM emails WHERE pessoa_id = ? ORDER BY criadoEm ASC',
       [pessoaId]
     );
   }
 
-  static async adicionarEmail(pessoaId, email) {
-    const db = await initDatabase();
+  static async adicionarEmail(pessoaId, email, dbArg) {
+    const db = dbArg || await initDatabase();
     const agora = new Date().toISOString();
     const novo = {
       id: randomUUID(),
@@ -602,23 +614,23 @@ class PessoaModel {
     return novo;
   }
 
-  static async removerEmail(emailId) {
-    const db = await initDatabase();
+  static async removerEmail(emailId, dbArg) {
+    const db = dbArg || await initDatabase();
     const resultado = await db.run('DELETE FROM emails WHERE id = ?', [emailId]);
     return resultado.changes > 0;
   }
 
   // Redes sociais
-  static async obterRedesPorPessoa(pessoaId) {
-    const db = await initDatabase();
+  static async obterRedesPorPessoa(pessoaId, dbArg) {
+    const db = dbArg || await initDatabase();
     return db.all(
       'SELECT id, perfil FROM redes_sociais WHERE pessoa_id = ? ORDER BY criadoEm ASC',
       [pessoaId]
     );
   }
 
-  static async adicionarRedeSocial(pessoaId, perfil) {
-    const db = await initDatabase();
+  static async adicionarRedeSocial(pessoaId, perfil, dbArg) {
+    const db = dbArg || await initDatabase();
     const agora = new Date().toISOString();
     const novo = {
       id: randomUUID(),
@@ -634,15 +646,15 @@ class PessoaModel {
     return novo;
   }
 
-  static async removerRedeSocial(redeId) {
-    const db = await initDatabase();
+  static async removerRedeSocial(redeId, dbArg) {
+    const db = dbArg || await initDatabase();
     const resultado = await db.run('DELETE FROM redes_sociais WHERE id = ?', [redeId]);
     return resultado.changes > 0;
   }
 
   // Fotos vinculadas a uma pessoa
-  static async obterFotosPorPessoa(pessoaId) {
-    const db = await initDatabase();
+  static async obterFotosPorPessoa(pessoaId, dbArg) {
+    const db = dbArg || await initDatabase();
     const registros = await db.all(
       // Comentário: aplicamos alias para manter o padrão camelCase antes do mapeamento
       'SELECT id, nome_arquivo AS nomeArquivo, caminho, mime_type AS mimeType, tamanho FROM fotos_pessoas WHERE pessoa_id = ? ORDER BY criadoEm ASC',
@@ -656,8 +668,8 @@ class PessoaModel {
     }));
   }
 
-  static async adicionarFoto(pessoaId, foto) {
-    const db = await initDatabase();
+  static async adicionarFoto(pessoaId, foto, dbArg) {
+    const db = dbArg || await initDatabase();
     const agora = new Date().toISOString();
     const novaFoto = {
       id: randomUUID(),
@@ -694,8 +706,8 @@ class PessoaModel {
     };
   }
 
-  static async removerFoto(fotoId) {
-    const db = await initDatabase();
+  static async removerFoto(fotoId, dbArg) {
+    const db = dbArg || await initDatabase();
     const foto = await db.get('SELECT caminho FROM fotos_pessoas WHERE id = ?', [fotoId]);
     if (!foto) return false;
 
@@ -706,24 +718,24 @@ class PessoaModel {
     return resultado.changes > 0;
   }
 
-  static async removerFotosPorPessoa(pessoaId) {
-    const fotos = await this.obterFotosPorPessoa(pessoaId);
+  static async removerFotosPorPessoa(pessoaId, dbArg) {
+    const fotos = await this.obterFotosPorPessoa(pessoaId, dbArg);
     for (const foto of fotos) {
-      await this.removerFoto(foto.id);
+      await this.removerFoto(foto.id, dbArg);
     }
   }
 
   // Vínculos > Pessoas
-  static async obterVinculosPessoas(pessoaId) {
-    const db = await initDatabase();
+  static async obterVinculosPessoas(pessoaId, dbArg) {
+    const db = dbArg || await initDatabase();
     return db.all(
       'SELECT id, nome, cpf, tipo FROM vinculos_pessoas WHERE pessoa_id = ? ORDER BY criadoEm ASC',
       [pessoaId]
     );
   }
 
-  static async adicionarVinculoPessoa(pessoaId, vinc) {
-    const db = await initDatabase();
+  static async adicionarVinculoPessoa(pessoaId, vinc, dbArg) {
+    const db = dbArg || await initDatabase();
     const agora = new Date().toISOString();
     const novo = {
       id: randomUUID(),
@@ -742,15 +754,15 @@ class PessoaModel {
     return novo;
   }
 
-  static async removerVinculoPessoa(vinculoId) {
-    const db = await initDatabase();
+  static async removerVinculoPessoa(vinculoId, dbArg) {
+    const db = dbArg || await initDatabase();
     const resultado = await db.run('DELETE FROM vinculos_pessoas WHERE id = ?', [vinculoId]);
     return resultado.changes > 0;
   }
 
   // Empresa e Sócios
-  static async obterEmpresaPorPessoa(pessoaId) {
-    const db = await initDatabase();
+  static async obterEmpresaPorPessoa(pessoaId, dbArg) {
+    const db = dbArg || await initDatabase();
     const empresa = await db.get('SELECT * FROM empresas WHERE pessoa_id = ?', [pessoaId]);
     if (!empresa) return null;
     const socios = await db.all('SELECT id, nome, cpf FROM socios WHERE empresa_id = ? ORDER BY criadoEm ASC', [empresa.id]);
@@ -769,8 +781,8 @@ class PessoaModel {
     };
   }
 
-  static async upsertEmpresa(pessoaId, empresa) {
-    const db = await initDatabase();
+  static async upsertEmpresa(pessoaId, empresa, dbArg) {
+    const db = dbArg || await initDatabase();
     const existente = await db.get('SELECT * FROM empresas WHERE pessoa_id = ?', [pessoaId]);
     const agora = new Date().toISOString();
     let empresaId;
@@ -830,7 +842,7 @@ class PessoaModel {
       }
     }
 
-    return this.obterEmpresaPorPessoa(pessoaId);
+    return this.obterEmpresaPorPessoa(pessoaId, db);
   }
 
   // Atualiza campos da pessoa (dados pessoais)
