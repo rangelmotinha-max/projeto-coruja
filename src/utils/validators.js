@@ -178,15 +178,19 @@ function validarListaVeiculos(lista, nomeTitular, cpfTitular) {
     throw criarErro('O campo veiculos deve ser uma lista', 400);
   }
 
-  return lista
+  // Primeiro filtra itens que têm dados relevantes para evitar validar objetos vazios
+  const itensComDados = lista.filter((v) => {
+    if (!v || typeof v !== 'object') return false;
+    const campos = [v.placa, v.nomeProprietario, v.marcaModelo, v.cor, v.anoModelo];
+    return campos.some((c) => String(c ?? '').trim().length > 0);
+  });
+
+  return itensComDados
     .map((veiculo) => validarCadastroVeiculo({
       ...veiculo,
       nomeProprietario: veiculo?.nomeProprietario || nomeTitular,
       cpf: veiculo?.cpf || cpfTitular,
-    }))
-    // Remove veículos completamente vazios para evitar registros sem informação
-    .filter((veiculo) => Object.values({ ...veiculo, anoModelo: veiculo.anoModelo ?? '' })
-      .some((valor) => String(valor ?? '').trim() !== ''));
+    }));
 }
 
 function validarCadastroPessoa(payload, arquivos = []) {
