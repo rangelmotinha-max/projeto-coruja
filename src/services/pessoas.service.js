@@ -47,6 +47,10 @@ function normalizarFiltros(filtrosBrutos = {}) {
   const email = limpar(filtrosBrutos.email);
   if (email) filtros.email = email;
 
+  // Termo amplo para pesquisa em todos os campos disponíveis.
+  const pesquisaGeral = limpar(filtrosBrutos.pesquisaGeral || filtrosBrutos.q || filtrosBrutos.busca);
+  if (pesquisaGeral) filtros.pesquisaGeral = pesquisaGeral;
+
   return filtros;
 }
 

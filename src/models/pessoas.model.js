@@ -212,6 +212,66 @@ class PessoaModel {
     // Normaliza termo para comparação case-insensitive preservando curingas
     const normalizarTermoLike = (valor) => `%${String(valor).toLowerCase()}%`;
 
+    // Busca ampla: aplica o mesmo termo em todos os campos conhecidos do cadastro e suas tabelas relacionadas.
+    if (filtros.pesquisaGeral) {
+      const termoGeral = normalizarTermoLike(filtros.pesquisaGeral);
+      const camposPrincipais = [
+        'LOWER(p.nomeCompleto) LIKE ?',
+        'LOWER(p.apelido) LIKE ?',
+        'LOWER(p.cpf) LIKE ?',
+        'LOWER(p.rg) LIKE ?',
+        'LOWER(p.cnh) LIKE ?',
+        'LOWER(p.dataNascimento) LIKE ?',
+        'LOWER(CAST(p.idade AS TEXT)) LIKE ?',
+        'LOWER(p.nomeMae) LIKE ?',
+        'LOWER(p.nomePai) LIKE ?',
+        'LOWER(p.sinais) LIKE ?',
+        'LOWER(p.telefone) LIKE ?',
+        'LOWER(IFNULL(p.vinculos_json, "")) LIKE ?',
+        'LOWER(IFNULL(p.ocorrencias_json, "")) LIKE ?',
+      ];
+
+      const clausulasEndereco = [
+        'LOWER(e.uf) LIKE ?',
+        'LOWER(e.logradouro) LIKE ?',
+        'LOWER(e.bairro) LIKE ?',
+        'LOWER(e.complemento) LIKE ?',
+        'LOWER(e.cep) LIKE ?',
+        'LOWER(e.lat_long) LIKE ?',
+      ];
+
+      const clausulasVinculos = [
+        'LOWER(vp.nome) LIKE ?',
+        'LOWER(vp.cpf) LIKE ?',
+        'LOWER(vp.tipo) LIKE ?',
+      ];
+
+      const consultasRelacionadas = [
+        { sql: 'EXISTS (SELECT 1 FROM telefones t WHERE t.pessoa_id = p.id AND LOWER(t.numero) LIKE ?)', count: 1 },
+        { sql: 'EXISTS (SELECT 1 FROM emails e WHERE e.pessoa_id = p.id AND LOWER(e.email) LIKE ?)', count: 1 },
+        { sql: 'EXISTS (SELECT 1 FROM redes_sociais r WHERE r.pessoa_id = p.id AND LOWER(r.perfil) LIKE ?)', count: 1 },
+        {
+          sql: `EXISTS (SELECT 1 FROM enderecos e WHERE e.pessoa_id = p.id AND (${clausulasEndereco.join(' OR ')}))`,
+          count: clausulasEndereco.length,
+        },
+        {
+          sql: `EXISTS (SELECT 1 FROM vinculos_pessoas vp WHERE vp.pessoa_id = p.id AND (${clausulasVinculos.join(' OR ')}))`,
+          count: clausulasVinculos.length,
+        },
+      ];
+
+      const clausulas = [...camposPrincipais, ...consultasRelacionadas.map((c) => c.sql)];
+      where.push(`(${clausulas.join(' OR ')})`);
+
+      // Replica o termo nas cláusulas principais e relacionadas para manter o número de parâmetros alinhado.
+      camposPrincipais.forEach(() => params.push(termoGeral));
+      consultasRelacionadas.forEach(({ count }) => {
+        for (let i = 0; i < count; i += 1) {
+          params.push(termoGeral);
+        }
+      });
+    }
+
     // Filtro de nome completo ou apelido.
     if (filtros.nomeOuApelido) {
       where.push('(LOWER(p.nomeCompleto) LIKE ? OR LOWER(p.apelido) LIKE ?)');
