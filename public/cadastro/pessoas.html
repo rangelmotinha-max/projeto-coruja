@@ -2853,9 +2853,11 @@
           exibirMensagemForm('Enviando dados...', 'info');
           submitButton.disabled = true;
 
-          const hasFotosNovas = Array.isArray(fotosSelecionadas) && fotosSelecionadas.some(f => !!f.file);
+          // Garantimos FormData sempre que houver qualquer foto selecionada para evitar perder anexos
+          const hasFotosNovas = Array.isArray(fotosSelecionadas) && fotosSelecionadas.some((f) => !!f.file);
+          const hasFotosSelecionadas = Array.isArray(fotosSelecionadas) && fotosSelecionadas.length > 0;
           const hasDocsOcorrencia = Array.isArray(ocorrenciasPoliciais) && ocorrenciasPoliciais.some((o) => !!o.arquivo);
-          const hasFiles = hasFotosNovas || hasDocsOcorrencia;
+          const hasFiles = hasFotosNovas || hasDocsOcorrencia || hasFotosSelecionadas;
           const body = hasFiles ? montarFormDataEnvio(payload) : JSON.stringify(payload);
 
           const response = await fetchAutenticado(url, {
