@@ -153,7 +153,7 @@
                 </label>
                 <!-- Campo de facção permanece na seção de identificação logo abaixo de Sinais -->
                 <label class="form__field">
-                  <span class="form__label">Facção ou Organização Criminosa (opcional)</span>
+                  <span class="form__label">Facção ou Organização Criminosa</span>
                   <div class="form__grid form__grid--2" style="grid-template-columns: 1fr 10rem; gap: 0.5rem; align-items: end;">
                     <input
                       class="form__input"
@@ -388,12 +388,11 @@
     <script src="/js/main.js"></script>
     <div id="faccao-confirmar-modal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="faccao-confirmar-title">
       <div class="modal__overlay" data-modal-close></div>
-      <div class="modal__panel modal__panel--sm" role="document">
+      <div class="modal__panel" role="document" style="max-width: 340px;">
         <button class="modal__close" id="faccao-confirmar-close" aria-label="Fechar">×</button>
-        <h3 id="faccao-confirmar-title">Confirmação</h3>
-        <div class="form" style="padding-top:0.5rem;">
-          <p id="faccao-confirmar-texto">Facção ou Organização não encontrada! Deseja incluir?</p>
-          <div class="form__actions">
+        <div class="form" style="padding-top:0.25rem;">
+          <p id="faccao-confirmar-texto" style="margin:0 0 0.5rem 0;">Não encontrada. Incluir?</p>
+          <div class="form__actions" style="gap:0.5rem;">
             <button class="button button--secondary" type="button" id="faccao-confirmar-sim">Sim</button>
             <button class="button button--ghost" type="button" id="faccao-confirmar-nao">Não</button>
           </div>
