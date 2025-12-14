@@ -35,6 +35,10 @@ function normalizarFiltros(filtrosBrutos = {}) {
   const pai = limpar(filtrosBrutos.pai || filtrosBrutos.nomePai);
   if (pai) filtros.nomePai = pai;
 
+  // Sinais ou características físicas para filtrar cadastros
+  const sinais = limpar(filtrosBrutos.sinais);
+  if (sinais) filtros.sinais = sinais;
+
   // Telefone vinculado.
   const telefone = limpar(filtrosBrutos.telefone);
   if (telefone) filtros.telefone = telefone;

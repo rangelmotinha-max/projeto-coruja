@@ -53,6 +53,8 @@ class PessoaModel {
       cnh: dados.cnh || null,
       nomeMae: dados.nomeMae || null,
       nomePai: dados.nomePai || null,
+      // Campo livre para registrar sinais ou características físicas relevantes
+      sinais: dados.sinais || null,
       endereco_atual_index: dados.endereco_atual_index || 0,
       vinculos_json: dados.vinculos ? JSON.stringify(dados.vinculos) : null,
       ocorrencias_json: dados.ocorrencias ? JSON.stringify(dados.ocorrencias) : null,
@@ -62,9 +64,9 @@ class PessoaModel {
 
     await db.run(
       `INSERT INTO pessoas (
-        id, nomeCompleto, apelido, dataNascimento, idade, cpf, rg, cnh, nomeMae, nomePai,
+        id, nomeCompleto, apelido, dataNascimento, idade, cpf, rg, cnh, nomeMae, nomePai, sinais,
         endereco_atual_index, vinculos_json, ocorrencias_json, criadoEm, atualizadoEm
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         pessoa.id,
         pessoa.nomeCompleto,
@@ -76,6 +78,7 @@ class PessoaModel {
         pessoa.cnh,
         pessoa.nomeMae,
         pessoa.nomePai,
+        pessoa.sinais,
         pessoa.endereco_atual_index,
         pessoa.vinculos_json,
         pessoa.ocorrencias_json,
@@ -239,6 +242,12 @@ class PessoaModel {
     if (filtros.nomePai) {
       where.push('LOWER(p.nomePai) LIKE ?');
       params.push(normalizarTermoLike(filtros.nomePai));
+    }
+
+    // Filtro por sinais ou características físicas cadastradas.
+    if (filtros.sinais) {
+      where.push('LOWER(p.sinais) LIKE ?');
+      params.push(normalizarTermoLike(filtros.sinais));
     }
 
     // Filtro por telefone considerando coluna legado e tabela de telefones.
@@ -672,6 +681,7 @@ class PessoaModel {
       'cnh',
       'nomeMae',
       'nomePai',
+      'sinais',
       'endereco_atual_index',
       'vinculos_json',
       'ocorrencias_json',

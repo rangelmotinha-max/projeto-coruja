@@ -64,6 +64,7 @@ async function runMigrations(db) {
       cnh TEXT,
       nomeMae TEXT,
       nomePai TEXT,
+      sinais TEXT,
       telefone TEXT,
       endereco_atual_index INTEGER DEFAULT 0,
       criadoEm TEXT NOT NULL,
@@ -224,6 +225,17 @@ async function runMigrations(db) {
     `);
   } catch (err) {
     // Coluna já existe, ignorar erro
+    if (!err.message.includes('duplicate column name')) {
+      throw err;
+    }
+  }
+
+  // Adiciona coluna "sinais" para registrar características físicas no cadastro de pessoas
+  try {
+    await db.run(`
+      ALTER TABLE pessoas ADD COLUMN sinais TEXT
+    `);
+  } catch (err) {
     if (!err.message.includes('duplicate column name')) {
       throw err;
     }

@@ -53,6 +53,7 @@
       dataNascimento: formData.get('dataNascimento'),
       mae: formData.get('mae'),
       pai: formData.get('pai'),
+      sinais: formData.get('sinais'),
       telefone: formData.get('telefone'),
       email: formData.get('email'),
     };
@@ -90,7 +91,7 @@
 
     const header = document.createElement('thead');
     const headerRow = document.createElement('tr');
-    ['Nome', 'Documentos', 'Contatos', 'Nascimento', 'Filiação'].forEach((heading) => {
+    ['Nome', 'Documentos', 'Contatos', 'Nascimento', 'Filiação', 'Sinais'].forEach((heading) => {
       const th = document.createElement('th');
       th.textContent = heading;
       headerRow.appendChild(th);
@@ -124,12 +125,14 @@
 
       const contatos = [telefones, emails].filter(Boolean).join(' | ');
       const filiacao = [pessoa.nomeMae, pessoa.nomePai].filter(Boolean).join(' / ');
+      const sinais = pessoa.sinais || '';
 
       row.appendChild(createCell(`${nomePrincipal}${apelido}`));
       row.appendChild(createCell(documentos));
       row.appendChild(createCell(contatos));
       row.appendChild(createCell(pessoa.dataNascimento));
       row.appendChild(createCell(filiacao));
+      row.appendChild(createCell(sinais));
 
       body.appendChild(row);
     });
