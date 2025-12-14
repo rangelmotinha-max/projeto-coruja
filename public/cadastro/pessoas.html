@@ -3187,12 +3187,53 @@
         const dobEl = pessoaForm?.elements['dataNascimento'];
         const idadeEl = document.getElementById('idade');
         if (!dobEl || !idadeEl) return;
-        const idade = calcularIdadeDe(dobEl.value);
-        if (idade == null) {
-          idadeEl.value = '';
-        } else {
-          idadeEl.value = String(idade);
+
+        // Cria contêiner de erro inline uma única vez
+        let erroEl = document.getElementById('erro-data-nascimento');
+        if (!erroEl) {
+          erroEl = document.createElement('div');
+          erroEl.id = 'erro-data-nascimento';
+          erroEl.className = 'message message--error';
+          erroEl.style.marginTop = '0.25rem';
+          erroEl.style.display = 'none';
+          dobEl.parentElement?.appendChild(erroEl);
         }
+
+        const valor = dobEl.value;
+        let mostrarErro = false;
+
+        // Validação de data futura
+        if (valor) {
+          const parts = String(valor).split('-');
+          if (parts.length === 3) {
+            const ano = parseInt(parts[0], 10);
+            const mes = parseInt(parts[1], 10) - 1;
+            const dia = parseInt(parts[2], 10);
+            const dtInformada = new Date(ano, mes, dia);
+            const hoje = new Date();
+            dtInformada.setHours(0, 0, 0, 0);
+            hoje.setHours(0, 0, 0, 0);
+            if (dtInformada > hoje) {
+              mostrarErro = true;
+            }
+          }
+        }
+
+        if (mostrarErro) {
+          erroEl.textContent = 'Data de nascimento inválida';
+          erroEl.style.display = 'block';
+          dobEl.setCustomValidity('Data de nascimento inválida');
+          idadeEl.value = '';
+          return;
+        } else {
+          erroEl.textContent = '';
+          erroEl.style.display = 'none';
+          dobEl.setCustomValidity('');
+        }
+
+        // Atualiza idade quando válido
+        const idade = calcularIdadeDe(valor);
+        idadeEl.value = idade == null ? '' : String(idade);
       }
     </script>
   </body>
