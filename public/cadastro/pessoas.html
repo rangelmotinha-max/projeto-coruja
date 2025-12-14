@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Cadastro de Pessoas | Projeto Coruja</title>
     <link rel="stylesheet" href="/css/main.css" />
+    <style>
+      /* Oculta o texto padrão do input file ("nenhum arquivo escolhido") nas ocorrências policiais */
+      .form__input.occ-doc { font-size: 0; }
+      .form__input.occ-doc::file-selector-button { font-size: 0.875rem; }
+    </style>
   </head>
   <body class="theme-dark">
     <div class="app">
@@ -1595,7 +1600,7 @@
           const hintDoc = document.createElement('small');
           hintDoc.className = 'form__hint';
           const nomeDocumento = item?.arquivo?.name || item?.documento?.nome;
-          hintDoc.textContent = nomeDocumento ? `Selecionado: ${nomeDocumento}` : 'Nenhum documento anexado';
+          hintDoc.textContent = nomeDocumento ? `Selecionado: ${nomeDocumento}` : '';
           const linkDoc = document.createElement('a');
           linkDoc.style.display = 'block';
           linkDoc.style.marginTop = '0.25rem';
@@ -1611,7 +1616,7 @@
             ocorrenciasPoliciais[i].arquivo = arquivoSelecionado;
             ocorrenciasPoliciais[i].documentoNome = arquivoSelecionado?.name || item?.documento?.nome || '';
             // Comentário: ao selecionar novo arquivo, mantemos referência para envio posterior via FormData
-            hintDoc.textContent = arquivoSelecionado ? `Selecionado: ${arquivoSelecionado.name}` : 'Nenhum documento anexado';
+            hintDoc.textContent = arquivoSelecionado ? `Selecionado: ${arquivoSelecionado.name}` : '';
           });
 
           campoDoc.appendChild(labelDoc);
