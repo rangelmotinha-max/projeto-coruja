@@ -151,6 +151,23 @@
                   <!-- Campo livre para anotar sinais, marcas ou características físicas -->
                   <textarea class="form__input" name="sinais" rows="2" placeholder="Tatuagens, cicatrizes, marcas visíveis"></textarea>
                 </label>
+                <!-- Campo de facção permanece na seção de identificação logo abaixo de Sinais -->
+                <label class="form__field">
+                  <span class="form__label">Facção ou Organização Criminosa (opcional)</span>
+                  <div style="display:flex; flex-direction:column; gap:0.35rem;">
+                    <input
+                      class="form__input"
+                      type="text"
+                      id="faccao-input"
+                      name="faccaoNome"
+                      placeholder="Digite sigla ou nome para buscar"
+                      autocomplete="off"
+                    />
+                    <input type="hidden" name="faccaoId" id="faccao-id" />
+                    <div id="faccao-sugestoes" class="panel" style="display:none; padding:0.5rem; gap:0.35rem;"></div>
+                    <small id="faccao-feedback" style="color: var(--muted);">Deixe em branco se a pessoa não tiver vínculo.</small>
+                  </div>
+                </label>
               </div>
             </div>
 
@@ -389,6 +406,7 @@
     </div>
     <script>
       const API_PESSOAS_URL = '/api/pessoas';
+      const API_FACCOES_URL = '/api/faccoes';
       const pessoaForm = document.getElementById('pessoa-form');
       const submitButton = document.getElementById('submit-pessoa');
       const listarButton = document.getElementById('listar-pessoas');
@@ -398,6 +416,10 @@
       const nomeCompletoInput = pessoaForm?.elements['nomeCompleto'];
       const cpfInput = pessoaForm?.querySelector('input[name="cpf"][type="text"]');
       const fotosInput = document.getElementById('pessoa-fotos');
+      const faccaoInput = document.getElementById('faccao-input');
+      const faccaoIdInput = document.getElementById('faccao-id');
+      const faccaoSugestoesEl = document.getElementById('faccao-sugestoes');
+      const faccaoFeedbackEl = document.getElementById('faccao-feedback');
       const adicionarVeiculoBtn = document.getElementById('adicionar-veiculo');
       const listaVeiculosEl = document.getElementById('lista-veiculos');
       const vinculoPessoaBuscaInput = document.getElementById('vinculo-pessoa-busca');
@@ -412,6 +434,8 @@
       let fotosSelecionadas = [];
       let fotosParaRemover = []; // Armazena referências de fotos existentes removidas
       let preservarFotosNoReset = false; // Evita limpar a galeria quando fotos vierem do backend
+      let faccaoSelecionada = null;
+      let timeoutBuscaFaccao = null;
 
       const getCookie = (name) => {
         return document.cookie
@@ -456,6 +480,126 @@
         if (texto) formMessageEl.classList.add(`message--${tipo}`);
       };
 
+      const formatarNomeFaccao = (faccao) => {
+        if (!faccao) return '';
+        const sigla = faccao.sigla ? faccao.sigla.toUpperCase() : '';
+        const nome = faccao.nome || faccao.descricao || '';
+        return sigla ? `${sigla} - ${nome}` : nome;
+      };
+
+      const atualizarFeedbackFaccao = (texto, tipo = 'info') => {
+        if (!faccaoFeedbackEl) return;
+        faccaoFeedbackEl.textContent = texto;
+        faccaoFeedbackEl.style.color = tipo === 'error'
+          ? 'var(--danger)'
+          : tipo === 'success'
+            ? 'var(--success)'
+            : 'var(--muted)';
+      };
+
+      const limparSelecaoFaccao = () => {
+        faccaoSelecionada = null;
+        if (faccaoIdInput) faccaoIdInput.value = '';
+        if (faccaoInput) faccaoInput.value = '';
+        atualizarFeedbackFaccao('Deixe em branco se a pessoa não tiver vínculo.');
+        if (faccaoSugestoesEl) faccaoSugestoesEl.style.display = 'none';
+      };
+
+      const selecionarFaccao = (faccao) => {
+        faccaoSelecionada = faccao || null;
+        if (faccaoIdInput) faccaoIdInput.value = faccao?.id || '';
+        if (faccaoInput && faccao) {
+          faccaoInput.value = formatarNomeFaccao(faccao);
+        }
+        if (faccaoSugestoesEl) faccaoSugestoesEl.style.display = 'none';
+        if (faccao) {
+          atualizarFeedbackFaccao('Facção associada ao cadastro.', 'success');
+        } else {
+          atualizarFeedbackFaccao('Deixe em branco se a pessoa não tiver vínculo.');
+        }
+      };
+
+      const renderizarSugestoesFaccoes = (lista = [], termoAtual = '') => {
+        if (!faccaoSugestoesEl) return;
+        faccaoSugestoesEl.innerHTML = '';
+
+        if (!lista.length) {
+          if (!termoAtual) {
+            faccaoSugestoesEl.style.display = 'none';
+            return;
+          }
+
+          const aviso = document.createElement('div');
+          aviso.style.display = 'flex';
+          aviso.style.flexDirection = 'column';
+          aviso.style.gap = '0.35rem';
+          aviso.innerHTML = `<strong>Nenhuma facção encontrada para "${termoAtual}".</strong>`;
+
+          const botaoCriar = document.createElement('button');
+          botaoCriar.type = 'button';
+          botaoCriar.className = 'button button--secondary';
+          botaoCriar.textContent = 'Cadastrar informação';
+          botaoCriar.addEventListener('click', () => criarFaccao(termoAtual));
+
+          aviso.appendChild(botaoCriar);
+          faccaoSugestoesEl.appendChild(aviso);
+          faccaoSugestoesEl.style.display = 'flex';
+          return;
+        }
+
+        lista.forEach((faccao) => {
+          const opcao = document.createElement('button');
+          opcao.type = 'button';
+          opcao.className = 'button button--ghost';
+          opcao.style.justifyContent = 'flex-start';
+          opcao.textContent = formatarNomeFaccao(faccao);
+          opcao.addEventListener('click', () => selecionarFaccao(faccao));
+          faccaoSugestoesEl.appendChild(opcao);
+        });
+
+        faccaoSugestoesEl.style.display = 'flex';
+        faccaoSugestoesEl.style.flexDirection = 'column';
+      };
+
+      const buscarFaccoes = async (termo) => {
+        if (!termo || termo.length < 2) {
+          if (faccaoSugestoesEl) faccaoSugestoesEl.style.display = 'none';
+          return;
+        }
+
+        try {
+          const response = await fetchAutenticado(`${API_FACCOES_URL}?busca=${encodeURIComponent(termo)}`);
+          const data = await response.json().catch(() => []);
+          if (!response.ok) throw new Error('Não foi possível buscar facções.');
+          renderizarSugestoesFaccoes(Array.isArray(data) ? data : [], termo);
+          atualizarFeedbackFaccao('Selecione uma facção da lista ou cadastre a nova sugestão.');
+        } catch (error) {
+          atualizarFeedbackFaccao(error?.message || 'Erro ao buscar facções.', 'error');
+        }
+      };
+
+      const criarFaccao = async (nome) => {
+        const termo = (nome || faccaoInput?.value || '').trim();
+        if (!termo) return;
+
+        try {
+          atualizarFeedbackFaccao('Incluindo nova facção...', 'info');
+          const response = await fetchAutenticado(API_FACCOES_URL, {
+            method: 'POST',
+            body: JSON.stringify({ nome: termo }),
+          });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            const msg = data?.mensagem || data?.message || 'Não foi possível criar a facção.';
+            throw new Error(msg);
+          }
+          selecionarFaccao(data);
+          atualizarFeedbackFaccao('Facção cadastrada e vinculada.', 'success');
+        } catch (error) {
+          atualizarFeedbackFaccao(error?.message || 'Erro ao cadastrar facção.', 'error');
+        }
+      };
+
       // Recupera o ID da pessoa a partir da URL (?pessoaId= ou ?id=)
       const obterPessoaIdDaUrl = () => {
         const params = new URLSearchParams(window.location.search);
@@ -482,6 +626,14 @@
         // Adiciona emails e redes sociais múltiplos ao payload
         dados.emails = emails.filter(e => e.trim() !== '');
         dados.redesSociais = redes.filter(r => r.trim() !== '');
+
+        const faccaoId = (faccaoIdInput?.value || '').trim();
+        const faccaoNomeDigitada = (faccaoInput?.value || '').trim();
+        if (faccaoId) {
+          dados.faccaoId = faccaoId;
+        } else if (faccaoNomeDigitada) {
+          dados.faccaoNome = faccaoNomeDigitada;
+        }
 
         // Monta os dados de veículos usando o estado local para permitir múltiplas entradas
         const veiculosNormalizados = (veiculos || []).map((veiculo) => {
@@ -2415,6 +2567,17 @@
           el.value = valor || '';
         });
 
+        if (pessoa.faccao || pessoa.faccaoId || pessoa.faccao_id) {
+          const dadosFaccao = pessoa.faccao || {
+            id: pessoa.faccaoId || pessoa.faccao_id,
+            nome: pessoa.faccao_nome || pessoa.faccaoNome,
+            sigla: pessoa.faccao_sigla,
+          };
+          selecionarFaccao(dadosFaccao);
+        } else {
+          limparSelecaoFaccao();
+        }
+
         // Carrega endereços se existirem
         if (pessoa.enderecos && Array.isArray(pessoa.enderecos)) {
           enderecos = JSON.parse(JSON.stringify(pessoa.enderecos));
@@ -2587,6 +2750,7 @@
               <th style="padding: 0.75rem; border: 1px solid var(--border); text-align: left;">Nome</th>
               <th style="padding: 0.75rem; border: 1px solid var(--border); text-align: left;">CPF</th>
               <th style="padding: 0.75rem; border: 1px solid var(--border); text-align: left;">Mãe</th>
+              <th style="padding: 0.75rem; border: 1px solid var(--border); text-align: left;">Facção</th>
               <th style="padding: 0.75rem; border: 1px solid var(--border); text-align: left;">Último Endereço</th>
               <th style="padding: 0.75rem; border: 1px solid var(--border); text-align: center;">Ações</th>
             </tr>
@@ -2616,6 +2780,16 @@
           tdMae.style.padding = '0.75rem';
           tdMae.textContent = pessoa.nomeMae || '';
           tr.appendChild(tdMae);
+
+          // Facção
+          const tdFaccao = document.createElement('td');
+          tdFaccao.style.padding = '0.75rem';
+          const faccaoResumo = formatarNomeFaccao(pessoa.faccao || {
+            nome: pessoa.faccao_nome,
+            sigla: pessoa.faccao_sigla,
+          });
+          tdFaccao.textContent = faccaoResumo || '';
+          tr.appendChild(tdFaccao);
 
           // Último Endereço
           const tdEndereco = document.createElement('td');
@@ -2969,6 +3143,8 @@
           return;
         }
 
+        atualizarFeedbackFaccao('Deixe em branco se a pessoa não tiver vínculo.');
+
         // Não adiciona veículo automaticamente; usuário decide incluir quando necessário
         renderizarVeiculos();
         sincronizarCamposVeiculo(); // Alinha campos ocultos com o estado inicial da Identificação
@@ -2999,6 +3175,7 @@
           renderizarEmails();
           redes = [];
           renderizarRedes();
+          limparSelecaoFaccao();
           fotosParaRemover = []; // Limpa registros de exclusão de imagens existentes
           if (!devePreservarGaleria) {
             fotosSelecionadas = [];
@@ -3032,6 +3209,25 @@
         const dobEl = pessoaForm?.elements['dataNascimento'];
         dobEl?.addEventListener('input', atualizarIdade);
         dobEl?.addEventListener('change', atualizarIdade);
+
+        faccaoInput?.addEventListener('input', (event) => {
+          const termo = event.target.value.trim();
+          if (!termo) {
+            limparSelecaoFaccao();
+            return;
+          }
+          if (faccaoIdInput) faccaoIdInput.value = '';
+          faccaoSelecionada = null;
+          clearTimeout(timeoutBuscaFaccao);
+          timeoutBuscaFaccao = setTimeout(() => buscarFaccoes(termo), 250);
+        });
+
+        faccaoInput?.addEventListener('focus', () => {
+          const termo = faccaoInput.value.trim();
+          if (termo && (!faccaoSugestoesEl || faccaoSugestoesEl.style.display === 'none')) {
+            buscarFaccoes(termo);
+          }
+        });
 
         // Event listener para adicionar novo endereço
         const adicionarEnderecoBtn = document.getElementById('adicionar-endereco');

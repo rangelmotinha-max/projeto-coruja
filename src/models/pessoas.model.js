@@ -3,6 +3,7 @@ const path = require('path');
 const { randomUUID } = require('crypto');
 const { initDatabase } = require('../database/sqlite');
 const VeiculoPessoaModel = require('./veiculos-pessoas.model');
+const FaccaoModel = require('./faccoes.model');
 
 function calcularIdadeDe(dataStr) {
   if (!dataStr) return null;
@@ -131,6 +132,8 @@ class PessoaModel {
       nomePai: dados.nomePai || null,
       // Campo livre para registrar sinais ou características físicas relevantes
       sinais: dados.sinais || null,
+      // Associação opcional a facção/organização criminosa
+      faccao_id: dados.faccaoId || null,
       endereco_atual_index: dados.endereco_atual_index || 0,
       vinculos_json: dados.vinculos ? JSON.stringify(dados.vinculos) : null,
       ocorrencias_json: dados.ocorrencias ? JSON.stringify(dados.ocorrencias) : null,
@@ -145,8 +148,8 @@ class PessoaModel {
       await db.run(
         `INSERT INTO pessoas (
           id, nomeCompleto, apelido, dataNascimento, idade, cpf, rg, cnh, nomeMae, nomePai, sinais,
-          endereco_atual_index, vinculos_json, ocorrencias_json, criadoEm, atualizadoEm
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          faccao_id, endereco_atual_index, vinculos_json, ocorrencias_json, criadoEm, atualizadoEm
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           pessoa.id,
           pessoa.nomeCompleto,
@@ -159,6 +162,7 @@ class PessoaModel {
           pessoa.nomeMae,
           pessoa.nomePai,
           pessoa.sinais,
+          pessoa.faccao_id,
           pessoa.endereco_atual_index,
           pessoa.vinculos_json,
           pessoa.ocorrencias_json,
@@ -287,6 +291,9 @@ class PessoaModel {
     // Inclui veículos associados por CPF ou nome para facilitar edição
     pessoa.veiculos = await localizarVeiculosAssociados(pessoa);
     pessoa.veiculo = pessoa.veiculos[0] || null;
+    // Hidrata facção associada (opcional)
+    pessoa.faccao = await FaccaoModel.findById(pessoa.faccao_id || pessoa.faccaoId || null);
+    pessoa.faccaoId = pessoa.faccao?.id || pessoa.faccao_id || null;
     // Vinculos: preferir JSON quando existir, mas manter compatibilidade com tabela vinculos_pessoas
     let vinculosFromJson = {};
     if (pessoa.vinculos_json) {
@@ -334,6 +341,8 @@ class PessoaModel {
         'LOWER(p.nomeMae) LIKE ?',
         'LOWER(p.nomePai) LIKE ?',
         'LOWER(p.sinais) LIKE ?',
+        'LOWER(IFNULL(f.nome, "")) LIKE ?',
+        'LOWER(IFNULL(f.sigla, "")) LIKE ?',
         'LOWER(IFNULL(p.vinculos_json, "")) LIKE ?',
         'LOWER(IFNULL(p.ocorrencias_json, "")) LIKE ?',
       ];
@@ -411,6 +420,18 @@ class PessoaModel {
       params.push(normalizarTermoLike(filtros.nomePai));
     }
 
+    // Filtro por facção associada (ID ou nome)
+    if (filtros.faccaoId) {
+      where.push('p.faccao_id = ?');
+      params.push(filtros.faccaoId);
+    }
+
+    if (filtros.faccaoNome) {
+      const termo = normalizarTermoLike(filtros.faccaoNome);
+      where.push('(LOWER(IFNULL(f.nome, "")) LIKE ? OR LOWER(IFNULL(f.sigla, "")) LIKE ?)');
+      params.push(termo, termo);
+    }
+
     // Filtro por sinais ou características físicas cadastradas.
     if (filtros.sinais) {
       where.push('LOWER(p.sinais) LIKE ?');
@@ -435,8 +456,12 @@ class PessoaModel {
     }
 
     const pessoas = await db.all(
-      `SELECT DISTINCT p.* FROM pessoas p WHERE ${where.join(' AND ')} ORDER BY p.nomeCompleto ASC`,
-      params
+      `SELECT DISTINCT p.*, f.nome AS faccao_nome, f.sigla AS faccao_sigla
+         FROM pessoas p
+         LEFT JOIN faccoes f ON f.id = p.faccao_id
+       WHERE ${where.join(' AND ')}
+       ORDER BY p.nomeCompleto ASC`,
+      params,
     );
 
     for (const pessoa of pessoas) {
@@ -859,6 +884,7 @@ class PessoaModel {
       'nomeMae',
       'nomePai',
       'sinais',
+      'faccao_id',
       'endereco_atual_index',
       'vinculos_json',
       'ocorrencias_json',

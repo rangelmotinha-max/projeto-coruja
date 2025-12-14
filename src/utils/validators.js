@@ -251,6 +251,9 @@ function validarCadastroPessoa(payload, arquivos = []) {
     nomePai: normalizarOpcional(payload.nomePai),
     // Campo opcional para registrar sinais físicos ou marcas identificadoras
     sinais: normalizarOpcional(payload.sinais),
+    // Associação opcional com facção/organização criminosa
+    faccaoId: normalizarOpcional(payload.faccaoId || payload.faccao_id),
+    faccaoNome: normalizarOpcional(payload.faccaoNome || payload.faccao),
     endereco_atual_index: payload.endereco_atual_index || 0,
     enderecos: validarEnderecos(payload.enderecos),
     telefones: telefonesUnicos,
@@ -452,6 +455,13 @@ function validarAtualizacaoPessoa(payload, arquivos = []) {
       atualizacoes[campo] = normalizarOpcional(payload[campo]);
     }
   });
+
+  if (payload.faccaoId !== undefined || payload.faccao_id !== undefined) {
+    atualizacoes.faccao_id = normalizarOpcional(payload.faccaoId || payload.faccao_id);
+  }
+  if (payload.faccaoNome !== undefined || payload.faccao !== undefined) {
+    atualizacoes.faccaoNome = normalizarOpcional(payload.faccaoNome || payload.faccao);
+  }
 
   // Validar endereços se fornecidos
   if (payload.enderecos !== undefined) {
