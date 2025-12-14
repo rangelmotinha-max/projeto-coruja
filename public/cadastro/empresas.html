@@ -126,9 +126,9 @@
               </label>
             </div>
 
-            <div class="form__section">
-              <div class="form__section-header">
-                <h3 class="form__section-title">Sócios</h3>
+            <div class="form__subsection">
+              <div class="form__section-header" style="justify-content: space-between; align-items: center;">
+                <h3 class="form__section-title" style="margin:0;">Sócios</h3>
                 <button class="button" type="button" id="adicionar-socio">Adicionar sócio</button>
               </div>
               <div id="lista-socios" class="form__section-body"></div>
@@ -193,7 +193,40 @@
       const aplicarMascaraCnpj = (v) => { const d=String(v||'').replace(/\D/g,'').slice(0,14); let r=d; if(d.length>2) r=d.slice(0,2)+'.'+d.slice(2); if(d.length>5) r=r.slice(0,6)+'.'+d.slice(5); if(d.length>8) r=r.slice(0,10)+'/'+d.slice(8); if(d.length>12) r=r.slice(0,15)+'-'+d.slice(12); return r; };
       const aplicarMascaraTelefone = (valor) => { const dig=String(valor||'').replace(/\D/g,'').slice(0,11); if(dig.length<=10){ return dig.replace(/(\d{0,2})(\d{0,4})(\d{0,4}).*/, (_,a,b,c)=>{ let r=''; if(a) r+='('+a+') '; if(b) r+=b+(c?'-':''); if(c) r+=c; return r; }); } else { return dig.replace(/(\d{0,2})(\d{0,5})(\d{0,4}).*/, (_,a,b,c)=>{ let r=''; if(a) r+='('+a+') '; if(b) r+=b+(c?'-':''); if(c) r+=c; return r; }); } };
       const aplicarMascaraCep = (valor) => { const dig=String(valor||'').replace(/\D/g,'').slice(0,8); return dig.length<=5?dig:dig.slice(0,5)+'-'+dig.slice(5); };
-      const renderizarSocios = () => { const lista=document.getElementById('lista-socios'); lista.innerHTML=''; if(!socios.length){ lista.innerHTML='<p style="color: var(--muted); font-size: 0.85rem; margin: 0;">Nenhum sócio adicionado. Clique para adicionar.</p>'; return; } socios.forEach((s,i)=>{ const linha=document.createElement('div'); linha.style.cssText='display:flex; gap:0.5rem; align-items:center;'; linha.innerHTML=`<label class="form__field" style="flex:1"><span class="form__label">Nome</span><input type="text" class="form__input socio-nome" /></label><label class="form__field" style="max-width:16rem"><span class="form__label">CPF</span><input type="text" class="form__input socio-cpf" inputmode="numeric" /></label><button class="button button--danger" type="button" title="Excluir" aria-label="Remover sócio">−</button>`; const nomeEl=linha.querySelector('.socio-nome'); const cpfEl=linha.querySelector('.socio-cpf'); const btn=linha.querySelector('button'); nomeEl.value=s.nome||''; cpfEl.value=s.cpf||''; nomeEl.addEventListener('input', e=>{ socios[i].nome=e.target.value; }); cpfEl.addEventListener('input', e=>{ socios[i].cpf=e.target.value; }); btn.addEventListener('click', ()=>{ socios.splice(i,1); renderizarSocios(); }); lista.appendChild(linha); }); };
+      const renderizarSocios = () => {
+        const lista = document.getElementById('lista-socios');
+        lista.innerHTML = '';
+        if (!socios.length) {
+          lista.innerHTML = '<p style="color: var(--muted); font-size: 0.85rem; margin: 0;">Nenhum sócio adicionado. Clique para adicionar.</p>';
+          return;
+        }
+        socios.forEach((s, i) => {
+          const linha = document.createElement('div');
+          linha.className = 'form__grid form__grid--3';
+          linha.innerHTML = `
+            <label class="form__field">
+              <span class="form__label">Sócio</span>
+              <input type="text" class="form__input socio-nome" />
+            </label>
+            <label class="form__field">
+              <span class="form__label">CPF</span>
+              <input type="text" class="form__input socio-cpf" inputmode="numeric" />
+            </label>
+            <div class="form__actions" style="align-self: end;">
+              <button class="button button--danger" type="button" title="Excluir" aria-label="Remover sócio">Remover</button>
+            </div>
+          `;
+          const nomeEl = linha.querySelector('.socio-nome');
+          const cpfEl = linha.querySelector('.socio-cpf');
+          const btn = linha.querySelector('button');
+          nomeEl.value = s.nome || '';
+          cpfEl.value = s.cpf || '';
+          nomeEl.addEventListener('input', (e) => { socios[i].nome = e.target.value; });
+          cpfEl.addEventListener('input', (e) => { socios[i].cpf = e.target.value; });
+          btn.addEventListener('click', () => { socios.splice(i, 1); renderizarSocios(); });
+          lista.appendChild(linha);
+        });
+      };
       const adicionarSocio = () => { socios.push({ nome:'', cpf:'' }); renderizarSocios(); };
       const obterDadosFormulario = () => { const fd=new FormData(empresaForm); const dados=Object.fromEntries(fd.entries()); dados.cnpj=aplicarMascaraCnpj(dados.cnpj).replace(/\D/g,''); dados.cep=aplicarMascaraCep(dados.cep).replace(/\D/g,''); dados.telefone=aplicarMascaraTelefone(dados.telefone); dados.socios=socios.map(s=>({ nome:String(s.nome||'').trim(), cpf:String(s.cpf||'').replace(/\D/g,'') })).filter(s=>s.nome||s.cpf); return dados; };
       const atualizarRotuloSubmit = () => { submitBtn.textContent = empresaEmEdicao ? 'Salvar' : 'Incluir'; };
