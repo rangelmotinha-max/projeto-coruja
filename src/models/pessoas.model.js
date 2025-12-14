@@ -45,13 +45,15 @@ async function upsertVeiculoParaPessoa(pessoa, veiculoDados) {
     cpf: limparCpf(veiculoDados.cpf || pessoa.cpf),
   };
 
-  // Prioriza a placa para evitar sobrescrever outros veículos do mesmo CPF
-  const existentePorPlaca = veiculo.placa ? await VeiculoModel.findByPlaca(veiculo.placa) : null;
-  const existentePorCpf = !existentePorPlaca && veiculo.cpf ? await VeiculoModel.findByCpf(veiculo.cpf) : null;
-  const existentePorNome = (!existentePorPlaca && !existentePorCpf && !veiculo.placa)
-    ? await VeiculoModel.findByNomeProprietario(veiculo.nomeProprietario)
-    : null;
-  const existente = existentePorPlaca || existentePorCpf || existentePorNome;
+  // Comentário: só reaproveitamos quando a placa bate; sem placa, usamos CPF ou nome
+  let existente = null;
+  if (veiculo.placa) {
+    existente = await VeiculoModel.findByPlaca(veiculo.placa);
+  } else if (veiculo.cpf) {
+    existente = await VeiculoModel.findByCpf(veiculo.cpf);
+  } else if (veiculo.nomeProprietario) {
+    existente = await VeiculoModel.findByNomeProprietario(veiculo.nomeProprietario);
+  }
 
   if (existente) {
     // Comentário: atualiza mantendo o vínculo com o cadastro mais recente

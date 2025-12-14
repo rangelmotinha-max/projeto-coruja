@@ -69,6 +69,27 @@ test('criar pessoa com múltiplos veículos mantém todos os registros vinculado
   assert.equal(segundo.nomeProprietario, 'Maria Motorista');
 });
 
+test('pessoa com CPF recebe múltiplos veículos diferentes sem sobrescrever por CPF', async () => {
+  // Garante que veículos com placas diferentes para o mesmo CPF sejam independentes
+  const pessoaCriada = await pessoasService.criar({
+    nomeCompleto: 'João Placas',
+    cpf: '390.533.447-05',
+    veiculos: [
+      { placa: 'CCC1C33', cor: 'Branco', marcaModelo: 'Sedan' },
+      { placa: 'DDD1D44', cor: 'Azul', marcaModelo: 'Pickup' },
+    ],
+  });
+
+  // Comentário: ambos devem estar presentes no retorno e no banco
+  assert.equal(pessoaCriada.veiculos.length, 2, 'Deve retornar dois veículos distintos');
+
+  const terceiro = await VeiculoModel.findByPlaca('CCC1C33');
+  const quarto = await VeiculoModel.findByPlaca('DDD1D44');
+  assert.ok(terceiro, 'Primeiro veículo precisa existir no banco');
+  assert.ok(quarto, 'Segundo veículo precisa existir no banco');
+  assert.notEqual(terceiro.id, quarto.id, 'IDs de veículos diferentes não podem coincidir');
+});
+
 test('atualizar pessoa com veículo reaproveita vínculo existente e devolve alteração', async () => {
   // Cria base inicial com veículo associado
   const pessoaCriada = await pessoasService.criar({
