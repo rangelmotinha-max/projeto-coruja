@@ -199,7 +199,15 @@ function validarCadastroPessoa(payload, arquivos = []) {
   const ocorrenciasObj = validarOcorrencias(payload.ocorrencias, docsOcorrencias);
   const fotosUpload = validarFotosUpload(extrairArquivosCampo(arquivos, 'fotos'));
   // Veículo associado ao cadastro de pessoa pode herdar dados do titular
-  const veiculo = payload.veiculo
+  // Somente valida veículo se houver dados relevantes (ex.: placa ou proprietário)
+  const veiculoTemDados = (() => {
+    const v = payload.veiculo;
+    if (!v || typeof v !== 'object') return false;
+    const campos = [v.placa, v.nomeProprietario, v.marcaModelo, v.cor, v.anoModelo];
+    return campos.some((c) => String(c ?? '').trim().length > 0);
+  })();
+
+  const veiculo = veiculoTemDados
     ? validarCadastroVeiculo({
         ...payload.veiculo,
         nomeProprietario: payload.veiculo.nomeProprietario || payload.nomeCompleto,
