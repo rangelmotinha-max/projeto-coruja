@@ -171,6 +171,24 @@ function limparListaStrings(lista, transform = (v) => v) {
     .map(transform);
 }
 
+// Normaliza e valida uma lista de veículos para serem vinculados à pessoa
+function validarListaVeiculos(lista, nomeTitular, cpfTitular) {
+  if (lista === undefined || lista === null) return undefined;
+  if (!Array.isArray(lista)) {
+    throw criarErro('O campo veiculos deve ser uma lista', 400);
+  }
+
+  return lista
+    .map((veiculo) => validarCadastroVeiculo({
+      ...veiculo,
+      nomeProprietario: veiculo?.nomeProprietario || nomeTitular,
+      cpf: veiculo?.cpf || cpfTitular,
+    }))
+    // Remove veículos completamente vazios para evitar registros sem informação
+    .filter((veiculo) => Object.values({ ...veiculo, anoModelo: veiculo.anoModelo ?? '' })
+      .some((valor) => String(valor ?? '').trim() !== ''));
+}
+
 function validarCadastroPessoa(payload, arquivos = []) {
   const telefonesArray = limparListaStrings(payload.telefones || []);
   const emailsArray = limparListaStrings(payload.emails || [], normalizarEmail);
@@ -223,6 +241,7 @@ function validarCadastroPessoa(payload, arquivos = []) {
     ocorrencias: ocorrenciasObj,
     fotos: fotosUpload,
     veiculo,
+    veiculos: validarListaVeiculos(payload.veiculos, payload.nomeCompleto, payload.cpf),
   };
 }
 
@@ -434,6 +453,11 @@ function validarAtualizacaoPessoa(payload, arquivos = []) {
   // Veículo na atualização será validado posteriormente com dados completos do titular
   if (payload.veiculo !== undefined) {
     atualizacoes.veiculo = payload.veiculo;
+  }
+
+  // Lista de veículos informada explicitamente
+  if (payload.veiculos !== undefined) {
+    atualizacoes.veiculos = validarListaVeiculos(payload.veiculos, payload.nomeCompleto, payload.cpf);
   }
 
   // Validar índice do endereço atual

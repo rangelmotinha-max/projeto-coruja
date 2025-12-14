@@ -48,6 +48,13 @@ class VeiculoModel {
     return db.get('SELECT * FROM veiculos WHERE cpf = ? ORDER BY atualizadoEm DESC', [cpf]);
   }
 
+  // Recupera todos os veículos vinculados a um CPF
+  static async findAllByCpf(cpf) {
+    if (!cpf) return [];
+    const db = await initDatabase();
+    return db.all('SELECT * FROM veiculos WHERE cpf = ? ORDER BY atualizadoEm DESC', [cpf]);
+  }
+
   // Recupera veículo pela placa quando não houver CPF disponível
   static async findByPlaca(placa) {
     if (!placa) return null;
@@ -60,6 +67,16 @@ class VeiculoModel {
     if (!nomeProprietario) return null;
     const db = await initDatabase();
     return db.get(
+      'SELECT * FROM veiculos WHERE LOWER(nomeProprietario) = LOWER(?) ORDER BY atualizadoEm DESC',
+      [nomeProprietario],
+    );
+  }
+
+  // Lista todos os veículos associados a um nome de proprietário
+  static async findAllByNomeProprietario(nomeProprietario) {
+    if (!nomeProprietario) return [];
+    const db = await initDatabase();
+    return db.all(
       'SELECT * FROM veiculos WHERE LOWER(nomeProprietario) = LOWER(?) ORDER BY atualizadoEm DESC',
       [nomeProprietario],
     );
