@@ -3,13 +3,19 @@
 ## Banco de dados local
 
 - O projeto agora usa SQLite no arquivo `database/database.sqlite`.
-- Para preparar o banco (criar o arquivo e a tabela `usuarios`), execute:
+- Para preparar o banco (criar o arquivo e aplicar todas as migrations em ordem), execute:
 
 ```bash
 npm run db:init
 ```
 
-O script aplica automaticamente a migration básica (`usuarios` com colunas `id`, `nome`, `email`, `senhaHash`, `role`, `criadoEm`, `atualizadoEm`).
+O script aplica automaticamente todas as migrations numeradas em `database/migrations` usando a tabela interna `_migrations` para controle de versão. Cada arquivo `.sql` é executado uma única vez, em ordem crescente, com logs indicando sucesso ou falha.
+
+### Fluxo de criação e rollback
+
+1. Criação inicial: rode `npm run db:init` para gerar o arquivo `database.sqlite` e aplicar as migrations pendentes. O processo registra cada passo em `_migrations`.
+2. Rollback seguro: faça backup do arquivo `database/database.sqlite` antes de alterar migrações. Para retornar ao estado anterior, restaure o backup e, se necessário, remova a linha correspondente no `_migrations` (via CLI do SQLite) para permitir reaplicação.
+3. Recriar do zero: em ambientes locais, você pode apagar o arquivo do banco (`rm database/database.sqlite`) e executar novamente `npm run db:init` para reconstruir toda a estrutura a partir das migrations.
 
 ### Seed de administrador
 
