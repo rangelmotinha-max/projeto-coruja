@@ -612,7 +612,8 @@
 
         // Serializa todos os campos para o FormData (listas vão em JSON)
         Object.entries(dados || {}).forEach(([chave, valor]) => {
-          if (valor === undefined || valor === null || chave === 'fotosExistentes') return;
+          // Evita duplicar nomeCompleto, já inserido acima de forma explícita e normalizada
+          if (valor === undefined || valor === null || chave === 'fotosExistentes' || chave === 'nomeCompleto') return;
           const precisaJson = typeof valor === 'object';
           formDataEnvio.append(chave, precisaJson ? JSON.stringify(valor) : valor);
         });
