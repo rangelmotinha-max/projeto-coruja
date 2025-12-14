@@ -220,7 +220,14 @@ function validarCadastroPessoa(payload, arquivos = []) {
       })
     : undefined;
 
-  const primeiroTelefone = payload.telefone ? normalizarOpcional(payload.telefone) : (telefonesArray[0] || null);
+  // Garante que o campo legado `telefone` também entre na lista normalizada de telefones
+  const telefoneUnico = payload.telefone ? normalizarOpcional(payload.telefone) : null;
+  const telefonesNormalizados = telefoneUnico
+    ? [telefoneUnico, ...telefonesArray]
+    : telefonesArray;
+  const telefonesUnicos = telefonesNormalizados
+    // Remove números repetidos, preservando a primeira ocorrência limpa
+    .filter((tel, index, lista) => tel && lista.findIndex((item) => item.toLowerCase() === tel.toLowerCase()) === index);
 
   return {
     nomeCompleto: validarNomeCompleto(payload.nomeCompleto),
@@ -244,10 +251,9 @@ function validarCadastroPessoa(payload, arquivos = []) {
     nomePai: normalizarOpcional(payload.nomePai),
     // Campo opcional para registrar sinais físicos ou marcas identificadoras
     sinais: normalizarOpcional(payload.sinais),
-    telefone: primeiroTelefone,
     endereco_atual_index: payload.endereco_atual_index || 0,
     enderecos: validarEnderecos(payload.enderecos),
-    telefones: telefonesArray,
+    telefones: telefonesUnicos,
     emails: emailsArray,
     redesSociais: redesSociaisArray,
     vinculos: vinculosObj,
@@ -438,7 +444,6 @@ function validarAtualizacaoPessoa(payload, arquivos = []) {
     'nomeMae',
     'nomePai',
     'sinais',
-    'telefone',
     'apelido',
   ];
 
@@ -454,8 +459,17 @@ function validarAtualizacaoPessoa(payload, arquivos = []) {
   }
 
   // Validar listas se fornecidas (telefones, emails, redes)
-  if (payload.telefones !== undefined) {
-    atualizacoes.telefones = limparListaStrings(payload.telefones || []);
+  const telefonesAtualizados = payload.telefones !== undefined
+    ? limparListaStrings(payload.telefones || [])
+    : undefined;
+  const telefoneLegado = payload.telefone ? normalizarOpcional(payload.telefone) : null;
+  if (telefonesAtualizados !== undefined || telefoneLegado) {
+    const listaComLegado = telefoneLegado
+      ? [telefoneLegado, ...(telefonesAtualizados || [])]
+      : telefonesAtualizados || [];
+    atualizacoes.telefones = listaComLegado
+      // Evita persistir números repetidos ao atualizar
+      .filter((tel, index, lista) => tel && lista.findIndex((item) => item.toLowerCase() === tel.toLowerCase()) === index);
   }
   if (payload.emails !== undefined) {
     atualizacoes.emails = limparListaStrings(payload.emails || [], normalizarEmail);

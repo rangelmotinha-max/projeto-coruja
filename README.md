@@ -33,6 +33,17 @@ npm run db:seed
 
 O seed é idempotente: se já houver um administrador, nada é alterado. O valor padrão de `role` para novos usuários continua sendo `user`.
 
+### Normalização de telefones
+
+- A coluna legado `pessoas.telefone` foi removida do schema. A fonte oficial é a tabela `telefones`, associada por `pessoa_id`.
+- Para migrar dados existentes e remover duplicidades, execute:
+
+```bash
+npm run db:migrar-telefones
+```
+
+O comando aplica limpeza de números repetidos e insere os valores antigos na tabela normalizada sem quebrar chaves estrangeiras.
+
 ## Executando a aplicação
 
 ```bash

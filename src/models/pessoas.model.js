@@ -334,7 +334,6 @@ class PessoaModel {
         'LOWER(p.nomeMae) LIKE ?',
         'LOWER(p.nomePai) LIKE ?',
         'LOWER(p.sinais) LIKE ?',
-        'LOWER(p.telefone) LIKE ?',
         'LOWER(IFNULL(p.vinculos_json, "")) LIKE ?',
         'LOWER(IFNULL(p.ocorrencias_json, "")) LIKE ?',
       ];
@@ -418,15 +417,13 @@ class PessoaModel {
       params.push(normalizarTermoLike(filtros.sinais));
     }
 
-    // Filtro por telefone considerando coluna legado e tabela de telefones.
+    // Filtro por telefone considerando apenas a tabela oficial de telefones.
     if (filtros.telefone) {
       const termoNormalizado = normalizarTermoLike(filtros.telefone);
-      where.push('(' +
-        'LOWER(p.telefone) LIKE ? OR EXISTS (' +
-          'SELECT 1 FROM telefones t WHERE t.pessoa_id = p.id AND LOWER(t.numero) LIKE ?' +
-        ')' +
-      ')');
-      params.push(termoNormalizado, termoNormalizado);
+      where.push(
+        'EXISTS (SELECT 1 FROM telefones t WHERE t.pessoa_id = p.id AND LOWER(t.numero) LIKE ?)' // busca apenas na fonte oficial
+      );
+      params.push(termoNormalizado);
     }
 
     // Filtro por email vinculado.

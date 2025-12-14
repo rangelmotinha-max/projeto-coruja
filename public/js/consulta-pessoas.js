@@ -118,7 +118,7 @@
       // Telefone pode existir tanto como campo único quanto lista agregada; ambos são contemplados.
       const telefones = Array.isArray(pessoa.telefones) && pessoa.telefones.length
         ? pessoa.telefones.join(', ')
-        : pessoa.telefone;
+        : '';
 
       // Emails são retornados como array na API; fallback para string simples quando necessário.
       const emails = Array.isArray(pessoa.emails) && pessoa.emails.length
