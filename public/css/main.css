@@ -453,6 +453,21 @@ body {
   margin-bottom: 1rem;
 }
 
+/* Títulos e subseções de formulários (uniformizar visual em Empresas) */
+.form__section-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.form__subsection {
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface-raised);
+}
+
 .form__title {
   margin: 0 0 0.35rem;
   font-size: 1.05rem;
@@ -500,6 +515,11 @@ body {
   font-size: 0.95rem;
 }
 
+/* Variante sem negrito para casos específicos (ex.: Sócio) */
+.form__label--normal {
+  font-weight: 400;
+}
+
 .form__input {
   /* Aparência consistente para inputs */
   width: 100%;
@@ -510,6 +530,18 @@ body {
   color: var(--text);
   font-size: 1rem;
   transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Campo de busca da listagem de Empresas */
+.search-input {
+  width: 100%;
+  max-width: 480px;
+  padding: 0.65rem 0.85rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+  color: var(--text);
+  font-size: 0.95rem;
 }
 
 .form__input::placeholder {

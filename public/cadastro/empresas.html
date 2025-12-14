@@ -127,8 +127,8 @@
             </div>
 
             <div class="form__subsection">
-              <div class="form__section-header" style="justify-content: space-between; align-items: center;">
-                <h3 class="form__section-title" style="margin:0;">Sócios</h3>
+              <div class="form__section-header" style="display:flex; justify-content: space-between; align-items: center;">
+                <h3 class="form__section-title">Sócios</h3>
                 <button class="button" type="button" id="adicionar-socio">Adicionar sócio</button>
               </div>
               <div id="lista-socios" class="form__section-body"></div>
@@ -157,7 +157,7 @@
           </div>
           <div id="empresas-message" class="message" role="status" aria-live="polite"></div>
           <div class="panel__body">
-            <div id="empresas-lista" class="list" style="display:block;"></div>
+            <div id="empresas-lista" class="list"></div>
           </div>
         </section>
       </main>
@@ -205,7 +205,7 @@
           linha.className = 'form__grid form__grid--3';
           linha.innerHTML = `
             <label class="form__field">
-              <span class="form__label">Sócio</span>
+              <span class="form__label form__label--normal">Sócio</span>
               <input type="text" class="form__input socio-nome" />
             </label>
             <label class="form__field">
