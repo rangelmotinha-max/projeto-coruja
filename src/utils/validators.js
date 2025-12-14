@@ -22,10 +22,11 @@ function validarSenha(senha) {
 }
 
 function validarNome(nome) {
-  if (!nome || nome.trim().length < 2) {
+  const texto = String(nome || '').trim();
+  if (texto.length < 2) {
     throw criarErro('O nome é obrigatório e deve ter pelo menos 2 caracteres', 400);
   }
-  return nome.trim();
+  return texto;
 }
 
 // Validação específica para nome completo de pessoa física.
