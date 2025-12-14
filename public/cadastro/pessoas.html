@@ -198,6 +198,45 @@
               <div id="lista-enderecos" class="enderecos-lista"></div>
             </div>
 
+            <!-- Seção 4: Veículos (campos replicados do cadastro dedicado) -->
+            <div class="form__section">
+              <div class="form__section-header">
+                <h3 class="form__section-title" style="text-align: center; width: 100%;">Veículos</h3>
+              </div>
+
+              <!-- Campos principais do veículo: placa, marca/modelo e cor -->
+              <div class="form__subsection">
+                <div class="form__grid form__grid--3">
+                  <label class="form__field">
+                    <span class="form__label">Placa</span>
+                    <input class="form__input" type="text" name="placa" id="veiculo-placa" maxlength="8" placeholder="ABC1D23" />
+                  </label>
+                  <label class="form__field">
+                    <span class="form__label">Marca/Modelo</span>
+                    <input class="form__input" type="text" name="marcaModelo" id="veiculo-marca-modelo" />
+                  </label>
+                  <label class="form__field">
+                    <span class="form__label">Cor</span>
+                    <input class="form__input" type="text" name="cor" id="veiculo-cor" />
+                  </label>
+                </div>
+              </div>
+
+              <!-- Campos complementares do veículo: ano/modelo e proprietários ocultos -->
+              <div class="form__subsection">
+                <div class="form__grid form__grid--3">
+                  <label class="form__field">
+                    <span class="form__label">Ano/Modelo</span>
+                    <input class="form__input" type="number" name="anoModelo" id="veiculo-ano-modelo" min="1900" max="2100" placeholder="2024" />
+                  </label>
+                </div>
+
+                <!-- Campos ocultos replicam as mesmas chaves do cadastro de veículos e são preenchidos automaticamente com dados da Identificação -->
+                <input type="hidden" name="nomeProprietario" id="veiculo-nome-proprietario" />
+                <input type="hidden" name="cpf" id="veiculo-cpf-proprietario" />
+              </div>
+            </div>
+
             
 
             <!-- Seção 5: Vínculos -->
@@ -371,8 +410,15 @@
       const listaPessoasEl = document.getElementById('pessoas-lista');
       const messageEl = document.getElementById('pessoas-message');
       const formMessageEl = document.getElementById('pessoa-form-message');
-      const cpfInput = pessoaForm?.elements['cpf'];
+      const nomeCompletoInput = pessoaForm?.elements['nomeCompleto'];
+      const cpfInput = pessoaForm?.querySelector('input[name="cpf"][type="text"]');
       const fotosInput = document.getElementById('pessoa-fotos');
+      const veiculoNomeProprietarioInput = pessoaForm?.elements['nomeProprietario'];
+      const veiculoCpfInput = document.getElementById('veiculo-cpf-proprietario');
+      const veiculoPlacaInput = pessoaForm?.elements['placa'];
+      const veiculoMarcaModeloInput = pessoaForm?.elements['marcaModelo'];
+      const veiculoCorInput = pessoaForm?.elements['cor'];
+      const veiculoAnoModeloInput = pessoaForm?.elements['anoModelo'];
       const vinculoPessoaBuscaInput = document.getElementById('vinculo-pessoa-busca');
       const buscarVinculoPessoaBtn = document.getElementById('buscar-vinculo-pessoa');
       let pessoaEmEdicao = null;
@@ -433,6 +479,8 @@
       const obterDadosFormulario = () => {
         const formData = new FormData(pessoaForm);
         const dados = Object.fromEntries(formData.entries());
+        dados.nomeCompleto = String(dados.nomeCompleto || '').trim();
+        dados.cpf = String(dados.cpf || '').trim();
         // Preenche idade calculada (frontend) se disponível
         const idadeEl = document.getElementById('idade');
         if (idadeEl && idadeEl.value) {
@@ -448,6 +496,30 @@
         // Adiciona emails e redes sociais múltiplos ao payload
         dados.emails = emails.filter(e => e.trim() !== '');
         dados.redesSociais = redes.filter(r => r.trim() !== '');
+
+        // Monta os dados de veículo usando as mesmas chaves esperadas pela API de /cadastro/veiculos
+        const anoModeloValor = formData.get('anoModelo');
+        const anoModeloNumero = anoModeloValor ? Number(anoModeloValor) : undefined;
+        const anoModelo = Number.isNaN(anoModeloNumero) ? undefined : anoModeloNumero;
+        const veiculoPayload = {
+          placa: String(formData.get('placa') || '').trim(),
+          marcaModelo: String(formData.get('marcaModelo') || '').trim(),
+          cor: String(formData.get('cor') || '').trim(),
+          anoModelo,
+          nomeProprietario: String(formData.get('nomeProprietario') || dados.nomeCompleto || '').trim(),
+          cpf: dados.cpf,
+        };
+        const possuiDadosVeiculo = Object.values({ ...veiculoPayload, anoModelo: veiculoPayload.anoModelo ?? '' })
+          .some((valor) => String(valor ?? '').trim() !== '');
+        if (possuiDadosVeiculo) {
+          // Comentário: envia como objeto dedicado para alinhar com o payload de /api/pessoas e /api/veiculos
+          dados.veiculo = veiculoPayload;
+        }
+        delete dados.placa;
+        delete dados.marcaModelo;
+        delete dados.cor;
+        delete dados.anoModelo;
+        delete dados.nomeProprietario;
 
         // Empresa removida desta tela; nenhuma coleta necessária aqui
 
@@ -780,6 +852,16 @@
         cont.appendChild(table);
       };
 
+      const sincronizarCamposVeiculo = () => {
+        // Mantém os campos ocultos do veículo alinhados com a Identificação
+        if (veiculoNomeProprietarioInput) {
+          veiculoNomeProprietarioInput.value = nomeCompletoInput?.value || '';
+        }
+        if (veiculoCpfInput) {
+          veiculoCpfInput.value = cpfInput?.value || '';
+        }
+      };
+
       const aplicarMascaraCpf = (event) => {
         // Garante que apenas números sejam digitados e aplica a máscara padrão de CPF
         const somenteNumeros = event.target.value.replace(/\D/g, '').slice(0, 11);
@@ -796,6 +878,7 @@
         }
 
         event.target.value = valorMascarado;
+        sincronizarCamposVeiculo(); // Mantém CPF do veículo em sincronia com a Identificação
 
         // Valida CPF em tempo real quando completo (11 dígitos)
         const erroEl = document.getElementById('erro-cpf');
@@ -2069,6 +2152,25 @@
         }
         renderizarRedes();
 
+        // Preenche campos de veículo ou limpa quando não houver dados retornados
+        const veiculo = pessoa.veiculo || (Array.isArray(pessoa.veiculos) ? pessoa.veiculos[0] : null);
+        if (veiculo && typeof veiculo === 'object') {
+          if (veiculoPlacaInput) veiculoPlacaInput.value = veiculo.placa || '';
+          if (veiculoMarcaModeloInput) veiculoMarcaModeloInput.value = veiculo.marcaModelo || '';
+          if (veiculoCorInput) veiculoCorInput.value = veiculo.cor || '';
+          if (veiculoAnoModeloInput) veiculoAnoModeloInput.value = veiculo.anoModelo || '';
+          if (veiculoNomeProprietarioInput) veiculoNomeProprietarioInput.value = veiculo.nomeProprietario || pessoa.nomeCompleto || '';
+          if (veiculoCpfInput) veiculoCpfInput.value = veiculo.cpf || pessoa.cpf || '';
+        } else {
+          if (veiculoPlacaInput) veiculoPlacaInput.value = '';
+          if (veiculoMarcaModeloInput) veiculoMarcaModeloInput.value = '';
+          if (veiculoCorInput) veiculoCorInput.value = '';
+          if (veiculoAnoModeloInput) veiculoAnoModeloInput.value = '';
+          if (veiculoNomeProprietarioInput) veiculoNomeProprietarioInput.value = pessoa.nomeCompleto || '';
+          if (veiculoCpfInput) veiculoCpfInput.value = pessoa.cpf || '';
+        }
+        sincronizarCamposVeiculo();
+
 
         // Empresa removida desta tela; nada a carregar aqui
 
@@ -2428,6 +2530,7 @@
       const salvarPessoa = async (event) => {
         event.preventDefault();
 
+        sincronizarCamposVeiculo(); // Garante que os campos ocultos de veículo estejam atualizados antes de montar o payload
         const payload = obterDadosFormulario();
         if (!payload.nomeCompleto?.trim()) {
           exibirMensagem('O campo Nome Completo é obrigatório.', 'error');
@@ -2564,6 +2667,7 @@
           return;
         }
 
+        sincronizarCamposVeiculo(); // Alinha campos ocultos com o estado inicial da Identificação
         atualizarRotuloSubmit();
         pessoaForm.addEventListener('submit', salvarPessoa);
         // Mantém o rótulo do botão sincronizado ao alterar qualquer campo
@@ -2582,6 +2686,13 @@
           enderecos = [];
           indicadorEnderecoAtual = null;
           renderizarEnderecos();
+          if (veiculoPlacaInput) veiculoPlacaInput.value = '';
+          if (veiculoMarcaModeloInput) veiculoMarcaModeloInput.value = '';
+          if (veiculoCorInput) veiculoCorInput.value = '';
+          if (veiculoAnoModeloInput) veiculoAnoModeloInput.value = '';
+          if (veiculoNomeProprietarioInput) veiculoNomeProprietarioInput.value = '';
+          if (veiculoCpfInput) veiculoCpfInput.value = '';
+          sincronizarCamposVeiculo(); // Deixa dados de veículo alinhados após limpar
           telefones = [];
           renderizarTelefones();
           emails = [];
@@ -2611,7 +2722,9 @@
           prisoes = [];
           renderizarPrisoes();
         });
+        nomeCompletoInput?.addEventListener('input', sincronizarCamposVeiculo);
         cpfInput?.addEventListener('input', aplicarMascaraCpf);
+        cpfInput?.addEventListener('blur', sincronizarCamposVeiculo);
 
         // Atualiza idade ao digitar/alterar data de nascimento
         const dobEl = pessoaForm?.elements['dataNascimento'];
