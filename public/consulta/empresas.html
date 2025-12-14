@@ -77,7 +77,7 @@
               <p class="panel__subtitle">Combine filtros para localizar CNPJ, razão social ou sócios.</p>
             </div>
           </div>
-          <form class="form" aria-label="Filtros de consulta de empresas">
+          <form class="form" aria-label="Filtros de consulta de empresas" data-empresas-form>
             <div class="form__grid form__grid--3">
               <label class="form__field">
                 <span class="form__label">CNPJ</span>
@@ -103,13 +103,14 @@
           <div class="panel__header panel__header--stacked">
             <h2 class="panel__title">Resultados</h2>
             <!-- Comentário indicando que os resultados serão integrados depois -->
-            <p class="panel__subtitle">Nenhum resultado exibido. Pesquise para carregar empresas.</p>
           </div>
-          <div class="message" role="status" aria-live="polite">Aguardando consulta...</div>
+          <div class="message" role="status" aria-live="polite" data-results-message>Aguardando consulta...</div>
+          <div class="results" data-results-container aria-live="polite"></div>
         </section>
       </main>
     </div>
 
     <script src="/js/main.js"></script>
+    <script src="/js/consulta-empresas.js"></script>
   </body>
 </html>

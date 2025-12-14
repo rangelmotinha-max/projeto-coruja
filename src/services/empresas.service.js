@@ -33,8 +33,42 @@ async function criar(payload) {
   return EmpresaModel.create(dados);
 }
 
-async function listar() {
-  return EmpresaModel.findAll();
+async function listar(filtros = {}) {
+  // Comentário: busca todas as empresas e aplica filtros opcionais em memória para permitir pesquisa rápida.
+  const empresas = await EmpresaModel.findAll();
+  const normalizarTexto = (v) => String(v || '').toLowerCase();
+  const somenteDigitos = (v) => String(v || '').replace(/\D/g, '');
+
+  const filtroCnpj = somenteDigitos(filtros.cnpj);
+  const filtroRazao = normalizarTexto(filtros.razaoSocial || filtros.nomeFantasia);
+  const filtroSocioTexto = normalizarTexto(filtros.socio);
+  const filtroSocioDigitos = somenteDigitos(filtros.socio);
+
+  const temFiltro = filtroCnpj || filtroRazao || filtroSocioTexto || filtroSocioDigitos;
+  if (!temFiltro) return empresas;
+
+  return empresas.filter((empresa) => {
+    const cnpjEmpresa = somenteDigitos(empresa.cnpj);
+    const razao = normalizarTexto(empresa.razaoSocial);
+    const fantasia = normalizarTexto(empresa.nomeFantasia);
+
+    const cnpjAtende = filtroCnpj ? cnpjEmpresa.includes(filtroCnpj) : true;
+    const razaoAtende = filtroRazao ? (razao.includes(filtroRazao) || fantasia.includes(filtroRazao)) : true;
+
+    const socios = Array.isArray(empresa.socios) ? empresa.socios : [];
+    const socioAtende = (filtroSocioTexto || filtroSocioDigitos)
+      ? socios.some((s) => {
+          const nomeSocio = normalizarTexto(s.nome);
+          const cpfSocio = somenteDigitos(s.cpf);
+          return (
+            (filtroSocioTexto && nomeSocio.includes(filtroSocioTexto)) ||
+            (filtroSocioDigitos && cpfSocio.includes(filtroSocioDigitos))
+          );
+        })
+      : true;
+
+    return cnpjAtende && razaoAtende && socioAtende;
+  });
 }
 
 async function buscarPorId(id) {

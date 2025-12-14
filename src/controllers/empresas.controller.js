@@ -9,7 +9,7 @@ async function criar(req, res, next) {
 
 async function listar(req, res, next) {
   try {
-    const lista = await empresasService.listar();
+    const lista = await empresasService.listar(req.query || {});
     return res.json(lista);
   } catch (error) { return next(error); }
 }
