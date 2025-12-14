@@ -535,16 +535,31 @@
           const aviso = document.createElement('div');
           aviso.style.display = 'flex';
           aviso.style.flexDirection = 'column';
-          aviso.style.gap = '0.35rem';
-          aviso.innerHTML = `<strong>Nenhuma facção encontrada para "${termoAtual}".</strong>`;
+          aviso.style.gap = '0.5rem';
+          aviso.innerHTML = `<strong>Facção ou Organização não encontrada. Deseja incluir: sim ou não</strong>`;
 
-          const botaoCriar = document.createElement('button');
-          botaoCriar.type = 'button';
-          botaoCriar.className = 'button button--secondary';
-          botaoCriar.textContent = 'Cadastrar informação';
-          botaoCriar.addEventListener('click', () => criarFaccao(termoAtual));
+          const acoes = document.createElement('div');
+          acoes.style.display = 'flex';
+          acoes.style.gap = '0.5rem';
 
-          aviso.appendChild(botaoCriar);
+          const botaoSim = document.createElement('button');
+          botaoSim.type = 'button';
+          botaoSim.className = 'button button--secondary';
+          botaoSim.textContent = 'Sim';
+          botaoSim.addEventListener('click', () => criarFaccao(termoAtual));
+
+          const botaoNao = document.createElement('button');
+          botaoNao.type = 'button';
+          botaoNao.className = 'button button--ghost';
+          botaoNao.textContent = 'Não';
+          botaoNao.addEventListener('click', () => {
+            faccaoSugestoesEl.style.display = 'none';
+            atualizarFeedbackFaccao('Deixe em branco se a pessoa não tiver vínculo.');
+          });
+
+          acoes.appendChild(botaoSim);
+          acoes.appendChild(botaoNao);
+          aviso.appendChild(acoes);
           faccaoSugestoesEl.appendChild(aviso);
           faccaoSugestoesEl.style.display = 'flex';
           return;
@@ -3215,22 +3230,18 @@
 
         faccaoInput?.addEventListener('input', (event) => {
           const termo = event.target.value.trim();
+          // Ao digitar, apenas limpa seleção e não busca automaticamente
           if (!termo) {
             limparSelecaoFaccao();
+            if (faccaoSugestoesEl) faccaoSugestoesEl.style.display = 'none';
             return;
           }
           if (faccaoIdInput) faccaoIdInput.value = '';
           faccaoSelecionada = null;
-          clearTimeout(timeoutBuscaFaccao);
-          timeoutBuscaFaccao = setTimeout(() => buscarFaccoes(termo), 250);
+          if (faccaoSugestoesEl) faccaoSugestoesEl.style.display = 'none';
         });
 
-        faccaoInput?.addEventListener('focus', () => {
-          const termo = faccaoInput.value.trim();
-          if (termo && (!faccaoSugestoesEl || faccaoSugestoesEl.style.display === 'none')) {
-            buscarFaccoes(termo);
-          }
-        });
+        // Removido: não buscar automaticamente ao focar no campo
 
         const faccaoBuscarBtn = document.getElementById('faccao-buscar');
         faccaoBuscarBtn?.addEventListener('click', () => {
