@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Consulta de Empresas | Projeto Coruja</title>
+    <title>Consulta de Veículos | Projeto Coruja</title>
     <link rel="stylesheet" href="/css/main.css" />
   </head>
   <body class="theme-dark">
@@ -55,8 +55,8 @@
             <summary class="sidebar__link sidebar__link--parent" aria-label="Abrir menu Consulta">Consulta</summary>
             <div class="sidebar__subnav">
               <a class="sidebar__link sidebar__link--child" href="/consulta/pessoas">Pessoas</a>
-              <a class="sidebar__link sidebar__link--child sidebar__link--active" href="/consulta/empresas">Empresas</a>
-              <a class="sidebar__link sidebar__link--child" href="/consulta/veiculos">Veículos</a>
+              <a class="sidebar__link sidebar__link--child" href="/consulta/empresas">Empresas</a>
+              <a class="sidebar__link sidebar__link--child sidebar__link--active" href="/consulta/veiculos">Veículos</a>
             </div>
           </details>
           <!-- Fim do menu de nível superior: Consulta -->
@@ -64,34 +64,42 @@
 
       </aside>
 
-      <main class="content" data-page="consulta-empresas">
+      <main class="content" data-page="consulta-veiculos">
         <header class="content__header">
           <p class="content__eyebrow">Consulta</p>
-          <h1 class="content__title">Empresas</h1>
-          
+          <h1 class="content__title">Veículos</h1>
+
         </header>
 
-        <section class="panel" aria-label="Consulta de empresas">
+        <section class="panel" aria-label="Consulta de veículos">
           <div class="panel__header">
             <div>
-              
-              <!-- Comentário sobre o objetivo dos campos de busca -->
-              
+              <!-- Formulário orientado a filtros principais para agilizar a busca de veículos -->
             </div>
           </div>
-          <form class="form" aria-label="Filtros de consulta de empresas" data-empresas-form>
-            <div class="form__grid form__grid--3">
+          <form class="form" aria-label="Filtros de consulta de veículos" data-veiculos-form>
+            <div class="form__grid form__grid--2">
               <label class="form__field">
-                <span class="form__label">CNPJ</span>
-                <input class="form__input" type="text" name="cnpj" placeholder="00.000.000/0000-00" />
+                <span class="form__label">Placa</span>
+                <!-- Campo de busca pela placa principal do veículo -->
+                <input class="form__input" type="text" name="placa" placeholder="ABC-1234" />
               </label>
               <label class="form__field">
-                <span class="form__label">Razão social</span>
-                <input class="form__input" type="text" name="razaoSocial" placeholder="Digite a razão social" />
+                <span class="form__label">Marca/Modelo</span>
+                <!-- Campo para pesquisar por marca ou modelo combinados -->
+                <input class="form__input" type="text" name="modelo" placeholder="Ex.: Toyota Corolla" />
+              </label>
+            </div>
+            <div class="form__grid form__grid--2">
+              <label class="form__field">
+                <span class="form__label">Nome do Proprietário</span>
+                <!-- Campo dedicado a localizar veículos pelo proprietário principal -->
+                <input class="form__input" type="text" name="proprietario" placeholder="Digite o nome do proprietário" />
               </label>
               <label class="form__field">
-                <span class="form__label">Nome do sócio</span>
-                <input class="form__input" type="text" name="socio" placeholder="Pesquise pelo sócio" />
+                <span class="form__label">CPF do Proprietário</span>
+                <!-- Campo numérico para vincular o CPF ao cadastro do proprietário -->
+                <input class="form__input" type="text" name="cpf" placeholder="000.000.000-00" inputmode="numeric" />
               </label>
             </div>
             <div class="form__actions">
@@ -104,15 +112,34 @@
         <section class="panel" aria-label="Resultados da consulta">
           <div class="panel__header panel__header--stacked">
             <h2 class="panel__title">Resultados</h2>
-            <!-- Comentário indicando que os resultados serão integrados depois -->
+            <!-- Espaço reservado para ações extras (ex.: exportação) se necessário no futuro -->
           </div>
           <div class="message" role="status" aria-live="polite" data-results-message>Aguardando consulta...</div>
-          <div class="results" data-results-container aria-live="polite"></div>
+          <div class="message message--warning" role="status" aria-live="polite" data-empty-message style="display: none;">Veículo não encontrado!</div>
+          <div class="results" data-results-container aria-live="polite">
+            <div class="table-wrapper" role="region" aria-label="Tabela de veículos">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th scope="col">Placa</th>
+                    <th scope="col">Marca/Modelo</th>
+                    <th scope="col">Nome do Proprietário</th>
+                    <th scope="col">CPF</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td colspan="4">Preencha os filtros para iniciar a consulta.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </section>
       </main>
     </div>
 
     <script src="/js/main.js"></script>
-    <script src="/js/consulta-empresas.js"></script>
+    <script src="/js/consulta-veiculos.js"></script>
   </body>
 </html>
