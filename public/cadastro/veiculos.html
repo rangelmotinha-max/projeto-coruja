@@ -102,6 +102,7 @@
             </div>
             <div class="form__actions">
               <button class="button button--primary" id="submit-veiculo" type="submit">Incluir</button>
+              <button class="button button--secondary" id="btn-listar" type="button">Listar</button>
               <button class="button" id="btn-limpar" type="reset">Limpar</button>
             </div>
           </form>
@@ -238,7 +239,7 @@
         };
       };
 
-      // Renderiza lista de veículos com ações de edição e exclusão
+      // Renderiza lista de veículos em forma de tabela
       const renderizarLista = (veiculos) => {
         listaEl.innerHTML = '';
         if (!veiculos.length) {
@@ -246,21 +247,43 @@
           return;
         }
 
+        const table = document.createElement('table');
+        table.className = 'table';
+
+        // Cabeçalho
+        const thead = document.createElement('thead');
+        thead.innerHTML = `
+          <tr>
+            <th>Placa</th>
+            <th>Marca/Modelo</th>
+            <th>Cor</th>
+            <th>Nome</th>
+            <th>CPF</th>
+            <th>Ações</th>
+          </tr>
+        `;
+        table.appendChild(thead);
+
+        // Corpo
+        const tbody = document.createElement('tbody');
         veiculos.forEach((veiculo) => {
-          const item = document.createElement('div');
-          item.className = 'list__item';
-          item.innerHTML = `
-            <div>
-              <p class="list__title">${veiculo.nomeProprietario || '—'} (${veiculo.placa})</p>
-              <p class="list__meta">CPF: ${veiculo.cpf || '—'} | Marca/Modelo: ${veiculo.marcaModelo || '—'} | Cor: ${veiculo.cor || '—'} | Ano/Modelo: ${veiculo.anoModelo || '—'}</p>
-            </div>
-            <div class="list__actions">
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${veiculo.placa || '—'}</td>
+            <td>${veiculo.marcaModelo || '—'}</td>
+            <td>${veiculo.cor || '—'}</td>
+            <td>${veiculo.nomeProprietario || '—'}</td>
+            <td>${veiculo.cpf || '—'}</td>
+            <td>
               <button class="button button--ghost" data-editar="${veiculo.id}">Editar</button>
               <button class="button button--danger" data-remover="${veiculo.id}">Excluir</button>
-            </div>
+            </td>
           `;
-          listaEl.appendChild(item);
+          tbody.appendChild(tr);
         });
+        table.appendChild(tbody);
+
+        listaEl.appendChild(table);
       };
 
       // Busca veículos e aplica filtro de texto simples
@@ -394,6 +417,12 @@
 
       // Botão de reset volta para modo de criação
       document.getElementById('btn-limpar').addEventListener('click', resetarFormulario);
+
+      // Botão "Listar" com mesma função da listagem de pessoas
+      document.getElementById('btn-listar').addEventListener('click', async () => {
+        await carregarVeiculos();
+        exibirMensagem(mensagemListaEl, 'Lista atualizada.', 'info');
+      });
 
       // Carregamento inicial dos dados
       carregarVeiculos();
