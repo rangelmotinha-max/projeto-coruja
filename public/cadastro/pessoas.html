@@ -266,11 +266,22 @@
                 <div id="lista-vinculos-empresas" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
               </div>
               -->
+              <!-- Sub-seção: Veículos vinculados -->
               <div class="form__subsection">
                 <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin: 0.75rem 0;">
-                  
+                  <h4 class="form__section-title" style="font-size: 1rem; margin: 0;">Veículos</h4>
                 </div>
-                
+                <div class="form__grid form__grid--3" style="align-items:end;">
+                  <label class="form__field" style="margin:0;">
+                    <input class="form__input" type="text" id="vinculo-veiculo-placa" placeholder="Digite a placa do veículo" aria-label="Placa do veículo" />
+                  </label>
+                  <div class="form__actions" style="margin:0;">
+                    <button class="button button--secondary" id="buscar-vinculo-veiculo" type="button" aria-label="Buscar veículo para vínculo" title="Procurar" style="min-width:8rem;">Procurar</button>
+                  </div>
+                  <small id="vinculo-veiculo-status" style="color: var(--muted);"></small>
+                </div>
+                <div id="vinculo-veiculo-resultado" class="panel" style="margin-top: 0.75rem; padding: 0.75rem; display: none;"></div>
+                <div id="lista-vinculos-veiculos" style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.75rem;"></div>
               </div>
               <div class="form__subsection">
                 <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin: 0.75rem 0;">
@@ -390,6 +401,11 @@
       const listaVeiculosEl = document.getElementById('lista-veiculos');
       const vinculoPessoaBuscaInput = document.getElementById('vinculo-pessoa-busca');
       const buscarVinculoPessoaBtn = document.getElementById('buscar-vinculo-pessoa');
+      const vinculoVeiculoPlacaInput = document.getElementById('vinculo-veiculo-placa');
+      const buscarVinculoVeiculoBtn = document.getElementById('buscar-vinculo-veiculo');
+      const vinculoVeiculoStatusEl = document.getElementById('vinculo-veiculo-status');
+      const vinculoVeiculoResultadoEl = document.getElementById('vinculo-veiculo-resultado');
+      const listaVinculosVeiculosEl = document.getElementById('lista-vinculos-veiculos');
       let pessoaEmEdicao = null;
       let ultimaAcaoFoiEdicao = false;
       let fotosSelecionadas = [];
@@ -495,6 +511,17 @@
           cpf: String(v.cpf||'').trim(),
           tipo: String(v.tipo||'').trim(),
         })).filter(v => v.nome || v.cpf || v.tipo);
+        const veiculosVinc = (vinculosVeiculos || [])
+          .map((v) => {
+            const placa = normalizarPlaca(v?.placa || '');
+            const marcaModelo = String(v?.marcaModelo || '').trim();
+            const nome = String(v?.nome || '').trim();
+            const cpf = String(v?.cpf || '').replace(/\D/g, '');
+            return (placa || marcaModelo || nome || cpf)
+              ? { placa, marcaModelo, nome, cpf }
+              : null;
+          })
+          .filter(Boolean);
         const empresasVinc = (empresasVinculadas || [])
           .map((entrada) => {
             const { id, nome, observacoes } = normalizarVinculoEmpresa(entrada);
@@ -526,6 +553,7 @@
           empresas: empresasVinc,
           entidades: entidadesVinc,
           empregaticio: empregList,
+          veiculos: veiculosVinc,
         };
 
         // Montar ocorrências
@@ -927,6 +955,7 @@
       let vinculosPessoas = [];
       let vinculosEmpresas = [];
       let vinculosEntidades = [];
+      let vinculosVeiculos = [];
 
       // Renderiza as pré-visualizações das fotos selecionadas
       const renderizarFotos = () => {
@@ -1360,6 +1389,15 @@
         return v;
       };
 
+      // Normaliza e mascara placas para melhorar a leitura no formulário
+      const normalizarPlaca = (valor) => String(valor || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 7);
+
+      const aplicarMascaraPlaca = (valor) => {
+        const placa = normalizarPlaca(valor);
+        if (placa.length <= 3) return placa;
+        return `${placa.slice(0, 3)}-${placa.slice(3)}`;
+      };
+
       const aplicarMascaraTelefone = (valor) => {
         const dig = String(valor || '').replace(/\D/g, '').slice(0, 11);
         if (dig.length <= 10) {
@@ -1503,6 +1541,71 @@
         container.style.display = mostrarMensagem ? 'block' : 'none';
       };
 
+      // Comentário: mensagens específicas da busca de veículo vinculável
+      const exibirMensagemVinculoVeiculo = (texto, tipo = 'info') => {
+        if (!vinculoVeiculoResultadoEl) return;
+        vinculoVeiculoResultadoEl.textContent = texto || '';
+        vinculoVeiculoResultadoEl.className = 'panel';
+        if (texto) {
+          vinculoVeiculoResultadoEl.classList.add('message', `message--${tipo}`);
+          vinculoVeiculoResultadoEl.style.display = 'block';
+        } else {
+          vinculoVeiculoResultadoEl.style.display = 'none';
+        }
+      };
+
+      // Comentário: renderiza tabela com veículos vinculados ao cadastro atual
+      const renderizarVinculosVeiculos = () => {
+        if (!listaVinculosVeiculosEl) return;
+        listaVinculosVeiculosEl.innerHTML = '';
+
+        if (!vinculosVeiculos.length) {
+          listaVinculosVeiculosEl.innerHTML = '<p style="color: var(--muted); margin: 0;">Nenhum veículo vinculado.</p>';
+          return;
+        }
+
+        const tabela = document.createElement('table');
+        tabela.style.width = '100%';
+        tabela.style.borderCollapse = 'collapse';
+        tabela.innerHTML = `
+          <thead>
+            <tr>
+              <th style="text-align:left; padding: 0.35rem;">Placa</th>
+              <th style="text-align:left; padding: 0.35rem;">Marca/Modelo</th>
+              <th style="text-align:left; padding: 0.35rem;">Nome</th>
+              <th style="text-align:left; padding: 0.35rem;">CPF</th>
+              <th style="text-align:left; padding: 0.35rem;">Ações</th>
+            </tr>
+          </thead>
+        `;
+
+        const corpo = document.createElement('tbody');
+
+        vinculosVeiculos.forEach((veiculo, indice) => {
+          const linha = document.createElement('tr');
+          linha.innerHTML = `
+            <td style="padding: 0.35rem;">${veiculo.placa || ''}</td>
+            <td style="padding: 0.35rem;">${veiculo.marcaModelo || ''}</td>
+            <td style="padding: 0.35rem;">${veiculo.nome || ''}</td>
+            <td style="padding: 0.35rem;">${aplicarMascaraCpfInline(veiculo.cpf || '')}</td>
+            <td style="padding: 0.35rem;">
+              <button class="button button--ghost" type="button" aria-label="Remover vínculo de veículo">Remover</button>
+            </td>
+          `;
+
+          const removerBtn = linha.querySelector('button');
+          removerBtn.addEventListener('click', () => {
+            vinculosVeiculos.splice(indice, 1); // Comentário: remove veículo da lista vinculada
+            renderizarVinculosVeiculos();
+          });
+
+          corpo.appendChild(linha);
+        });
+
+        tabela.appendChild(corpo);
+        listaVinculosVeiculosEl.appendChild(tabela);
+      };
+
       const adicionarVinculoPessoa = (dados = { nome: '', cpf: '', tipo: '' }) => {
         // Comentário: mantemos o formato original para garantir compatibilidade com o backend
         // e com fluxos de salvamento já existentes no formulário de pessoa.
@@ -1618,6 +1721,75 @@
           exibirMensagemForm('Selecione uma das pessoas encontradas para vincular.', 'success');
         } catch (error) {
           exibirMensagemForm(error?.message || 'Erro ao procurar pessoa para vínculo.', 'error');
+        }
+      };
+
+      // Comentário: busca veículo por placa e oferece vinculação direta ao cadastro
+      const buscarVeiculoParaVinculo = async () => {
+        const placaNormalizada = normalizarPlaca(vinculoVeiculoPlacaInput?.value || '');
+        if (!placaNormalizada || placaNormalizada.length < 7) {
+          exibirMensagemVinculoVeiculo('Informe uma placa completa para procurar.', 'error');
+          if (vinculoVeiculoStatusEl) vinculoVeiculoStatusEl.textContent = 'Digite os 7 caracteres da placa.';
+          return;
+        }
+
+        if (vinculoVeiculoPlacaInput) {
+          vinculoVeiculoPlacaInput.value = aplicarMascaraPlaca(placaNormalizada); // Comentário: mantém formatação legível
+        }
+
+        try {
+          exibirMensagemVinculoVeiculo('Buscando veículo pela placa informada...', 'info');
+          if (vinculoVeiculoStatusEl) vinculoVeiculoStatusEl.textContent = 'Buscando veículo...';
+          const params = new URLSearchParams({ placa: placaNormalizada });
+          const response = await fetchAutenticado(`/api/veiculos/buscar?${params.toString()}`);
+          const data = await response.json().catch(() => ({}));
+
+          if (!response.ok) {
+            const erro = data?.mensagem || data?.message || 'Veículo não encontrado.';
+            const erroBusca = new Error(erro);
+            erroBusca.status = response.status;
+            throw erroBusca;
+          }
+
+          const veiculo = data?.data || data;
+          if (!veiculo) {
+            throw new Error('Veículo não encontrado.');
+          }
+
+          const resumoVeiculo = `${veiculo.placa || placaNormalizada}${veiculo.marcaModelo ? ` - ${veiculo.marcaModelo}` : ''}`;
+          const confirmar = confirm(`Veículo ${resumoVeiculo} localizado. Deseja vincular este veículo?`);
+          if (!confirmar) {
+            exibirMensagemVinculoVeiculo('Vínculo de veículo cancelado pelo usuário.', 'info');
+            return;
+          }
+
+          const jaVinculado = vinculosVeiculos.some((item) => normalizarPlaca(item.placa) === normalizarPlaca(veiculo.placa));
+          if (jaVinculado) {
+            exibirMensagemVinculoVeiculo('Este veículo já está vinculado.', 'info');
+            return;
+          }
+
+          vinculosVeiculos.push({
+            placa: normalizarPlaca(veiculo.placa),
+            marcaModelo: veiculo.marcaModelo || '',
+            nome: veiculo.nomeProprietario || veiculo.nome || '',
+            cpf: veiculo.cpf || '',
+          });
+
+          renderizarVinculosVeiculos();
+          exibirMensagemVinculoVeiculo('Veículo vinculado com sucesso.', 'success');
+          if (vinculoVeiculoStatusEl) vinculoVeiculoStatusEl.textContent = 'Veículo vinculado à pessoa.';
+        } catch (error) {
+          exibirMensagemVinculoVeiculo('Veículo não encontrado.', 'error');
+          if (vinculoVeiculoStatusEl) vinculoVeiculoStatusEl.textContent = 'Veículo não encontrado.';
+          if (error?.status === 404 || (error?.message || '').toLowerCase().includes('não encontrado')) {
+            const cadastrar = confirm('Veículo não encontrado. Deseja cadastrar o veículo?');
+            if (cadastrar) {
+              window.location.href = '/cadastro/veiculos';
+            }
+          } else {
+            exibirMensagemForm(error?.message || 'Erro ao buscar veículo.', 'error');
+          }
         }
       };
 
@@ -2282,6 +2454,19 @@
         }
         renderizarVinculosPessoas();
 
+        // Carrega vínculos de veículos já existentes para facilitar edição
+        if (pessoa.vinculos && Array.isArray(pessoa.vinculos.veiculos)) {
+          vinculosVeiculos = pessoa.vinculos.veiculos.map((v) => ({
+            placa: normalizarPlaca(v?.placa || ''),
+            marcaModelo: String(v?.marcaModelo || '').trim(),
+            nome: String(v?.nome || v?.nomeProprietario || '').trim(),
+            cpf: String(v?.cpf || '').trim(),
+          }));
+        } else {
+          vinculosVeiculos = [];
+        }
+        renderizarVinculosVeiculos();
+
         // Carrega vínculos de entidades se existirem
         if (pessoa.vinculos && Array.isArray(pessoa.vinculos.entidades)) {
           vinculosEntidades = pessoa.vinculos.entidades.map(e => ({
@@ -2802,6 +2987,8 @@
 
           vinculosPessoas = [];
           renderizarVinculosPessoas();
+          vinculosVeiculos = [];
+          renderizarVinculosVeiculos();
           vinculosEmpresas = [];
           vinculosEntidades = [];
           renderizarVinculosEntidades();
@@ -2897,6 +3084,18 @@
           }
         });
 
+        // Event listeners para vínculo de veículos por placa
+        vinculoVeiculoPlacaInput?.addEventListener('input', (event) => {
+          event.target.value = aplicarMascaraPlaca(event.target.value); // Comentário: formata placa em tempo real
+        });
+        buscarVinculoVeiculoBtn?.addEventListener('click', buscarVeiculoParaVinculo);
+        vinculoVeiculoPlacaInput?.addEventListener('keydown', (event) => {
+          if (event.key === 'Enter') {
+            event.preventDefault();
+            buscarVeiculoParaVinculo();
+          }
+        });
+
         // Event listener para adicionar vínculo empresa
         // Removido: botão e ação de vínculo de empresa
 
@@ -2930,9 +3129,10 @@
         // Carrega opções de empresas para vínculo
         carregarEmpresasOpcoes();
         renderizarVinculosPessoas();
+        renderizarVinculosVeiculos();
         // Vínculo de empresas removido: não renderizar
         renderizarVinculosEntidades();
-        
+
         renderizarVinculosEmpregaticio();
         renderizarOcorrenciasPoliciais();
         renderizarProcessos();

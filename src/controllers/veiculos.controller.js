@@ -28,6 +28,15 @@ async function buscarPorId(req, res, next) {
   }
 }
 
+async function buscarPorPlaca(req, res, next) {
+  try {
+    const veiculo = await veiculosService.buscarPorPlaca(req.query.placa);
+    return res.json(veiculo);
+  } catch (error) {
+    return next(error);
+  }
+}
+
 async function atualizar(req, res, next) {
   try {
     const veiculo = await veiculosService.atualizar(req.params.id, req.body);
@@ -46,4 +55,4 @@ async function remover(req, res, next) {
   }
 }
 
-module.exports = { criar, listar, buscarPorId, atualizar, remover };
+module.exports = { criar, listar, buscarPorId, buscarPorPlaca, atualizar, remover };
