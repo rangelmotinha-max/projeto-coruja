@@ -193,6 +193,7 @@
       const exibirMensagem = (texto, tipo = 'info') => { if(!msgEl) return; msgEl.textContent = texto||''; msgEl.className='message'; if (texto) msgEl.classList.add(`message--${tipo}`); };
       const exibirMensagemForm = (texto, tipo='info') => { formMsgEl.textContent = texto||''; formMsgEl.className='message'; if (texto) formMsgEl.classList.add(`message--${tipo}`); };
       const aplicarMascaraCnpj = (v) => { const d=String(v||'').replace(/\D/g,'').slice(0,14); let r=d; if(d.length>2) r=d.slice(0,2)+'.'+d.slice(2); if(d.length>5) r=r.slice(0,6)+'.'+d.slice(5); if(d.length>8) r=r.slice(0,10)+'/'+d.slice(8); if(d.length>12) r=r.slice(0,15)+'-'+d.slice(12); return r; };
+      const validarCnpj14 = (valor) => { const dig=String(valor||'').replace(/\D/g,''); return dig.length===14; };
       const aplicarMascaraTelefone = (valor) => { const dig=String(valor||'').replace(/\D/g,'').slice(0,11); if(dig.length<=10){ return dig.replace(/(\d{0,2})(\d{0,4})(\d{0,4}).*/, (_,a,b,c)=>{ let r=''; if(a) r+='('+a+') '; if(b) r+=b+(c?'-':''); if(c) r+=c; return r; }); } else { return dig.replace(/(\d{0,2})(\d{0,5})(\d{0,4}).*/, (_,a,b,c)=>{ let r=''; if(a) r+='('+a+') '; if(b) r+=b+(c?'-':''); if(c) r+=c; return r; }); } };
       const aplicarMascaraCep = (valor) => { const dig=String(valor||'').replace(/\D/g,'').slice(0,8); return dig.length<=5?dig:dig.slice(0,5)+'-'+dig.slice(5); };
       const renderizarSocios = () => {
@@ -235,6 +236,11 @@
       const salvarEmpresa = async (e) => {
         e.preventDefault();
         const payload = obterDadosFormulario();
+        if (!validarCnpj14(payload.cnpj)) {
+          exibirMensagemForm('CNPJ inválido: deve conter exatamente 14 números.', 'error');
+          empresaForm.cnpj.focus();
+          return;
+        }
         try {
           exibirMensagemForm('Salvando empresa...', 'info');
           const metodo = empresaEmEdicao ? 'PUT' : 'POST';
