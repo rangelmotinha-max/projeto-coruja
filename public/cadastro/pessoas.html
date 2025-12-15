@@ -609,29 +609,32 @@
       const faccaoConfirmarSim = document.getElementById('faccao-confirmar-sim');
       const faccaoConfirmarNao = document.getElementById('faccao-confirmar-nao');
       const faccaoConfirmarTexto = document.getElementById('faccao-confirmar-texto');
-      const abrirConfirmacaoIncluirFaccao = (termoAtual = '') => {
+      let confirmacaoOnSimHandler = null;
+      const abrirConfirmacao = (mensagem, onSim) => {
         if (!faccaoConfirmarModal) return;
-        faccaoConfirmarTexto.textContent = 'Facção ou Organização não encontrada! Deseja incluir?';
+        faccaoConfirmarTexto.textContent = mensagem;
+        confirmacaoOnSimHandler = typeof onSim === 'function' ? onSim : null;
         faccaoConfirmarModal.setAttribute('aria-hidden', 'false');
         document.body.style.overflow = 'hidden';
-        // Vincula ações
-        faccaoConfirmarSim.onclick = () => {
-          fecharConfirmacaoIncluirFaccao();
-          criarFaccao(termoAtual);
-        };
-        faccaoConfirmarNao.onclick = () => {
-          fecharConfirmacaoIncluirFaccao();
-          atualizarFeedbackFaccao('Deixe em branco se a pessoa não tiver vínculo.');
-        };
       };
-      const fecharConfirmacaoIncluirFaccao = () => {
+      const fecharConfirmacao = () => {
         if (!faccaoConfirmarModal) return;
         faccaoConfirmarModal.setAttribute('aria-hidden', 'true');
         document.body.style.overflow = '';
+        confirmacaoOnSimHandler = null;
       };
-      document.querySelector('#faccao-confirmar-modal [data-modal-close]')?.addEventListener('click', fecharConfirmacaoIncluirFaccao);
-      faccaoConfirmarClose?.addEventListener('click', fecharConfirmacaoIncluirFaccao);
-      faccaoConfirmarNao?.addEventListener('click', fecharConfirmacaoIncluirFaccao);
+      faccaoConfirmarSim?.addEventListener('click', () => {
+        const handler = confirmacaoOnSimHandler;
+        fecharConfirmacao();
+        try { handler && handler(); } catch {}
+      });
+      document.querySelector('#faccao-confirmar-modal [data-modal-close]')?.addEventListener('click', fecharConfirmacao);
+      faccaoConfirmarClose?.addEventListener('click', fecharConfirmacao);
+      faccaoConfirmarNao?.addEventListener('click', fecharConfirmacao);
+
+      const abrirConfirmacaoIncluirFaccao = (termoAtual = '') => {
+        abrirConfirmacao('Não encontrada. Incluir?', () => criarFaccao(termoAtual));
+      };
 
       // Recupera o ID da pessoa a partir da URL (?pessoaId= ou ?id=)
       const obterPessoaIdDaUrl = () => {
@@ -1899,12 +1902,9 @@
           const pessoasEncontradas = Array.isArray(data) ? data : data?.data || [];
 
           if (!pessoasEncontradas.length) {
-            const criarNova = confirm('Nenhuma pessoa encontrada. Deseja cadastrar uma nova?');
-            if (criarNova) {
-              // Comentário: reutilizamos a rota padrão de criação para manter a navegação original
-              // e permitir que o usuário complete o cadastro antes de voltar para vincular.
+            abrirConfirmacao('Pessoa não encontrada. Deseja cadastrar?', () => {
               window.location.href = '/cadastro/pessoas';
-            }
+            });
             exibirMensagemForm('Nenhuma pessoa encontrada com o filtro informado.', 'info');
             limparResultadosPessoasBusca(true);
             return;
@@ -1953,7 +1953,12 @@
               : [];
 
           if (!veiculosEncontrados.length) {
-            throw new Error('Veículo não encontrado.');
+            abrirConfirmacao('Veículo não encontrado. Deseja cadastrar?', () => {
+              window.location.href = '/cadastro/veiculos';
+            });
+            exibirMensagemVinculoVeiculo('Nenhum veículo localizado com a placa informada.', 'info');
+            if (vinculoVeiculoStatusEl) vinculoVeiculoStatusEl.textContent = '';
+            return;
           }
 
           const veiculoSelecionado = veiculosEncontrados[0];
@@ -1989,14 +1994,9 @@
         } catch (error) {
           exibirMensagemVinculoVeiculo('Veículo não encontrado.', 'error');
           if (vinculoVeiculoStatusEl) vinculoVeiculoStatusEl.textContent = 'Veículo não encontrado.';
-          if (error?.status === 404 || (error?.message || '').toLowerCase().includes('não encontrado')) {
-            const cadastrar = confirm('Veículo não encontrado. Deseja cadastrar o veículo?');
-            if (cadastrar) {
-              window.location.href = '/cadastro/veiculos';
-            }
-          } else {
-            exibirMensagemForm(error?.message || 'Erro ao buscar veículo.', 'error');
-          }
+          abrirConfirmacao('Veículo não encontrado. Deseja cadastrar?', () => {
+            window.location.href = '/cadastro/veiculos';
+          });
         }
       };
 
@@ -3315,9 +3315,16 @@
               await carregarEmpresasOpcoes();
             }
             const empresa = buscarEmpresaPorCnpj(cnpjVal);
-            renderizarResultadoBuscaEmpresa(empresa);
-            // Mensagem de status reforçando a possibilidade de cadastrar a empresa
-            if (statusEl) statusEl.textContent = empresa ? 'Empresa encontrada.' : 'Empresa não encontrada. Deseja cadastrar?';
+            if (!empresa) {
+              renderizarResultadoBuscaEmpresa(null);
+              abrirConfirmacao('Empresa não encontrada. Deseja cadastrar?', () => {
+                window.location.href = '/cadastro/empresas';
+              });
+              if (statusEl) statusEl.textContent = '';
+            } else {
+              renderizarResultadoBuscaEmpresa(empresa);
+              if (statusEl) statusEl.textContent = 'Empresa encontrada.';
+            }
           } catch (err) {
             if (statusEl) statusEl.textContent = 'Erro ao buscar empresa.';
           }
