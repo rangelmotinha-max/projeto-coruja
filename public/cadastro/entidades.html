@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cadastro de Entidades | Projeto Coruja</title>
+    <link rel="stylesheet" href="/css/main.css" />
+  </head>
+  <body class="theme-dark">
+    <div class="app">
+      <div class="user-menu" id="user-menu" aria-expanded="false">
+        <button class="user-menu__button" type="button" id="user-menu-button" aria-haspopup="true" aria-expanded="false">
+          <span class="user-menu__avatar" id="user-avatar" aria-hidden="true">U</span>
+          <span id="user-button-name">Usuário</span>
+        </button>
+        <div class="user-menu__dropdown" id="user-menu-dropdown" role="menu" aria-label="Menu do usuário">
+          <div class="user-menu__item"><span class="user-menu__label">Nome Completo:</span><span class="user-menu__value" id="um-nome">—</span></div>
+          <div class="user-menu__item"><span class="user-menu__label">Email:</span><span class="user-menu__value" id="um-email">—</span></div>
+          <div class="user-menu__item"><span class="user-menu__label">Perfil:</span><span class="user-menu__value" id="um-perfil">—</span></div>
+          <div class="user-menu__separator"></div>
+          <div class="user-menu__item"><span class="user-menu__label">Senha:</span><span class="user-menu__link" id="um-alterar-senha">Alterar senha</span></div>
+          <div class="user-menu__separator"></div>
+          <div class="user-menu__item"><span class="user-menu__link" id="um-sair">Sair</span></div>
+        </div>
+      </div>
+      <aside class="sidebar">
+        <div class="sidebar__header">
+          <div class="sidebar__brand">Projeto Coruja</div>
+          <!-- Botão dedicado para alternar entre tema claro e escuro -->
+          <button
+            class="theme-toggle"
+            type="button"
+            data-theme-toggle
+            aria-pressed="false"
+            aria-label="Alternar tema visual"
+          >
+            <span class="theme-toggle__icon" aria-hidden="true" data-theme-icon>🌙</span>
+            <span class="theme-toggle__label" data-theme-label>Modo escuro</span>
+          </button>
+        </div>
+        <nav class="sidebar__nav" aria-label="Menu principal">
+          <a class="sidebar__link" href="/home">Home</a>
+          <a class="sidebar__link" href="/usuarios">Usuários</a>
+          <details class="sidebar__section sidebar__section--active" open>
+            <summary class="sidebar__link sidebar__link--parent" aria-label="Abrir menu Cadastro">Cadastro</summary>
+            <div class="sidebar__subnav">
+              <a class="sidebar__link sidebar__link--child" href="/cadastro/pessoas">Pessoas</a>
+              <a class="sidebar__link sidebar__link--child" href="/cadastro/empresas">Empresas</a>
+              <a class="sidebar__link sidebar__link--child sidebar__link--active" href="/cadastro/entidades">Entidades</a>
+              <a class="sidebar__link sidebar__link--child" href="/cadastro/veiculos">Veículos</a>
+            </div>
+          </details>
+          <details class="sidebar__section">
+            <summary class="sidebar__link sidebar__link--parent" aria-label="Abrir menu Consulta">Consulta</summary>
+            <div class="sidebar__subnav">
+              <a class="sidebar__link sidebar__link--child" href="/consulta/pessoas">Pessoas</a>
+              <a class="sidebar__link sidebar__link--child" href="/consulta/empresas">Empresas</a>
+              <a class="sidebar__link sidebar__link--child" href="/consulta/veiculos">Veículos</a>
+            </div>
+          </details>
+        </nav>
+      </aside>
+
+      <main class="content" data-page="cadastro-entidades">
+        <header class="content__header">
+          <p class="content__eyebrow">Cadastro</p>
+          <h1 class="content__title">Entidades</h1>
+        </header>
+
+        <section class="panel" aria-label="Formulário de entidades">
+          <div class="panel__header panel__header--stacked"></div>
+          <div id="entidade-form-message" class="message" role="status" aria-live="polite"></div>
+          <form class="form" id="entidade-form" action="/api/entidades" method="post" enctype="multipart/form-data">
+            <div class="form__grid form__grid--2">
+              <label class="form__field">
+                <span class="form__label">Nome da Entidade *</span>
+                <input class="form__input" type="text" name="nome" id="entidade-nome" required />
+              </label>
+              <label class="form__field">
+                <span class="form__label">CNPJ</span>
+                <input class="form__input" type="text" name="cnpj" id="entidade-cnpj" inputmode="numeric" placeholder="00.000.000/0000-00" />
+              </label>
+            </div>
+
+            <div class="form__grid form__grid--1">
+              <label class="form__field">
+                <span class="form__label">Descrição</span>
+                <textarea class="form__input" name="descricao" id="entidade-descricao" rows="2" placeholder="Resumo da entidade"></textarea>
+              </label>
+            </div>
+
+            <div class="form__subsection">
+              <div class="form__section-header" style="display:flex; justify-content: space-between; align-items: center;">
+                <h3 class="form__section-title">Lideranças</h3>
+                <button class="button button--secondary" id="adicionar-lideranca" type="button">Adicionar liderança</button>
+              </div>
+              <div id="lista-liderancas" class="form__section-body"></div>
+            </div>
+
+            <div class="form__subsection">
+              <div class="form__section-header" style="display:flex; justify-content: space-between; align-items: center;">
+                <h3 class="form__section-title">Telefones</h3>
+                <button class="button button--secondary" id="adicionar-telefone" type="button">Adicionar telefone</button>
+              </div>
+              <div id="lista-telefones" class="form__section-body"></div>
+            </div>
+
+            <div class="form__subsection">
+              <div class="form__section-header" style="display:flex; justify-content: space-between; align-items: center;">
+                <h3 class="form__section-title">Endereços</h3>
+                <button class="button button--secondary" id="adicionar-endereco" type="button">Adicionar endereço</button>
+              </div>
+              <div id="lista-enderecos" class="form__section-body" style="display: flex; flex-direction: column; gap: 0.75rem;"></div>
+            </div>
+
+            <div class="form__subsection">
+              <div class="form__section-header" style="display:flex; justify-content: space-between; align-items: center;">
+                <h3 class="form__section-title">Fotos</h3>
+                <small style="color: var(--muted);">É possível enviar várias imagens por vez.</small>
+              </div>
+              <div class="form__grid form__grid--2">
+                <label class="form__field">
+                  <span class="form__label">Selecionar fotos</span>
+                  <input class="form__input" type="file" id="entidade-fotos" name="fotos" accept="image/*" multiple />
+                </label>
+                <div class="form__field">
+                  <span class="form__label">Fotos atuais</span>
+                  <div id="fotos-atuais" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.5rem;"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="form__actions">
+              <button class="button button--primary" id="submit-entidade" type="submit">Incluir</button>
+              <button class="button" id="listar-entidades" type="button">Listar</button>
+              <button class="button button--ghost" type="reset" id="limpar-form">Limpar</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="panel" aria-label="Listagem de entidades">
+          <div class="panel__header panel__header--stacked">
+            <h3 class="panel__title">Entidades cadastradas</h3>
+            <div class="panel__actions page-actions">
+              <input
+                type="text"
+                id="campo-consulta-entidades"
+                class="search-input"
+                placeholder="Buscar por nome, CNPJ ou telefone..."
+                aria-label="Campo de busca de entidades"
+              />
+            </div>
+          </div>
+          <div id="entidades-message" class="message" role="status" aria-live="polite"></div>
+          <div class="panel__body">
+            <div id="entidades-lista" class="list"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="/js/main.js"></script>
+    <script src="/js/cadastro-entidades.js"></script>
+  </body>
+</html>

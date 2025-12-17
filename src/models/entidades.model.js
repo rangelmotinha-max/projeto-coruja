@@ -1,0 +1,321 @@
+const fs = require('fs');
+const path = require('path');
+const { randomUUID } = require('crypto');
+const { initDatabase } = require('../database/sqlite');
+
+// Diretório público base utilizado para calcular caminhos relativos das fotos
+const publicDir = path.join(__dirname, '../../public');
+
+// Converte um caminho salvo no banco para URL acessível pelo servidor estático
+function gerarUrlPublica(caminhoRelativo) {
+  if (!caminhoRelativo) return null;
+  const normalizado = caminhoRelativo.replace(/\\/g, '/');
+  return `/${normalizado.replace(/^\//, '')}`;
+}
+
+// Remove arquivo físico, mas não interrompe o fluxo em caso de falha
+function removerArquivoFisico(caminhoRelativo) {
+  if (!caminhoRelativo) return;
+  const absoluto = path.join(publicDir, caminhoRelativo);
+  fs.promises.unlink(absoluto).catch(() => {});
+}
+
+class EntidadeModel {
+  // Mapeia metadados da foto incluindo URL pública
+  static mapearFoto(foto) {
+    if (!foto) return null;
+    return {
+      ...foto,
+      nomeArquivo: foto.nome_arquivo || foto.nomeArquivo,
+      mimeType: foto.mime_type || foto.mimeType,
+      url: gerarUrlPublica(foto.caminho),
+    };
+  }
+
+  // Cria entidade e relacionamentos dentro de uma transação para garantir consistência
+  static async create(dados) {
+    const db = await initDatabase();
+    const agora = new Date().toISOString();
+    const id = randomUUID();
+
+    await db.beginTransaction();
+    try {
+      await db.run(
+        `INSERT INTO entidades (id, nome, cnpj, liderancas_json, descricao, criadoEm, atualizadoEm)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          id,
+          dados.nome,
+          dados.cnpj || null,
+          dados.liderancas?.length ? JSON.stringify(dados.liderancas) : null,
+          dados.descricao || null,
+          agora,
+          agora,
+        ],
+      );
+
+      for (const numero of dados.telefones || []) {
+        const telefone = {
+          id: randomUUID(),
+          entidade_id: id,
+          numero,
+          criadoEm: agora,
+          atualizadoEm: agora,
+        };
+        await db.run(
+          `INSERT INTO entidades_telefones (id, entidade_id, numero, criadoEm, atualizadoEm)
+           VALUES (?, ?, ?, ?, ?)`,
+          [telefone.id, telefone.entidade_id, telefone.numero, telefone.criadoEm, telefone.atualizadoEm],
+        );
+      }
+
+      for (const end of dados.enderecos || []) {
+        const endereco = {
+          id: randomUUID(),
+          entidade_id: id,
+          logradouro: end.logradouro || null,
+          bairro: end.bairro || null,
+          cidade: end.cidade || null,
+          uf: end.uf || null,
+          cep: end.cep || null,
+          complemento: end.complemento || null,
+          criadoEm: agora,
+          atualizadoEm: agora,
+        };
+        await db.run(
+          `INSERT INTO entidades_enderecos (
+             id, entidade_id, logradouro, bairro, cidade, uf, cep, complemento, criadoEm, atualizadoEm
+           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            endereco.id,
+            endereco.entidade_id,
+            endereco.logradouro,
+            endereco.bairro,
+            endereco.cidade,
+            endereco.uf,
+            endereco.cep,
+            endereco.complemento,
+            endereco.criadoEm,
+            endereco.atualizadoEm,
+          ],
+        );
+      }
+
+      for (const foto of dados.fotos || []) {
+        await this.adicionarFoto(id, foto, db);
+      }
+
+      await db.commit();
+      return this.findById(id);
+    } catch (error) {
+      await db.rollback();
+      throw error;
+    }
+  }
+
+  // Consulta todas as entidades trazendo telefones, endereços e fotos
+  static async findAll() {
+    const db = await initDatabase();
+    const entidades = await db.all('SELECT * FROM entidades ORDER BY atualizadoEm DESC');
+
+    for (const ent of entidades) {
+      ent.liderancas = ent.liderancas_json ? JSON.parse(ent.liderancas_json) : [];
+      delete ent.liderancas_json;
+      ent.telefones = await db.all(
+        'SELECT id, numero FROM entidades_telefones WHERE entidade_id = ? ORDER BY criadoEm ASC',
+        [ent.id],
+      );
+      ent.enderecos = await db.all(
+        'SELECT id, logradouro, bairro, cidade, uf, cep, complemento FROM entidades_enderecos WHERE entidade_id = ? ORDER BY criadoEm ASC',
+        [ent.id],
+      );
+      const fotos = await db.all(
+        'SELECT id, nome_arquivo, caminho, mime_type, tamanho FROM entidades_fotos WHERE entidade_id = ? ORDER BY criadoEm ASC',
+        [ent.id],
+      );
+      ent.fotos = fotos.map((f) => this.mapearFoto(f));
+    }
+
+    return entidades;
+  }
+
+  // Busca detalhada pelo id
+  static async findById(id) {
+    const db = await initDatabase();
+    const ent = await db.get('SELECT * FROM entidades WHERE id = ?', [id]);
+    if (!ent) return null;
+
+    ent.liderancas = ent.liderancas_json ? JSON.parse(ent.liderancas_json) : [];
+    delete ent.liderancas_json;
+    ent.telefones = await db.all(
+      'SELECT id, numero FROM entidades_telefones WHERE entidade_id = ? ORDER BY criadoEm ASC',
+      [id],
+    );
+    ent.enderecos = await db.all(
+      'SELECT id, logradouro, bairro, cidade, uf, cep, complemento FROM entidades_enderecos WHERE entidade_id = ? ORDER BY criadoEm ASC',
+      [id],
+    );
+    const fotos = await db.all(
+      'SELECT id, nome_arquivo, caminho, mime_type, tamanho FROM entidades_fotos WHERE entidade_id = ? ORDER BY criadoEm ASC',
+      [id],
+    );
+    ent.fotos = fotos.map((f) => this.mapearFoto(f));
+    return ent;
+  }
+
+  // Atualiza dados principais e substitui coleções opcionais
+  static async update(id, updates) {
+    const db = await initDatabase();
+    const agora = new Date().toISOString();
+
+    await db.beginTransaction();
+    try {
+      const campos = [];
+      const valores = [];
+      const permitidas = ['nome', 'cnpj', 'descricao'];
+
+      permitidas.forEach((campo) => {
+        if (updates[campo] !== undefined) {
+          campos.push(`${campo} = ?`);
+          valores.push(updates[campo]);
+        }
+      });
+
+      if (updates.liderancas !== undefined) {
+        campos.push('liderancas_json = ?');
+        valores.push(updates.liderancas?.length ? JSON.stringify(updates.liderancas) : null);
+      }
+
+      campos.push('atualizadoEm = ?');
+      valores.push(agora, id);
+
+      if (campos.length) {
+        const resultado = await db.run(
+          `UPDATE entidades SET ${campos.join(', ')} WHERE id = ?`,
+          valores,
+        );
+        if (!resultado.changes) {
+          await db.rollback();
+          return null;
+        }
+      }
+
+      if (Array.isArray(updates.telefones)) {
+        await db.run('DELETE FROM entidades_telefones WHERE entidade_id = ?', [id]);
+        for (const numero of updates.telefones) {
+          await db.run(
+            `INSERT INTO entidades_telefones (id, entidade_id, numero, criadoEm, atualizadoEm)
+             VALUES (?, ?, ?, ?, ?)`,
+            [randomUUID(), id, numero, agora, agora],
+          );
+        }
+      }
+
+      if (Array.isArray(updates.enderecos)) {
+        await db.run('DELETE FROM entidades_enderecos WHERE entidade_id = ?', [id]);
+        for (const end of updates.enderecos) {
+          await db.run(
+            `INSERT INTO entidades_enderecos (
+               id, entidade_id, logradouro, bairro, cidade, uf, cep, complemento, criadoEm, atualizadoEm
+             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              randomUUID(),
+              id,
+              end.logradouro || null,
+              end.bairro || null,
+              end.cidade || null,
+              end.uf || null,
+              end.cep || null,
+              end.complemento || null,
+              agora,
+              agora,
+            ],
+          );
+        }
+      }
+
+      for (const fotoId of updates.fotosParaRemover || []) {
+        await this.removerFoto(fotoId, db);
+      }
+
+      for (const foto of updates.fotos || []) {
+        await this.adicionarFoto(id, foto, db);
+      }
+
+      await db.commit();
+      return this.findById(id);
+    } catch (error) {
+      await db.rollback();
+      throw error;
+    }
+  }
+
+  // Remove entidade e apaga arquivos associados
+  static async delete(id) {
+    const db = await initDatabase();
+    const fotos = await db.all('SELECT id FROM entidades_fotos WHERE entidade_id = ?', [id]);
+
+    await db.beginTransaction();
+    try {
+      for (const foto of fotos) {
+        await this.removerFoto(foto.id, db);
+      }
+      const resultado = await db.run('DELETE FROM entidades WHERE id = ?', [id]);
+      await db.commit();
+      return resultado.changes > 0;
+    } catch (error) {
+      await db.rollback();
+      throw error;
+    }
+  }
+
+  // Insere foto com metadados reutilizável em create/update
+  static async adicionarFoto(entidadeId, arquivo, dbArg) {
+    const db = dbArg || await initDatabase();
+    const agora = new Date().toISOString();
+    const caminhoRelativo = path.relative(publicDir, arquivo.caminho || arquivo.path || '');
+
+    const foto = {
+      id: randomUUID(),
+      entidade_id: entidadeId,
+      nome_arquivo: arquivo.nomeOriginal || arquivo.originalname || null,
+      caminho: caminhoRelativo,
+      mime_type: arquivo.mimeType || arquivo.mimetype || null,
+      tamanho: arquivo.tamanho || arquivo.size || null,
+      criadoEm: agora,
+      atualizadoEm: agora,
+    };
+
+    await db.run(
+      `INSERT INTO entidades_fotos (id, entidade_id, nome_arquivo, caminho, mime_type, tamanho, criadoEm, atualizadoEm)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        foto.id,
+        foto.entidade_id,
+        foto.nome_arquivo,
+        foto.caminho,
+        foto.mime_type,
+        foto.tamanho,
+        foto.criadoEm,
+        foto.atualizadoEm,
+      ],
+    );
+
+    return this.mapearFoto(foto);
+  }
+
+  // Exclui foto individual garantindo remoção física
+  static async removerFoto(fotoId, dbArg) {
+    const db = dbArg || await initDatabase();
+    const foto = await db.get('SELECT caminho FROM entidades_fotos WHERE id = ?', [fotoId]);
+    if (!foto) return false;
+
+    const resultado = await db.run('DELETE FROM entidades_fotos WHERE id = ?', [fotoId]);
+    if (resultado.changes > 0) {
+      removerArquivoFisico(foto.caminho);
+    }
+    return resultado.changes > 0;
+  }
+}
+
+module.exports = EntidadeModel;

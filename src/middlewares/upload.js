@@ -5,9 +5,11 @@ const multer = require('multer');
 // Diretórios de armazenamento para diferentes tipos de upload
 const uploadDirFotos = path.join(__dirname, '../../public/uploads/pessoas');
 const uploadDirDocumentos = path.join(__dirname, '../../public/uploads/ocorrencias');
+const uploadDirEntidades = path.join(__dirname, '../../public/uploads/entidades');
 // Garante que os diretórios existam antes de receber arquivos
 fs.mkdirSync(uploadDirFotos, { recursive: true });
 fs.mkdirSync(uploadDirDocumentos, { recursive: true });
+fs.mkdirSync(uploadDirEntidades, { recursive: true });
 
 // Configuração do multer com validações de tipo/tamanho no próprio middleware
 const storage = multer.diskStorage({
@@ -55,4 +57,27 @@ const uploadPessoaArquivos = multer({
   fileFilter,
 });
 
-module.exports = { uploadPessoaArquivos };
+// Armazenador específico para fotos de entidades, mantendo nomes únicos e previsíveis
+const storageEntidades = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, uploadDirEntidades),
+  filename: (_req, file, cb) => {
+    const extensao = path.extname(file.originalname) || '';
+    const nomeSeguro = `${Date.now()}-${Math.round(Math.random() * 1e9)}${extensao}`;
+    cb(null, nomeSeguro);
+  },
+});
+
+// Apenas imagens são aceitas para o cadastro de entidades
+const uploadEntidadeFotos = multer({
+  storage: storageEntidades,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const tiposImagem = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!tiposImagem.includes(file.mimetype)) {
+      return cb(new Error('Tipo de imagem não suportado. Envie PNG, JPG ou WEBP.'));
+    }
+    cb(null, true);
+  },
+});
+
+module.exports = { uploadPessoaArquivos, uploadEntidadeFotos };
