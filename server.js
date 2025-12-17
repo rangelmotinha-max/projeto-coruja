@@ -40,6 +40,11 @@ app.get('/cadastro/empresas', authMiddleware, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'cadastro', 'empresas.html'));
 });
 
+// Rota protegida garantindo acesso autenticado à página de Entidades
+app.get('/cadastro/entidades', authMiddleware, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'cadastro', 'entidades.html'));
+});
+
 // Rota protegida garantindo acesso autenticado à página de Veículos
 app.get('/cadastro/veiculos', authMiddleware, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'cadastro', 'veiculos.html'));

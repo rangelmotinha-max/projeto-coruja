@@ -1,0 +1,139 @@
+const EntidadeModel = require('../models/entidades.model');
+const { criarErro } = require('../utils/helpers');
+
+// Normaliza listas garantindo apenas valores preenchidos
+function limparLista(valorBruto) {
+  if (Array.isArray(valorBruto)) return valorBruto;
+  if (typeof valorBruto === 'string') {
+    return [valorBruto];
+  }
+  return [];
+}
+
+// Aplica trim em todos os campos de endereço para evitar sujeira no banco
+function normalizarEndereco(endereco) {
+  if (!endereco) return null;
+  const limpar = (v) => (v !== undefined ? String(v || '').trim() : undefined);
+  const normalizado = {
+    logradouro: limpar(endereco.logradouro) || null,
+    bairro: limpar(endereco.bairro) || null,
+    cidade: limpar(endereco.cidade) || null,
+    uf: limpar(endereco.uf) || null,
+    cep: limpar(endereco.cep)?.replace(/\D/g, '') || null,
+    complemento: limpar(endereco.complemento) || null,
+  };
+
+  const possuiDados = Object.values(normalizado).some((v) => v);
+  return possuiDados ? normalizado : null;
+}
+
+// Formata telefone retirando caracteres não numéricos
+function normalizarTelefone(valor) {
+  const digitos = String(valor || '').replace(/\D/g, '').slice(0, 20);
+  return digitos || null;
+}
+
+// Limpa e valida o payload recebido tanto para criação quanto atualização
+function sanitizarEntidade(payload, arquivos = []) {
+  const limparTexto = (v) => (v !== undefined ? String(v || '').trim() : undefined);
+  const nome = limparTexto(payload.nome);
+  if (payload.nome !== undefined && !nome) {
+    throw criarErro('Nome é obrigatório para o cadastro de entidades.', 400);
+  }
+
+  const cnpj = limparTexto(payload.cnpj)?.replace(/\D/g, '') || undefined;
+  const descricao = limparTexto(payload.descricao);
+
+  const liderancas = limparLista(payload.liderancas)
+    .map((l) => String(l || '').trim())
+    .filter(Boolean);
+
+  const telefones = limparLista(payload.telefones)
+    .map(normalizarTelefone)
+    .filter(Boolean);
+
+  const enderecosBrutos = Array.isArray(payload.enderecos) ? payload.enderecos : [];
+  const enderecos = enderecosBrutos
+    .map(normalizarEndereco)
+    .filter(Boolean);
+
+  const fotosParaRemover = Array.isArray(payload.fotosParaRemover)
+    ? payload.fotosParaRemover
+    : [];
+
+  const fotos = (arquivos || []).map((arquivo) => ({
+    caminho: arquivo.path,
+    nomeOriginal: arquivo.originalname,
+    mimeType: arquivo.mimetype,
+    tamanho: arquivo.size,
+  }));
+
+  return {
+    nome,
+    cnpj,
+    descricao,
+    liderancas,
+    telefones,
+    enderecos,
+    fotos,
+    fotosParaRemover,
+  };
+}
+
+// Aplica filtros simples em memória para facilitar a busca rápida
+function filtrarEntidades(lista, filtros = {}) {
+  const termo = (filtros.q || filtros.nome || '').toString().toLowerCase().trim();
+  const cnpjFiltro = (filtros.cnpj || '').toString().replace(/\D/g, '');
+  const telefoneFiltro = (filtros.telefone || '').toString().replace(/\D/g, '');
+
+  return lista.filter((entidade) => {
+    const nomeOk = termo ? entidade.nome.toLowerCase().includes(termo) : true;
+    const cnpjOk = cnpjFiltro
+      ? String(entidade.cnpj || '').replace(/\D/g, '').includes(cnpjFiltro)
+      : true;
+    const telefoneOk = telefoneFiltro
+      ? (entidade.telefones || []).some((t) => String(t.numero || '').includes(telefoneFiltro))
+      : true;
+    return nomeOk && cnpjOk && telefoneOk;
+  });
+}
+
+async function criar(payload, arquivos = []) {
+  const dados = sanitizarEntidade(payload, arquivos);
+  if (!dados.nome) throw criarErro('Nome é obrigatório para o cadastro de entidades.', 400);
+  return EntidadeModel.create(dados);
+}
+
+async function listar(filtros = {}) {
+  const entidades = await EntidadeModel.findAll();
+  return filtrarEntidades(entidades, filtros);
+}
+
+async function buscarPorId(id) {
+  const entidade = await EntidadeModel.findById(id);
+  if (!entidade) throw criarErro('Entidade não encontrada', 404);
+  return entidade;
+}
+
+async function atualizar(id, payload, arquivos = []) {
+  const existente = await EntidadeModel.findById(id);
+  if (!existente) throw criarErro('Entidade não encontrada', 404);
+
+  const dados = sanitizarEntidade(payload, arquivos);
+  return EntidadeModel.update(id, dados);
+}
+
+async function remover(id) {
+  const existente = await EntidadeModel.findById(id);
+  if (!existente) throw criarErro('Entidade não encontrada', 404);
+  await EntidadeModel.delete(id);
+  return true;
+}
+
+module.exports = {
+  criar,
+  listar,
+  buscarPorId,
+  atualizar,
+  remover,
+};
