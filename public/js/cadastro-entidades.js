@@ -16,6 +16,7 @@
   const enderecosContainer = document.getElementById('lista-enderecos');
   const fotosAtuaisContainer = document.getElementById('fotos-atuais');
   const fotosInput = document.getElementById('entidade-fotos');
+  const abrirSeletorFotosBtn = document.getElementById('abrir-seletor-fotos');
 
   // Estado local em memória para simplificar renderizações
   const estado = {
@@ -105,25 +106,45 @@
 
   const renderizarTelefones = () => {
     telefonesContainer.innerHTML = '';
-    estado.telefones.forEach((numero, index) => {
-      const linha = document.createElement('div');
-      linha.className = 'form__grid form__grid--2';
-      linha.innerHTML = `
-        <label class="form__field" style="margin:0;">
-          <span class="form__label">Telefone</span>
-          <input class="form__input" type="tel" value="${aplicarMascaraTelefone(numero)}" data-telefone-index="${index}" />
-        </label>
-        <div class="form__actions" style="margin:0; justify-content:flex-end;">
-          <button class="button button--ghost" type="button" data-remover-telefone="${index}">Remover</button>
-        </div>
-      `;
-      const input = linha.querySelector('input');
-      input.addEventListener('input', (e) => {
-        const mascara = aplicarMascaraTelefone(e.target.value);
-        e.target.value = mascara;
-        estado.telefones[index] = mascara;
+
+    if (estado.telefones.length === 0) {
+      telefonesContainer.innerHTML = '<p style="color: var(--muted); font-size: 0.85rem; margin: 0;">Nenhum telefone adicionado. Clique para adicionar.</p>';
+      return;
+    }
+
+    estado.telefones.forEach((telefone, indice) => {
+      const divTelefone = document.createElement('div');
+      divTelefone.style.display = 'flex';
+      divTelefone.style.gap = '0.5rem';
+      divTelefone.style.alignItems = 'center';
+
+      const inputTelefone = document.createElement('input');
+      inputTelefone.type = 'tel';
+      inputTelefone.className = 'form__input';
+      inputTelefone.inputMode = 'tel';
+      inputTelefone.value = telefone || '';
+      inputTelefone.placeholder = '(XX) XXXXX-XXXX';
+      inputTelefone.addEventListener('input', (e) => {
+        estado.telefones[indice] = e.target.value;
       });
-      telefonesContainer.appendChild(linha);
+      divTelefone.appendChild(inputTelefone);
+
+      const btnRemover = document.createElement('button');
+      btnRemover.type = 'button';
+      btnRemover.className = 'button button--danger';
+      btnRemover.textContent = '−';
+      btnRemover.setAttribute('aria-label', 'Remover telefone');
+      btnRemover.title = 'Excluir';
+      btnRemover.style.padding = '0.25rem 0.5rem';
+      btnRemover.style.fontSize = '0.75rem';
+      btnRemover.style.minWidth = 'fit-content';
+      btnRemover.addEventListener('click', () => {
+        estado.telefones.splice(indice, 1);
+        renderizarTelefones();
+      });
+      divTelefone.appendChild(btnRemover);
+
+      telefonesContainer.appendChild(divTelefone);
     });
   };
 
@@ -232,7 +253,7 @@
     enderecosContainer.innerHTML = '';
 
     if (estado.enderecos.length === 0) {
-      enderecosContainer.innerHTML = '<p style="color: var(--muted); margin: 1rem 0;">Nenhum endereço adicionado. Clique no botão para adicionar um.</p>';
+      enderecosContainer.innerHTML = '<p style="color: var(--muted); margin: 1rem 0;">Nenhum endereço adicionado. Clique no botão para adicionar</p>';
       return;
     }
 
@@ -428,6 +449,10 @@
   // Fotos atuais com opção de remoção
   const renderizarFotosAtuais = () => {
     fotosAtuaisContainer.innerHTML = '';
+    if (!estado.fotosAtuais.length) {
+      fotosAtuaisContainer.innerHTML = '<p style="color: var(--muted); margin: 0.5rem 0;">Nenhuma foto adicionada. Clique no botão para adicionar</p>';
+      return;
+    }
     estado.fotosAtuais.forEach((foto) => {
       const card = document.createElement('div');
       card.className = 'card card--subtle';
@@ -494,6 +519,11 @@
       estado.fotosAtuais = estado.fotosAtuais.filter((f) => f.id !== fotoId);
       renderizarFotosAtuais();
     }
+  });
+
+  // Botão customizado para abrir o seletor de arquivos (remove texto nativo "Nenhum arquivo escolhido")
+  abrirSeletorFotosBtn?.addEventListener('click', () => {
+    fotosInput?.click();
   });
 
   // Limita CNPJ a no máximo 14 dígitos e aplica máscara durante a digitação

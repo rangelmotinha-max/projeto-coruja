@@ -92,7 +92,7 @@
             <div class="form__subsection">
               <div class="form__section-header" style="display:flex; justify-content: space-between; align-items: center;">
                 <h3 class="form__section-title">Lideranças</h3>
-                <button class="button button--secondary" id="adicionar-lideranca" type="button">Adicionar liderança</button>
+                <button class="button button--secondary" id="adicionar-lideranca" type="button">+</button>
               </div>
               <div id="lista-liderancas" class="form__section-body"></div>
             </div>
@@ -100,7 +100,7 @@
             <div class="form__subsection">
               <div class="form__section-header" style="display:flex; justify-content: space-between; align-items: center;">
                 <h3 class="form__section-title">Telefones</h3>
-                <button class="button button--secondary" id="adicionar-telefone" type="button">Adicionar telefone</button>
+                <button class="button button--secondary" id="adicionar-telefone" type="button">+</button>
               </div>
               <div id="lista-telefones" class="form__section-body"></div>
             </div>
@@ -108,7 +108,7 @@
             <div class="form__subsection">
               <div class="form__section-header" style="display:flex; justify-content: space-between; align-items: center;">
                 <h3 class="form__section-title">Endereços</h3>
-                <button class="button button--secondary" id="adicionar-endereco" type="button">Adicionar endereço</button>
+                <button class="button button--secondary" id="adicionar-endereco" type="button">+</button>
               </div>
               <div id="lista-enderecos" class="form__section-body" style="display: flex; flex-direction: column; gap: 0.75rem;"></div>
             </div>
@@ -116,15 +116,14 @@
             <div class="form__subsection">
               <div class="form__section-header" style="display:flex; justify-content: space-between; align-items: center;">
                 <h3 class="form__section-title">Fotos</h3>
-                <small style="color: var(--muted);">É possível enviar várias imagens por vez.</small>
+                
               </div>
               <div class="form__grid form__grid--2">
                 <label class="form__field">
-                  <span class="form__label">Selecionar fotos</span>
-                  <input class="form__input" type="file" id="entidade-fotos" name="fotos" accept="image/*" multiple />
+                  <input class="form__input" type="file" id="entidade-fotos" name="fotos" accept="image/*" multiple style="display:none;" />
+                  <button class="button button--secondary" type="button" id="abrir-seletor-fotos">+</button>
                 </label>
                 <div class="form__field">
-                  <span class="form__label">Fotos atuais</span>
                   <div id="fotos-atuais" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.5rem;"></div>
                 </div>
               </div>
