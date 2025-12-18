@@ -25,6 +25,7 @@
     liderancas: [],
     telefones: [],
     enderecos: [],
+    indicadorEnderecoAtual: null,
     fotosAtuais: [],
     fotosParaRemover: [],
   };
@@ -126,62 +127,301 @@
     });
   };
 
-  const renderizarEnderecos = () => {
-    enderecosContainer.innerHTML = '';
-    estado.enderecos.forEach((endereco, index) => {
-      const bloco = document.createElement('div');
-      bloco.className = 'form__grid form__grid--2';
-      bloco.style.gap = '0.5rem';
-      bloco.innerHTML = `
-        <label class="form__field" style="margin:0;">
-          <span class="form__label">Logradouro</span>
-          <input class="form__input" type="text" data-endereco-logradouro="${index}" value="${endereco.logradouro || ''}" />
-        </label>
-        <label class="form__field" style="margin:0;">
-          <span class="form__label">Bairro</span>
-          <input class="form__input" type="text" data-endereco-bairro="${index}" value="${endereco.bairro || ''}" />
-        </label>
-        <label class="form__field" style="margin:0;">
-          <span class="form__label">Cidade</span>
-          <input class="form__input" type="text" data-endereco-cidade="${index}" value="${endereco.cidade || ''}" />
-        </label>
-        <label class="form__field" style="margin:0;">
-          <span class="form__label">UF</span>
-          <input class="form__input" type="text" maxlength="2" data-endereco-uf="${index}" value="${(endereco.uf || '').toUpperCase()}" />
-        </label>
-        <label class="form__field" style="margin:0;">
-          <span class="form__label">CEP</span>
-          <input class="form__input" type="text" data-endereco-cep="${index}" value="${aplicarMascaraCep(endereco.cep)}" />
-        </label>
-        <label class="form__field" style="margin:0;">
-          <span class="form__label">Complemento</span>
-          <input class="form__input" type="text" data-endereco-complemento="${index}" value="${endereco.complemento || ''}" />
-        </label>
-        <div class="form__actions" style="grid-column: 1 / -1; justify-content:flex-end;">
-          <button class="button button--ghost" type="button" data-remover-endereco="${index}">Remover endereço</button>
+  // ===== Endereços (mesmos campos e lógica da página Pessoas) =====
+  const createEstadosSelect = () => {
+    return `<option value="">Selecione</option>
+                    <option value="AC">Acre (AC)</option>
+                    <option value="AL">Alagoas (AL)</option>
+                    <option value="AP">Amapá (AP)</option>
+                    <option value="AM">Amazonas (AM)</option>
+                    <option value="BA">Bahia (BA)</option>
+                    <option value="CE">Ceará (CE)</option>
+                    <option value="DF">Distrito Federal (DF)</option>
+                    <option value="ES">Espírito Santo (ES)</option>
+                    <option value="GO">Goiás (GO)</option>
+                    <option value="MA">Maranhão (MA)</option>
+                    <option value="MT">Mato Grosso (MT)</option>
+                    <option value="MS">Mato Grosso do Sul (MS)</option>
+                    <option value="MG">Minas Gerais (MG)</option>
+                    <option value="PA">Pará (PA)</option>
+                    <option value="PB">Paraíba (PB)</option>
+                    <option value="PR">Paraná (PR)</option>
+                    <option value="PE">Pernambuco (PE)</option>
+                    <option value="PI">Piauí (PI)</option>
+                    <option value="RJ">Rio de Janeiro (RJ)</option>
+                    <option value="RN">Rio Grande do Norte (RN)</option>
+                    <option value="RS">Rio Grande do Sul (RS)</option>
+                    <option value="RO">Rondônia (RO)</option>
+                    <option value="RR">Roraima (RR)</option>
+                    <option value="SC">Santa Catarina (SC)</option>
+                    <option value="SP">São Paulo (SP)</option>
+                    <option value="SE">Sergipe (SE)</option>
+                    <option value="TO">Tocantins (TO)</option>`;
+  };
+
+  const gerarLinkMapaLatLong = (valorLatLong) => {
+    const texto = String(valorLatLong || '').trim();
+    const coordenadas = texto.match(/(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/);
+    if (!coordenadas) return '';
+    return `https://www.google.com/maps?q=${coordenadas[1]},${coordenadas[2]}`;
+  };
+
+  const gerarLinkMapaEndereco = (endereco) => {
+    if (!endereco) return '';
+    const partes = [endereco.logradouro, endereco.bairro, endereco.complemento, endereco.uf, endereco.cep]
+      .filter(Boolean).map(String);
+    if (!partes.length) return '';
+    const query = encodeURIComponent(partes.join(', '));
+    return `https://www.google.com/maps?q=${query}`;
+  };
+
+  const mostrarCarregamentoCep = (index, mostrando) => {
+    const statusEl = document.querySelector(`.cep-status-${index}`);
+    if (!statusEl) return;
+    if (mostrando) {
+      statusEl.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--primary);">
+          <div class="spinner" style="width: 16px; height: 16px; border: 2px solid var(--primary); border-top: 2px solid transparent; border-radius: 50%; animation: spin 0.6s linear infinite;"></div>
+          <span>Carregando endereço...</span>
         </div>
       `;
-      bloco.querySelectorAll('input').forEach((input) => {
-        input.addEventListener('input', (e) => {
-          const idx = Number(e.target.getAttribute('data-endereco-logradouro')
-            || e.target.getAttribute('data-endereco-bairro')
-            || e.target.getAttribute('data-endereco-cidade')
-            || e.target.getAttribute('data-endereco-uf')
-            || e.target.getAttribute('data-endereco-cep')
-            || e.target.getAttribute('data-endereco-complemento'));
+      statusEl.style.display = 'block';
+    } else {
+      statusEl.style.display = 'none';
+    }
+  };
 
-          const atual = estado.enderecos[idx] || {};
-          if (e.target.hasAttribute('data-endereco-logradouro')) atual.logradouro = e.target.value;
-          if (e.target.hasAttribute('data-endereco-bairro')) atual.bairro = e.target.value;
-          if (e.target.hasAttribute('data-endereco-cidade')) atual.cidade = e.target.value;
-          if (e.target.hasAttribute('data-endereco-uf')) atual.uf = e.target.value.toUpperCase();
-          if (e.target.hasAttribute('data-endereco-cep')) atual.cep = aplicarMascaraCep(e.target.value);
-          if (e.target.hasAttribute('data-endereco-complemento')) atual.complemento = e.target.value;
-          estado.enderecos[idx] = atual;
-          if (e.target.hasAttribute('data-endereco-cep')) e.target.value = atual.cep || '';
-        });
+  const exibirStatusCep = (index, mensagem, tipo) => {
+    const statusEl = document.querySelector(`.cep-status-${index}`);
+    if (!statusEl) return;
+    const cores = { success: 'var(--success-text)', error: 'var(--error-text)' };
+    statusEl.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 0.5rem; color: ${cores[tipo] || 'var(--text)'};">
+        <span>${tipo === 'success' ? '✓' : '✕'}</span>
+        <span>${mensagem}</span>
+      </div>
+    `;
+    statusEl.style.display = 'block';
+    setTimeout(() => { if (statusEl.style.display !== 'none') statusEl.style.display = 'none'; }, 3000);
+  };
+
+  const buscarEnderecoPorCepMultiplo = async (cep, index) => {
+    const somenteNumeros = String(cep || '').replace(/\D/g, '');
+    if (somenteNumeros.length !== 8) { mostrarCarregamentoCep(index, false); return; }
+    try {
+      const response = await fetch(`https://viacep.com.br/ws/${somenteNumeros}/json/`);
+      const data = await response.json();
+      if (data.erro) {
+        exibirStatusCep(index, 'CEP não encontrado', 'error');
+      } else {
+        estado.enderecos[index].uf = data.uf || '';
+        estado.enderecos[index].logradouro = data.logradouro || '';
+        estado.enderecos[index].bairro = `${data.bairro || ''} ${data.localidade || ''}`.trim();
+        estado.enderecos[index].cep = somenteNumeros;
+        renderizarEnderecos();
+        exibirStatusCep(index, 'Endereço carregado com sucesso', 'success');
+      }
+    } catch (error) {
+      exibirStatusCep(index, 'Erro ao buscar CEP', 'error');
+    } finally {
+      mostrarCarregamentoCep(index, false);
+    }
+  };
+
+  const renderizarEnderecos = () => {
+    enderecosContainer.innerHTML = '';
+
+    if (estado.enderecos.length === 0) {
+      enderecosContainer.innerHTML = '<p style="color: var(--muted); margin: 1rem 0;">Nenhum endereço adicionado. Clique no botão para adicionar um.</p>';
+      return;
+    }
+
+    const ordemEnderecos = estado.indicadorEnderecoAtual === null
+      ? estado.enderecos.map((_, indice) => indice)
+      : [estado.indicadorEnderecoAtual, ...estado.enderecos.map((_, i) => i).filter((i) => i !== estado.indicadorEnderecoAtual)];
+
+    ordemEnderecos.forEach((indiceOrdenado, posicao) => {
+      const endereco = estado.enderecos[indiceOrdenado];
+      const div = document.createElement('div');
+      div.className = 'endereco-item';
+      div.style.cssText = 'border: 1px solid var(--border); border-radius: 0.5rem; padding: 1.5rem; margin-bottom: 1rem; background: var(--surface-muted);';
+
+      const headerDiv = document.createElement('div');
+      headerDiv.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;';
+      const titleSpan = document.createElement('span');
+      titleSpan.style.cssText = 'font-weight: 600; color: var(--text);';
+      titleSpan.textContent = `Endereço ${posicao + 1}${estado.indicadorEnderecoAtual === indiceOrdenado ? ' (Atual)' : ''}`;
+      const actionsDiv = document.createElement('div');
+      actionsDiv.style.cssText = 'display: flex; gap: 0.5rem;';
+      if (estado.enderecos.length > 1 && estado.indicadorEnderecoAtual !== indiceOrdenado) {
+        const setarAtualBtn = document.createElement('button');
+        setarAtualBtn.type = 'button';
+        setarAtualBtn.className = 'button button--secondary';
+        setarAtualBtn.textContent = 'Definir como Atual';
+        setarAtualBtn.addEventListener('click', () => { estado.indicadorEnderecoAtual = indiceOrdenado; renderizarEnderecos(); });
+        actionsDiv.appendChild(setarAtualBtn);
+      }
+      const removerBtn = document.createElement('button');
+      removerBtn.type = 'button';
+      removerBtn.className = 'button button--danger';
+      removerBtn.textContent = '−';
+      removerBtn.setAttribute('aria-label', 'Remover endereço');
+      removerBtn.title = 'Excluir';
+      removerBtn.style.cssText = 'padding: 0.25rem 0.5rem; font-size: 0.75rem; min-width: fit-content;';
+      removerBtn.addEventListener('click', () => {
+        estado.enderecos.splice(indiceOrdenado, 1);
+        if (estado.indicadorEnderecoAtual === indiceOrdenado) {
+          estado.indicadorEnderecoAtual = estado.enderecos.length > 0 ? 0 : null;
+        } else if (estado.indicadorEnderecoAtual > indiceOrdenado) {
+          estado.indicadorEnderecoAtual--;
+        }
+        renderizarEnderecos();
       });
-      enderecosContainer.appendChild(bloco);
+      actionsDiv.appendChild(removerBtn);
+      headerDiv.appendChild(titleSpan);
+      headerDiv.appendChild(actionsDiv);
+      div.appendChild(headerDiv);
+
+      const gridDiv = document.createElement('div');
+      gridDiv.className = 'form__grid form__grid--4';
+      gridDiv.innerHTML = `
+        <label class="form__field">
+          <span class="form__label">UF</span>
+          <select class="form__input endereco-uf" data-index="${indiceOrdenado}">${createEstadosSelect()}</select>
+        </label>
+        <label class="form__field form__field--wide" style="position: relative;">
+          <span class="form__label">Logradouro/Nome</span>
+          <input class="form__input endereco-logradouro" type="text" data-index="${indiceOrdenado}" />
+        </label>
+        <label class="form__field">
+          <span class="form__label">Bairro/Cidade</span>
+          <input class="form__input endereco-bairro" type="text" data-index="${indiceOrdenado}" />
+        </label>
+        <label class="form__field">
+          <span class="form__label">CEP</span>
+          <input class="form__input endereco-cep" type="text" inputmode="numeric" data-index="${indiceOrdenado}" />
+        </label>
+        <label class="form__field">
+          <span class="form__label">Complemento</span>
+          <input class="form__input endereco-complemento" type="text" data-index="${indiceOrdenado}" />
+        </label>
+        <label class="form__field form__field--wide" style="position: relative;">
+          <span class="form__label">Lat/Long</span>
+          <input class="form__input endereco-latlong" type="text" data-index="${indiceOrdenado}" placeholder="-23.5, -46.6" />
+        </label>`;
+
+      gridDiv.querySelector('.endereco-uf').value = endereco.uf || '';
+      gridDiv.querySelector('.endereco-logradouro').value = endereco.logradouro || '';
+      gridDiv.querySelector('.endereco-bairro').value = endereco.bairro || '';
+      gridDiv.querySelector('.endereco-cep').value = endereco.cep || '';
+      gridDiv.querySelector('.endereco-complemento').value = endereco.complemento || '';
+      gridDiv.querySelector('.endereco-latlong').value = endereco.latLong || '';
+
+      gridDiv.querySelector('.endereco-uf').addEventListener('change', (e) => { estado.enderecos[indiceOrdenado].uf = e.target.value; });
+      gridDiv.querySelector('.endereco-logradouro').addEventListener('input', (e) => { estado.enderecos[indiceOrdenado].logradouro = e.target.value; });
+      gridDiv.querySelector('.endereco-bairro').addEventListener('input', (e) => { estado.enderecos[indiceOrdenado].bairro = e.target.value; });
+      gridDiv.querySelector('.endereco-complemento').addEventListener('input', (e) => { estado.enderecos[indiceOrdenado].complemento = e.target.value; });
+
+      // Link inline para Logradouro
+      const logradouroCampo = gridDiv.querySelector('.endereco-logradouro');
+      const logradouroField = logradouroCampo.closest('.form__field');
+      const logradouroAnchor = document.createElement('a');
+      logradouroAnchor.className = 'endereco-inline-link';
+      logradouroAnchor.style.cssText = 'position:absolute; inset: calc(1.6rem + 2px) 2px 2px 2px; display:none; align-items:center; padding: 0.5rem 0.75rem; border-radius: 0.4rem; text-decoration: underline; color: var(--primary); background: transparent; z-index: 2; pointer-events: auto;';
+      logradouroAnchor.target = '_blank';
+      logradouroAnchor.rel = 'noopener noreferrer';
+      logradouroField?.appendChild(logradouroAnchor);
+      const atualizarLinkEnderecoTexto = () => {
+        if (!estado.enderecos[indiceOrdenado]?.mostrarLinkEndereco) {
+          logradouroAnchor.style.display = 'none';
+          logradouroCampo.style.color = '';
+          logradouroCampo.style.textShadow = '';
+          logradouroCampo.style.caretColor = '';
+          logradouroCampo.style.pointerEvents = '';
+          return;
+        }
+        const url = gerarLinkMapaEndereco(estado.enderecos[indiceOrdenado]);
+        const texto = String(estado.enderecos[indiceOrdenado]?.logradouro || '').trim();
+        if (url && texto) {
+          logradouroAnchor.href = url;
+          logradouroAnchor.textContent = texto;
+          logradouroAnchor.title = 'Abrir endereço no Google Maps';
+          logradouroAnchor.style.display = 'flex';
+          logradouroCampo.style.color = 'transparent';
+          logradouroCampo.style.textShadow = '0 0 0 var(--text)';
+          logradouroCampo.style.caretColor = 'var(--text)';
+          logradouroCampo.style.pointerEvents = 'none';
+        } else {
+          logradouroAnchor.style.display = 'none';
+          logradouroCampo.style.color = '';
+          logradouroCampo.style.textShadow = '';
+          logradouroCampo.style.caretColor = '';
+          logradouroCampo.style.pointerEvents = '';
+        }
+      };
+      atualizarLinkEnderecoTexto();
+      logradouroCampo.addEventListener('input', () => { estado.enderecos[indiceOrdenado].mostrarLinkEndereco = false; atualizarLinkEnderecoTexto(); });
+
+      // Link/editar para Lat/Long
+      const latLongCampo = gridDiv.querySelector('.endereco-latlong');
+      const latLongField = latLongCampo.closest('.form__field');
+      const latLongAnchor = document.createElement('a');
+      latLongAnchor.className = 'latlong-inline-link';
+      latLongAnchor.style.cssText = 'display:none; margin-top: 0.35rem; text-decoration: underline; color: var(--primary);';
+      latLongAnchor.target = '_blank';
+      latLongAnchor.rel = 'noopener noreferrer';
+      const latLongEditBtn = document.createElement('button');
+      latLongEditBtn.type = 'button';
+      latLongEditBtn.className = 'button button--secondary';
+      latLongEditBtn.textContent = 'Editar';
+      latLongEditBtn.title = 'Editar Lat/Long';
+      latLongEditBtn.style.cssText = 'display:none; margin-top: 0.35rem; padding: 0.25rem 0.5rem; font-size: 0.75rem;';
+      const latLongActionsWrap = document.createElement('div');
+      latLongActionsWrap.style.cssText = 'display:flex; gap:0.5rem; align-items:center;';
+      latLongActionsWrap.appendChild(latLongAnchor);
+      latLongActionsWrap.appendChild(latLongEditBtn);
+      latLongField?.appendChild(latLongActionsWrap);
+      const atualizarLinkLatLong = (valor) => {
+        const texto = String(valor || '').trim();
+        const url = gerarLinkMapaLatLong(texto);
+        const podeMostrar = Boolean(estado.enderecos[indiceOrdenado]?.mostrarLinkLatLong);
+        if (url && texto && podeMostrar) {
+          latLongAnchor.href = url;
+          latLongAnchor.textContent = texto;
+          latLongAnchor.title = 'Abrir no Google Maps';
+          latLongAnchor.style.display = 'inline';
+          latLongEditBtn.style.display = 'inline';
+          latLongCampo.style.display = 'none';
+        } else {
+          latLongAnchor.style.display = 'none';
+          latLongEditBtn.style.display = 'none';
+          latLongCampo.style.display = '';
+        }
+      };
+      atualizarLinkLatLong(latLongCampo.value);
+      latLongCampo.addEventListener('input', (e) => {
+        estado.enderecos[indiceOrdenado].latLong = e.target.value;
+        estado.enderecos[indiceOrdenado].mostrarLinkLatLong = false;
+        atualizarLinkLatLong(e.target.value);
+      });
+      latLongEditBtn.addEventListener('click', () => {
+        estado.enderecos[indiceOrdenado].mostrarLinkLatLong = false;
+        atualizarLinkLatLong(latLongCampo.value);
+        latLongCampo.focus();
+      });
+
+      const cepInput = gridDiv.querySelector('.endereco-cep');
+      cepInput.addEventListener('input', (e) => { e.target.value = aplicarMascaraCep(e.target.value); });
+      cepInput.addEventListener('blur', (e) => {
+        if (e.target.value?.trim()) { mostrarCarregamentoCep(indiceOrdenado, true); buscarEnderecoPorCepMultiplo(e.target.value, indiceOrdenado); }
+      });
+
+      div.appendChild(gridDiv);
+      const statusDiv = document.createElement('div');
+      statusDiv.className = `cep-status-${indiceOrdenado}`;
+      statusDiv.style.cssText = 'margin-top: 0.75rem; font-size: 0.85rem; display: none;';
+      div.appendChild(statusDiv);
+      enderecosContainer.appendChild(div);
     });
   };
 
@@ -215,7 +455,10 @@
   });
 
   document.getElementById('adicionar-endereco')?.addEventListener('click', () => {
-    estado.enderecos.push({});
+    estado.enderecos.push({ uf: '', logradouro: '', bairro: '', cep: '', complemento: '', latLong: '' });
+    if (estado.indicadorEnderecoAtual === null && estado.enderecos.length === 1) {
+      estado.indicadorEnderecoAtual = 0;
+    }
     renderizarEnderecos();
   });
 
@@ -274,6 +517,7 @@
     dados.append('liderancas', JSON.stringify(estado.liderancas.map((l) => (l || '').trim()).filter(Boolean)));
     dados.append('telefones', JSON.stringify(estado.telefones.map((t) => t || '').filter(Boolean)));
     dados.append('enderecos', JSON.stringify(estado.enderecos));
+    dados.append('endereco_atual_index', estado.indicadorEnderecoAtual === null ? '' : String(estado.indicadorEnderecoAtual));
     dados.append('fotosParaRemover', JSON.stringify(estado.fotosParaRemover));
 
     const arquivos = fotosInput?.files ? Array.from(fotosInput.files) : [];
@@ -287,6 +531,7 @@
     estado.liderancas = [];
     estado.telefones = [];
     estado.enderecos = [];
+    estado.indicadorEnderecoAtual = null;
     estado.fotosAtuais = [];
     estado.fotosParaRemover = [];
     submitBtn.textContent = 'Incluir';
@@ -424,7 +669,17 @@
     estado.emEdicao = entidade.id;
     estado.liderancas = [...(entidade.liderancas || [])];
     estado.telefones = (entidade.telefones || []).map((t) => t.numero || t);
-    estado.enderecos = (entidade.enderecos || []).map((e) => ({ ...e }));
+    estado.enderecos = (entidade.enderecos || []).map((e) => ({
+      uf: e.uf || '',
+      logradouro: e.logradouro || '',
+      bairro: `${e.bairro || ''} ${e.cidade || ''}`.trim(),
+      cep: aplicarMascaraCep(e.cep || ''),
+      complemento: e.complemento || '',
+      latLong: e.latLong || '',
+      mostrarLinkEndereco: true,
+      mostrarLinkLatLong: true,
+    }));
+    estado.indicadorEnderecoAtual = estado.enderecos.length ? 0 : null;
     estado.fotosAtuais = [...(entidade.fotos || [])];
     estado.fotosParaRemover = [];
 
