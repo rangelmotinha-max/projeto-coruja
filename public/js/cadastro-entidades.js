@@ -312,48 +312,77 @@
     }
   });
 
-  // Renderiza cartões da lista com filtros em memória
+  // Renderiza tabela com Nome, Liderança, CNPJ, limitando aos 10 últimos
   const renderizarLista = () => {
     listaEl.innerHTML = '';
-    const termo = estado.filtro.toLowerCase();
+    const termo = (estado.filtro || '').toLowerCase();
     const filtradas = estado.entidades.filter((ent) => {
-      const nomeOk = ent.nome.toLowerCase().includes(termo);
-      const cnpjOk = aplicarMascaraCnpj(ent.cnpj).toLowerCase().includes(termo);
-      const telefoneOk = (ent.telefones || []).some((t) => aplicarMascaraTelefone(t.numero || t).toLowerCase().includes(termo));
-      return nomeOk || cnpjOk || telefoneOk;
+      const nomeOk = String(ent.nome || '').toLowerCase().includes(termo);
+      const cnpjOk = String(aplicarMascaraCnpj(ent.cnpj || '')).toLowerCase().includes(termo);
+      const telefoneOk = (ent.telefones || []).some((t) => String(aplicarMascaraTelefone(t.numero || t || '')).toLowerCase().includes(termo));
+      return !termo || nomeOk || cnpjOk || telefoneOk;
     });
 
-    if (!filtradas.length) {
+    const ultimos = filtradas.slice(0, 10);
+
+    if (!ultimos.length) {
       listaEl.innerHTML = '<p class="muted">Nenhuma entidade encontrada.</p>';
       return;
     }
 
-    filtradas.forEach((ent) => {
-      const card = document.createElement('div');
-      card.className = 'list__item';
-      card.innerHTML = `
-        <div class="list__content">
-          <div class="list__title-row">
-            <div>
-              <p class="list__eyebrow">${ent.cnpj ? aplicarMascaraCnpj(ent.cnpj) : 'Sem CNPJ'}</p>
-              <h4 class="list__title">${ent.nome}</h4>
-            </div>
-            <div class="list__actions">
-              <button class="button button--secondary" data-editar="${ent.id}">Editar</button>
-              <button class="button button--ghost" data-excluir="${ent.id}">Excluir</button>
-            </div>
-          </div>
-          <p class="list__description">${ent.descricao || 'Sem descrição cadastrada.'}</p>
-          <div class="list__meta">
-            <span><strong>Lideranças:</strong> ${(ent.liderancas || []).join(', ') || '—'}</span>
-            <span><strong>Telefones:</strong> ${(ent.telefones || []).map((t) => aplicarMascaraTelefone(t.numero || t)).join(', ') || '—'}</span>
-            <span><strong>Endereços:</strong> ${(ent.enderecos || []).map((e) => e.logradouro || e.bairro || e.cidade).filter(Boolean).join(' | ') || '—'}</span>
-            <span><strong>Fotos:</strong> ${(ent.fotos || []).length}</span>
-          </div>
-        </div>
-      `;
-      listaEl.appendChild(card);
+    const table = document.createElement('table');
+    table.style.width = '100%';
+    table.style.borderCollapse = 'collapse';
+    table.innerHTML = `
+      <thead>
+        <tr style="background: var(--surface-muted);">
+          <th style="text-align:left; padding:0.5rem; border: 1px solid var(--border);">Nome</th>
+          <th style="text-align:left; padding:0.5rem; border: 1px solid var(--border);">Liderança</th>
+          <th style="text-align:left; padding:0.5rem; border: 1px solid var(--border);">CNPJ</th>
+          <th style="text-align:center; padding:0.5rem; border: 1px solid var(--border);">Ações</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    `;
+    const tbody = table.querySelector('tbody');
+
+    ultimos.forEach((ent) => {
+      const tr = document.createElement('tr');
+      tr.style.borderBottom = '1px solid var(--border)';
+      const tdNome = document.createElement('td');
+      const tdLideranca = document.createElement('td');
+      const tdCnpj = document.createElement('td');
+      const tdAcoes = document.createElement('td');
+      tdNome.style.padding = '0.5rem';
+      tdLideranca.style.padding = '0.5rem';
+      tdCnpj.style.padding = '0.5rem';
+      tdAcoes.style.padding = '0.5rem';
+      tdAcoes.style.textAlign = 'center';
+      tdNome.textContent = ent.nome || '';
+      tdLideranca.textContent = (ent.liderancas || []).join(', ') || '—';
+      tdCnpj.textContent = ent.cnpj ? aplicarMascaraCnpj(ent.cnpj) : '—';
+      // Botões de ação
+      const btnEditar = document.createElement('button');
+      btnEditar.type = 'button';
+      btnEditar.className = 'button button--secondary';
+      btnEditar.textContent = 'Editar';
+      btnEditar.setAttribute('data-editar', ent.id);
+      const btnExcluir = document.createElement('button');
+      btnExcluir.type = 'button';
+      btnExcluir.className = 'button button--ghost';
+      btnExcluir.textContent = 'Excluir';
+      btnExcluir.style.marginLeft = '0.5rem';
+      btnExcluir.setAttribute('data-excluir', ent.id);
+      tdAcoes.appendChild(btnEditar);
+      tdAcoes.appendChild(btnExcluir);
+      tr.appendChild(tdNome);
+      tr.appendChild(tdLideranca);
+      tr.appendChild(tdCnpj);
+      tr.appendChild(tdAcoes);
+      tbody.appendChild(tr);
     });
+
+    listaEl.appendChild(table);
   };
 
   listaEl?.addEventListener('click', async (e) => {
@@ -406,8 +435,9 @@
       const resposta = await fetchAutenticado(API_ENTIDADES);
       const dados = await resposta.json().catch(() => []);
       if (!resposta.ok) throw new Error('Não foi possível listar as entidades.');
-      estado.entidades = dados;
-      exibirMensagem(listaMsgEl, `${dados.length} registro(s) encontrados.`, 'success');
+      // API já retorna ordenado por atualizadoEm DESC. Mantemos e limitamos na renderização.
+      estado.entidades = Array.isArray(dados) ? dados : [];
+      exibirMensagem(listaMsgEl, 'Exibindo os 10 últimos registros.', 'success');
       renderizarLista();
     } catch (error) {
       exibirMensagem(listaMsgEl, error.message || 'Erro ao buscar entidades', 'error');
