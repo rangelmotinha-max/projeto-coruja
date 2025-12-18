@@ -253,6 +253,18 @@
     }
   });
 
+  // Limita CNPJ a no máximo 14 dígitos e aplica máscara durante a digitação
+  (function initCnpjMask() {
+    const cnpjInput = document.getElementById('entidade-cnpj');
+    if (!cnpjInput) return;
+    // Limite visual total (com máscara) é 18 caracteres: 00.000.000/0000-00
+    try { cnpjInput.setAttribute('maxlength', '18'); } catch {}
+    cnpjInput.addEventListener('input', (e) => {
+      const mascarado = aplicarMascaraCnpj(e.target.value || '');
+      e.target.value = mascarado;
+    });
+  })();
+
   // Coleta de dados do formulário e envio para API
   const coletarDadosFormulario = () => {
     const dados = new FormData();
