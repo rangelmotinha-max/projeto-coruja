@@ -515,14 +515,34 @@ body {
 }
 
 .form__label {
-  color: var(--muted);
-  font-weight: 600;
   font-size: 0.95rem;
+  font-weight: 700;
+}
+
+/* Deixar os nomes dos itens em negrito dentro da seção Identificação */
+[data-section="identificacao"] .form__label {
+  font-weight: 700;
+}
+
+/* Cor da fonte por modo: escuro = branco, claro = preto */
+body.theme-dark [data-section="identificacao"] .form__label {
+  color: #fff;
+}
+body:not(.theme-dark) [data-section="identificacao"] .form__label {
+  color: #000;
 }
 
 /* Variante sem negrito para casos específicos (ex.: Sócio) */
 .form__label--normal {
   font-weight: 400;
+}
+
+/* Labels com cor por modo: escuro = branco, claro = preto */
+body.theme-dark .form__label {
+  color: #fff;
+}
+body:not(.theme-dark) .form__label {
+  color: #000;
 }
 
 .form__input {
