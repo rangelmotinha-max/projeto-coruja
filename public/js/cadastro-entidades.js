@@ -587,8 +587,14 @@
       const resposta = await fetchAutenticado(url, { method, body: corpo });
       const dados = await resposta.json().catch(() => ({}));
       if (!resposta.ok) throw new Error(dados?.message || 'Falha ao salvar entidade');
-
-      exibirMensagem(formMsgEl, 'Entidade salva com sucesso!', 'success');
+      // Popup conforme solicitado
+      if (!estado.emEdicao) {
+        alert('Entidade cadastrada com sucesso!');
+      } else {
+        alert('Alterações realizadas com sucesso!');
+      }
+      // Limpa mensagem do formulário após sucesso
+      exibirMensagem(formMsgEl, '');
       limparFormulario();
       await carregarEntidades();
     } catch (error) {
@@ -716,7 +722,7 @@
     document.getElementById('entidade-nome').value = entidade.nome || '';
     document.getElementById('entidade-cnpj').value = aplicarMascaraCnpj(entidade.cnpj);
     document.getElementById('entidade-descricao').value = entidade.descricao || '';
-    submitBtn.textContent = 'Atualizar';
+    submitBtn.textContent = 'Salvar';
 
     renderizarLiderancas();
     renderizarTelefones();
