@@ -449,10 +449,12 @@
   // Fotos atuais com opção de remoção
   const renderizarFotosAtuais = () => {
     fotosAtuaisContainer.innerHTML = '';
+    const emptyMsgEl = document.getElementById('fotos-empty-message');
     if (!estado.fotosAtuais.length) {
-      fotosAtuaisContainer.innerHTML = '<p style="color: var(--muted); margin: 0.5rem 0;">Nenhuma foto adicionada. Clique no botão para adicionar</p>';
+      if (emptyMsgEl) emptyMsgEl.style.display = 'block';
       return;
     }
+    if (emptyMsgEl) emptyMsgEl.style.display = 'none';
     estado.fotosAtuais.forEach((foto) => {
       const card = document.createElement('div');
       card.className = 'card card--subtle';

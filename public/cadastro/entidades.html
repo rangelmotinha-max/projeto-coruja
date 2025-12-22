@@ -116,13 +116,15 @@
             <div class="form__subsection">
               <div class="form__section-header" style="display:flex; justify-content: space-between; align-items: center;">
                 <h3 class="form__section-title">Fotos</h3>
-                
+                <button class="button button--secondary" type="button" id="abrir-seletor-fotos" title="Adicionar" aria-label="Adicionar foto">+</button>
               </div>
-              <div class="form__grid form__grid--2">
-                <label class="form__field">
+              <div class="form__grid form__grid--1">
+                <div class="form__field">
                   <input class="form__input" type="file" id="entidade-fotos" name="fotos" accept="image/*" multiple style="display:none;" />
-                  <button class="button button--secondary" type="button" id="abrir-seletor-fotos">+</button>
-                </label>
+                  <small id="fotos-empty-message" class="form__hint" style="display:block; margin-top:0.25rem;">Nenhuma foto adicionada. Clique no botão para adicionar</small>
+                </div>
+              </div>
+              <div class="form__grid form__grid--1">
                 <div class="form__field">
                   <div id="fotos-atuais" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.5rem;"></div>
                 </div>
