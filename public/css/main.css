@@ -461,10 +461,9 @@ body {
   color: var(--text);
 }
 
-/* Remover negrito do título de seção "Sócios" apenas na página de Empresas */
-[data-page="cadastro-empresas"] .form__section-title {
-  font-weight: 400;
-}
+/* Títulos de seção com cor por modo: escuro = branco, claro = preto */
+body.theme-dark .form__section-title { color: #fff; }
+body:not(.theme-dark) .form__section-title { color: #000; }
 
 .form__subsection {
   padding: 1rem;
