@@ -50,10 +50,10 @@ const fileFilter = (_req, file, cb) => {
   return cb(null, true);
 };
 
-// Limite de 10MB para contemplar documentos, mantendo fotos dentro do mesmo pipeline
+// Limite de 20MB para contemplar documentos de Ocorrências Policiais
 const uploadPessoaArquivos = multer({
   storage,
-  limits: { fileSize: 10 * 1024 * 1024 },
+  limits: { fileSize: 20 * 1024 * 1024 },
   fileFilter,
 });
 

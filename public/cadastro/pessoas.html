@@ -2176,6 +2176,9 @@
           hintDoc.className = 'form__hint';
           const nomeDocumento = item?.arquivo?.name || item?.documento?.nome;
           hintDoc.textContent = nomeDocumento ? `Selecionado: ${nomeDocumento}` : '';
+          const limiteDoc = document.createElement('small');
+          limiteDoc.className = 'form__hint';
+          limiteDoc.textContent = 'máximo permitido 20MB';
           const linkDoc = document.createElement('a');
           linkDoc.style.display = 'block';
           linkDoc.style.marginTop = '0.25rem';
@@ -2197,6 +2200,7 @@
           campoDoc.appendChild(labelDoc);
           campoDoc.appendChild(inputDoc);
           campoDoc.appendChild(hintDoc);
+          campoDoc.appendChild(limiteDoc);
           if (linkDoc.href) campoDoc.appendChild(linkDoc);
 
           const btnRemover = document.createElement('button');
