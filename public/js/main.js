@@ -234,6 +234,44 @@
     if (userRoleEl) userRoleEl.textContent = user?.role || '—';
   };
 
+  // Dashboard: seção "Usuários" (totais de Pessoas e por UF)
+  const carregarDashboardUsuarios = async () => {
+    const homePage = document.querySelector('[data-page="home"]');
+    if (!homePage) return;
+
+    const totalEl = document.getElementById('dash-total-pessoas');
+    const faccaoEl = document.getElementById('dash-pessoas-faccao');
+    const ufTbody = document.getElementById('dash-pessoas-por-uf');
+
+    if (totalEl) totalEl.textContent = '—';
+    if (faccaoEl) faccaoEl.textContent = '—';
+    if (ufTbody) ufTbody.innerHTML = '<tr><td colspan="2" style="opacity:0.7;">Carregando...</td></tr>';
+
+    try {
+      const resp = await authorizedFetch('/api/dashboard/usuarios');
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        throw new Error(data?.message || 'Falha ao carregar dashboard.');
+      }
+
+      if (totalEl) totalEl.textContent = String(data?.totalPessoas ?? 0);
+      if (faccaoEl) faccaoEl.textContent = String(data?.pessoasComFaccao ?? 0);
+
+      if (ufTbody) {
+        const lista = Array.isArray(data?.pessoasPorUF) ? data.pessoasPorUF : [];
+        if (!lista.length) {
+          ufTbody.innerHTML = '<tr><td colspan="2" style="opacity:0.7;">Sem dados</td></tr>';
+        } else {
+          ufTbody.innerHTML = lista
+            .map((r) => `<tr><td>${(r.uf || '—')}</td><td style="text-align:right;">${r.total}</td></tr>`)
+            .join('');
+        }
+      }
+    } catch (error) {
+      if (ufTbody) ufTbody.innerHTML = `<tr><td colspan="2" style="color:var(--danger-600);">${error?.message || 'Erro'}</td></tr>`;
+    }
+  };
+
   // Preenche o formulário de edição de perfil com os dados disponíveis
   const fillProfileForm = (user) => {
     if (!profileForm || !user) return;
@@ -421,6 +459,12 @@
       );
     }
   };
+
+  // Dispara carregamento de perfil e dashboard quando aplicável
+  (async () => {
+    await carregarPerfil();
+    await carregarDashboardUsuarios();
+  })();
 
   // Global: máscara e limite para todos os campos de telefone
   const aplicarMascaraTelefoneGlobal = (valor) => {

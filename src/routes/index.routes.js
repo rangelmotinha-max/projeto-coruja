@@ -5,6 +5,7 @@ const empresasRoutes = require('./empresas.routes');
 const veiculosRoutes = require('./veiculos.routes');
 const faccoesRoutes = require('./faccoes.routes');
 const entidadesRoutes = require('./entidades.routes');
+const dashboardRoutes = require('./dashboard.routes');
 
 const router = express.Router();
 
@@ -19,5 +20,6 @@ router.use('/api/empresas', empresasRoutes);
 router.use('/api/veiculos', veiculosRoutes);
 router.use('/api/faccoes', faccoesRoutes);
 router.use('/api/entidades', entidadesRoutes);
+router.use('/api/dashboard', dashboardRoutes);
 
 module.exports = router;

@@ -71,6 +71,58 @@
           <h1 class="content__title">Bem-vindo(a) de volta</h1>
           
         </header>
+        <section class="panel" aria-label="Dashboard">
+          <div class="panel__header panel__header--stacked">
+            <h2 class="panel__title">Dashboard</h2>
+          </div>
+
+          <div class="form__section" aria-label="Usuários">
+            <h3 class="form__section-title">Usuários</h3>
+            <div class="form__grid form__grid--4" id="dash-usuarios-cards">
+              <div class="panel" style="padding:0.75rem;">
+                <div class="content__eyebrow">Pessoas</div>
+                <div style="font-size:1.6rem; font-weight:600;" id="dash-total-pessoas">—</div>
+                <div style="opacity:0.8;">Total de pessoas cadastradas</div>
+              </div>
+              <div class="panel" style="padding:0.75rem;">
+                <div class="content__eyebrow">Vínculos</div>
+                <div style="font-size:1.6rem; font-weight:600;" id="dash-pessoas-faccao">—</div>
+                <div style="opacity:0.8;">Com Facção/Org. Criminosa</div>
+              </div>
+            </div>
+
+            <div class="panel" style="margin-top:1rem;">
+              <div class="panel__header panel__header--stacked">
+                <h4 class="panel__title">Pessoas por UF</h4>
+              </div>
+              <div style="overflow:auto;">
+                <table class="table" style="width:100%;">
+                  <thead>
+                    <tr><th style="text-align:left;">UF</th><th style="text-align:right;">Qtd.</th></tr>
+                  </thead>
+                  <tbody id="dash-pessoas-por-uf">
+                    <tr><td colspan="2" style="opacity:0.7;">Carregando...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="form__section" aria-label="Pessoas">
+            <h3 class="form__section-title">Pessoas</h3>
+            <div class="message" role="status" aria-live="polite" style="opacity:0.7;">(em breve)</div>
+          </div>
+
+          <div class="form__section" aria-label="Empresas">
+            <h3 class="form__section-title">Empresas</h3>
+            <div class="message" role="status" aria-live="polite" style="opacity:0.7;">(em breve)</div>
+          </div>
+
+          <div class="form__section" aria-label="Entidades">
+            <h3 class="form__section-title">Entidades</h3>
+            <div class="message" role="status" aria-live="polite" style="opacity:0.7;">(em breve)</div>
+          </div>
+        </section>
       </main>
     </div>
 
