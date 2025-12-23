@@ -102,6 +102,14 @@
                 <input class="form__input" type="number" name="anoModelo" id="campo-ano" min="1900" max="2100" placeholder="2024" />
               </label>
             </div>
+            <!-- Endereços do veículo -->
+            <div class="form__section" aria-label="Endereços do veículo">
+              <div class="form__section-header" style="display:flex; justify-content: space-between; align-items: center;">
+                <h3 class="form__section-title" style="font-size:1rem; margin:0;">Endereços</h3>
+                <button class="button button--secondary" id="adicionar-endereco-veiculo" type="button">+</button>
+              </div>
+              <div id="lista-enderecos-veiculo" class="form__section-body" style="display:flex; flex-direction:column; gap:0.75rem;"></div>
+            </div>
             <div class="form__actions">
               <button class="button button--primary" id="submit-veiculo" type="submit">Incluir</button>
               <button class="button button--secondary" id="btn-listar" type="button">Listar</button>
@@ -143,6 +151,7 @@
       const campoBusca = document.getElementById('campo-busca');
       const campoCpf = document.getElementById('campo-cpf');
       const campoPlaca = document.getElementById('campo-placa');
+      let enderecosVeiculo = [];
       let veiculoEmEdicao = null;
       let veiculosCache = [];
 
@@ -238,7 +247,183 @@
           marcaModelo: dados.marcaModelo?.trim(),
           cor: dados.cor?.trim(),
           anoModelo: dados.anoModelo?.trim(),
+          enderecos: enderecosVeiculo.map((e) => ({
+            uf: String(e.uf||'').trim() || null,
+            logradouro: String(e.logradouro||'').trim() || null,
+            bairro: String(e.bairro||'').trim() || null,
+            complemento: String(e.complemento||'').trim() || null,
+            cep: String(e.cep||'').replace(/\D/g,'').slice(0,8) || null,
+            latLong: String(e.latLong||'').trim() || null,
+          })).filter((e) => Object.values(e).some(v => v))
         };
+      };
+
+      const createEstadosSelect = () => {
+        return `<option value="">Selecione</option>
+                    <option value="AC">Acre (AC)</option>
+                    <option value="AL">Alagoas (AL)</option>
+                    <option value="AP">Amapá (AP)</option>
+                    <option value="AM">Amazonas (AM)</option>
+                    <option value="BA">Bahia (BA)</option>
+                    <option value="CE">Ceará (CE)</option>
+                    <option value="DF">Distrito Federal (DF)</option>
+                    <option value="ES">Espírito Santo (ES)</option>
+                    <option value="GO">Goiás (GO)</option>
+                    <option value="MA">Maranhão (MA)</option>
+                    <option value="MT">Mato Grosso (MT)</option>
+                    <option value="MS">Mato Grosso do Sul (MS)</option>
+                    <option value="MG">Minas Gerais (MG)</option>
+                    <option value="PA">Pará (PA)</option>
+                    <option value="PB">Paraíba (PB)</option>
+                    <option value="PR">Paraná (PR)</option>
+                    <option value="PE">Pernambuco (PE)</option>
+                    <option value="PI">Piauí (PI)</option>
+                    <option value="RJ">Rio de Janeiro (RJ)</option>
+                    <option value="RN">Rio Grande do Norte (RN)</option>
+                    <option value="RS">Rio Grande do Sul (RS)</option>
+                    <option value="RO">Rondônia (RO)</option>
+                    <option value="RR">Roraima (RR)</option>
+                    <option value="SC">Santa Catarina (SC)</option>
+                    <option value="SP">São Paulo (SP)</option>
+                    <option value="SE">Sergipe (SE)</option>
+                    <option value="TO">Tocantins (TO)</option>`;
+      };
+
+      const aplicarMascaraCep = (valor) => {
+        const dig = String(valor||'').replace(/\D/g,'').slice(0,8);
+        return dig.length > 5 ? `${dig.slice(0,5)}-${dig.slice(5)}` : dig;
+      };
+
+      const renderizarEnderecosVeiculo = () => {
+        const lista = document.getElementById('lista-enderecos-veiculo');
+        lista.innerHTML = '';
+        if (!enderecosVeiculo.length) {
+          lista.innerHTML = '<p style="color: var(--muted); margin: 0;">Nenhum endereço adicionado. Clique para adicionar.</p>';
+          return;
+        }
+        enderecosVeiculo.forEach((endereco, indiceOrdenado) => {
+          const div = document.createElement('div');
+          div.style.cssText = 'border: 1px solid var(--border); border-radius: 0.5rem; padding: 1rem;';
+          const grid = document.createElement('div');
+          grid.className = 'form__grid form__grid--4';
+          grid.innerHTML = `
+            <label class="form__field">
+              <span class="form__label">UF</span>
+              <select class="form__input endereco-uf" data-index="${indiceOrdenado}">
+                ${createEstadosSelect()}
+              </select>
+            </label>
+            <label class="form__field form__field--wide">
+              <span class="form__label">Logradouro/Nome</span>
+              <input class="form__input endereco-logradouro" type="text" data-index="${indiceOrdenado}" />
+            </label>
+            <label class="form__field">
+              <span class="form__label">Bairro/Cidade</span>
+              <input class="form__input endereco-bairro" type="text" data-index="${indiceOrdenado}" />
+            </label>
+            <label class="form__field">
+              <span class="form__label">CEP</span>
+              <input class="form__input endereco-cep" type="text" inputmode="numeric" data-index="${indiceOrdenado}" />
+            </label>
+            <label class="form__field">
+              <span class="form__label">Complemento</span>
+              <input class="form__input endereco-complemento" type="text" data-index="${indiceOrdenado}" />
+            </label>
+            <label class="form__field form__field--wide">
+              <span class="form__label">Lat/Long</span>
+              <input class="form__input endereco-latlong" type="text" data-index="${indiceOrdenado}" placeholder="-23.5, -46.6" />
+            </label>
+          `;
+          div.appendChild(grid);
+
+          // Preencher valores
+          grid.querySelector('.endereco-uf').value = endereco.uf || '';
+          grid.querySelector('.endereco-logradouro').value = endereco.logradouro || '';
+          grid.querySelector('.endereco-bairro').value = endereco.bairro || '';
+          grid.querySelector('.endereco-cep').value = aplicarMascaraCep(endereco.cep || '');
+          grid.querySelector('.endereco-complemento').value = endereco.complemento || '';
+          grid.querySelector('.endereco-latlong').value = endereco.latLong || '';
+
+          // Listeners
+          grid.querySelector('.endereco-uf').addEventListener('change', (e) => { enderecosVeiculo[indiceOrdenado].uf = e.target.value; });
+          grid.querySelector('.endereco-logradouro').addEventListener('input', (e) => { enderecosVeiculo[indiceOrdenado].logradouro = e.target.value; });
+          grid.querySelector('.endereco-bairro').addEventListener('input', (e) => { enderecosVeiculo[indiceOrdenado].bairro = e.target.value; });
+          grid.querySelector('.endereco-cep').addEventListener('input', (e) => { e.target.value = aplicarMascaraCep(e.target.value); enderecosVeiculo[indiceOrdenado].cep = e.target.value; });
+          grid.querySelector('.endereco-complemento').addEventListener('input', (e) => { enderecosVeiculo[indiceOrdenado].complemento = e.target.value; });
+          grid.querySelector('.endereco-latlong').addEventListener('input', (e) => { enderecosVeiculo[indiceOrdenado].latLong = e.target.value; });
+
+          const statusDiv = document.createElement('div');
+          statusDiv.className = `cep-status-veiculo-${indiceOrdenado}`;
+          statusDiv.style.cssText = 'margin-top: 0.5rem; font-size: 0.85rem; display:none;';
+          div.appendChild(statusDiv);
+
+          grid.querySelector('.endereco-cep').addEventListener('blur', (e) => {
+            const v = String(e.target.value||'').replace(/\D/g,'');
+            if (v.length === 8) {
+              mostrarCarregamentoCepVeiculo(indiceOrdenado, true);
+              buscarEnderecoPorCepVeiculo(v, indiceOrdenado);
+            }
+          });
+
+          // Remover
+          const actions = document.createElement('div');
+          actions.className = 'form__actions';
+          const removerBtn = document.createElement('button');
+          removerBtn.type = 'button';
+          removerBtn.className = 'button button--danger';
+          removerBtn.textContent = 'Remover';
+          removerBtn.addEventListener('click', () => { enderecosVeiculo.splice(indiceOrdenado,1); renderizarEnderecosVeiculo(); });
+          actions.appendChild(removerBtn);
+          div.appendChild(actions);
+
+          lista.appendChild(div);
+        });
+      };
+
+      const adicionarEnderecoVeiculo = () => {
+        enderecosVeiculo.push({ uf:'', logradouro:'', bairro:'', cep:'', complemento:'', latLong:'' });
+        renderizarEnderecosVeiculo();
+      };
+
+      const buscarEnderecoPorCepVeiculo = async (cepNumeros, index) => {
+        try {
+          const response = await fetch(`https://viacep.com.br/ws/${cepNumeros}/json/`);
+          const data = await response.json();
+          if (data.erro) {
+            exibirStatusCepVeiculo(index, 'CEP não encontrado', 'error');
+          } else {
+            enderecosVeiculo[index].uf = data.uf || '';
+            enderecosVeiculo[index].logradouro = data.logradouro || '';
+            enderecosVeiculo[index].bairro = `${data.bairro || ''} ${data.localidade || ''}`.trim();
+            enderecosVeiculo[index].cep = cepNumeros;
+            renderizarEnderecosVeiculo();
+            exibirStatusCepVeiculo(index, 'Endereço carregado com sucesso', 'success');
+          }
+        } catch (error) {
+          exibirStatusCepVeiculo(index, 'Erro ao buscar CEP', 'error');
+        } finally {
+          mostrarCarregamentoCepVeiculo(index, false);
+        }
+      };
+
+      const mostrarCarregamentoCepVeiculo = (index, mostrando) => {
+        const el = document.querySelector(`.cep-status-veiculo-${index}`);
+        if (!el) return;
+        if (mostrando) {
+          el.innerHTML = `<div style="display:flex; align-items:center; gap:0.5rem; color: var(--primary);"><div class="spinner" style="width: 16px; height: 16px; border: 2px solid var(--primary); border-top: 2px solid transparent; border-radius: 50%; animation: spin 0.6s linear infinite;"></div><span>Carregando endereço...</span></div>`;
+          el.style.display = 'block';
+        } else {
+          el.style.display = 'none';
+        }
+      };
+
+      const exibirStatusCepVeiculo = (index, mensagem, tipo) => {
+        const el = document.querySelector(`.cep-status-veiculo-${index}`);
+        if (!el) return;
+        const cores = { success: 'var(--success-text)', error: 'var(--error-text)' };
+        el.innerHTML = `<div style="display:flex; align-items:center; gap:0.5rem; color:${cores[tipo]||'var(--text)'};"><span>${tipo==='success'?'✓':'✕'}</span><span>${mensagem}</span></div>`;
+        el.style.display = 'block';
+        setTimeout(() => { if (el.style.display !== 'none') el.style.display = 'none'; }, 3000);
       };
 
       // Renderiza lista de veículos em forma de tabela
@@ -321,6 +506,14 @@
         form.marcaModelo.value = veiculo.marcaModelo || '';
         form.cor.value = veiculo.cor || '';
         form.anoModelo.value = veiculo.anoModelo || '';
+        // Buscar detalhes completos (inclui enderecos)
+        fetchAutenticado(`${API_VEICULOS}/${veiculo.id}`)
+          .then((r) => r.json())
+          .then((data) => {
+            enderecosVeiculo = Array.isArray(data?.enderecos) ? JSON.parse(JSON.stringify(data.enderecos)) : [];
+            renderizarEnderecosVeiculo();
+          })
+          .catch(() => { enderecosVeiculo = []; renderizarEnderecosVeiculo(); });
         submitBtn.textContent = 'Salvar alterações';
         exibirMensagem(formMsgEl, 'Editando veículo selecionado.', 'info');
       };
@@ -329,6 +522,8 @@
       const resetarFormulario = () => {
         veiculoEmEdicao = null;
         form.reset();
+        enderecosVeiculo = [];
+        renderizarEnderecosVeiculo();
         submitBtn.textContent = 'Incluir';
         exibirMensagem(formMsgEl, '', 'info');
         const erroEl = document.getElementById('erro-cpf-veiculo');
@@ -438,6 +633,9 @@
 
       // Botão "Listar" aplica a regra dos 10 últimos
       document.getElementById('btn-listar').addEventListener('click', listarUltimosDez);
+
+      document.getElementById('adicionar-endereco-veiculo').addEventListener('click', adicionarEnderecoVeiculo);
+      renderizarEnderecosVeiculo();
 
       // Carregamento inicial dos dados
       carregarVeiculos();

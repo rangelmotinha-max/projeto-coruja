@@ -52,8 +52,9 @@ function normalizarRetornoVeiculo(veiculo) {
 
 // Serviços de veículos centralizam validações antes da persistência
 async function criar(payload) {
-  const dados = validarCadastroVeiculo(payload || {});
-  return VeiculoModel.create(dados);
+  const dadosBasicos = validarCadastroVeiculo(payload || {});
+  const enderecos = Array.isArray(payload.enderecos) ? payload.enderecos : [];
+  return VeiculoModel.create({ ...dadosBasicos, enderecos });
 }
 
 async function listar() {
@@ -96,8 +97,9 @@ async function buscarPorPlaca(placa) {
 
 async function atualizar(id, payload) {
   await buscarPorId(id);
-  const dados = validarAtualizacaoVeiculo(payload || {});
-  const atualizado = await VeiculoModel.update(id, dados);
+  const dadosAtualizacao = validarAtualizacaoVeiculo(payload || {});
+  const enderecos = Array.isArray(payload.enderecos) ? payload.enderecos : undefined;
+  const atualizado = await VeiculoModel.update(id, { ...dadosAtualizacao, enderecos });
   if (!atualizado) throw criarErro('Veículo não encontrado', 404);
   return atualizado;
 }

@@ -3,6 +3,40 @@ const { initDatabase } = require('../database/sqlite');
 
 // Modelo responsável por persistir e consultar veículos
 class VeiculoModel {
+  static async _listarEnderecos(db, veiculoId) {
+    return db.all(
+      'SELECT id, uf, logradouro, bairro, cep, complemento, lat_long as latLong, criadoEm, atualizadoEm FROM veiculos_enderecos WHERE veiculo_id = ? ORDER BY atualizadoEm DESC',
+      [veiculoId],
+    );
+  }
+
+  static async _salvarEnderecos(db, veiculoId, enderecos) {
+    if (!Array.isArray(enderecos) || enderecos.length === 0) return;
+    const agora = new Date().toISOString();
+    for (const e of enderecos) {
+      const eid = (e && e.id) ? String(e.id) : randomUUID();
+      await db.run(
+        `INSERT INTO veiculos_enderecos (id, veiculo_id, uf, logradouro, bairro, cep, complemento, lat_long, criadoEm, atualizadoEm)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          eid,
+          veiculoId,
+          e.uf || null,
+          e.logradouro || null,
+          e.bairro || null,
+          e.cep || null,
+          e.complemento || null,
+          e.latLong || null,
+          agora,
+          agora,
+        ],
+      );
+    }
+  }
+
+  static async _removerEnderecos(db, veiculoId) {
+    await db.run('DELETE FROM veiculos_enderecos WHERE veiculo_id = ?', [veiculoId]);
+  }
   // Cria um novo registro de veículo
   static async create(dados) {
     const db = await initDatabase();
@@ -25,8 +59,11 @@ class VeiculoModel {
         agora,
       ],
     );
-
-    return this.findById(id);
+    if (Array.isArray(dados.enderecos) && dados.enderecos.length) {
+      await this._salvarEnderecos(db, id, dados.enderecos);
+    }
+    const veiculo = await this.findById(id);
+    return veiculo;
   }
 
   // Lista todos os veículos ordenados por atualização
@@ -69,7 +106,10 @@ class VeiculoModel {
   // Busca veículo específico pelo identificador
   static async findById(id) {
     const db = await initDatabase();
-    return db.get('SELECT * FROM veiculos WHERE id = ?', [id]);
+    const v = await db.get('SELECT * FROM veiculos WHERE id = ?', [id]);
+    if (!v) return null;
+    const enderecos = await this._listarEnderecos(db, id);
+    return { ...v, enderecos };
   }
 
   // Recupera veículo pelo CPF do proprietário para permitir vínculo com pessoas
@@ -133,6 +173,11 @@ class VeiculoModel {
 
     const resultado = await db.run(`UPDATE veiculos SET ${campos.join(', ')} WHERE id = ?`, valores);
     if (!resultado.changes) return null;
+    // Se enviado um array de enderecos, substitui os atuais por novos
+    if (Array.isArray(updates.enderecos)) {
+      await this._removerEnderecos(db, id);
+      await this._salvarEnderecos(db, id, updates.enderecos);
+    }
     return this.findById(id);
   }
 
