@@ -78,6 +78,32 @@
             <h3 class="form__section-title">Usuários</h3>
             <div class="form__grid form__grid--4" id="dash-usuarios-cards">
               <div class="panel" style="padding:0.75rem;">
+                <div class="content__eyebrow">Usuários</div>
+                <div style="font-size:1.6rem; font-weight:600;" id="dash-total-usuarios">—</div>
+                <div style="opacity:0.8;">Total cadastrados</div>
+              </div>
+              <div class="panel" style="padding:0.75rem;">
+                <div class="content__eyebrow">Admin</div>
+                <div style="font-size:1.6rem; font-weight:600;" id="dash-usuarios-admin">—</div>
+                <div style="opacity:0.8;">Com perfil Administrador</div>
+              </div>
+              <div class="panel" style="padding:0.75rem;">
+                <div class="content__eyebrow">Leitor</div>
+                <div style="font-size:1.6rem; font-weight:600;" id="dash-usuarios-leitor">—</div>
+                <div style="opacity:0.8;">Com perfil Leitor</div>
+              </div>
+              <div class="panel" style="padding:0.75rem;">
+                <div class="content__eyebrow">Editor</div>
+                <div style="font-size:1.6rem; font-weight:600;" id="dash-usuarios-editor">—</div>
+                <div style="opacity:0.8;">Com perfil Editor</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="form__section" aria-label="Pessoas">
+            <h3 class="form__section-title">Pessoas</h3>
+            <div class="form__grid form__grid--4" id="dash-pessoas-cards">
+              <div class="panel" style="padding:0.75rem;">
                 <div class="content__eyebrow">Pessoas</div>
                 <div style="font-size:1.6rem; font-weight:600;" id="dash-total-pessoas">—</div>
                 <div style="opacity:0.8;">Total de pessoas cadastradas</div>
@@ -106,19 +132,57 @@
             </div>
           </div>
 
-          <div class="form__section" aria-label="Pessoas">
-            <h3 class="form__section-title">Pessoas</h3>
-            <div class="message" role="status" aria-live="polite" style="opacity:0.7;">(em breve)</div>
-          </div>
-
           <div class="form__section" aria-label="Empresas">
             <h3 class="form__section-title">Empresas</h3>
-            <div class="message" role="status" aria-live="polite" style="opacity:0.7;">(em breve)</div>
+            <div class="form__grid form__grid--4" id="dash-empresas-cards">
+              <div class="panel" style="padding:0.75rem;">
+                <div class="content__eyebrow">Empresas</div>
+                <div style="font-size:1.6rem; font-weight:600;" id="dash-total-empresas">—</div>
+                <div style="opacity:0.8;">Total de empresas cadastradas</div>
+              </div>
+              <div class="panel" style="padding:0.75rem;">
+                <div class="content__eyebrow">Ativa</div>
+                <div style="font-size:1.6rem; font-weight:600;" id="dash-empresas-ativa">—</div>
+                <div style="opacity:0.8;">Situação Ativa</div>
+              </div>
+              <div class="panel" style="padding:0.75rem;">
+                <div class="content__eyebrow">Inativa</div>
+                <div style="font-size:1.6rem; font-weight:600;" id="dash-empresas-inativa">—</div>
+                <div style="opacity:0.8;">Situação Inativa</div>
+              </div>
+              <div class="panel" style="padding:0.75rem;">
+                <div class="content__eyebrow">Inapta</div>
+                <div style="font-size:1.6rem; font-weight:600;" id="dash-empresas-inapta">—</div>
+                <div style="opacity:0.8;">Situação Inapta</div>
+              </div>
+            </div>
           </div>
 
           <div class="form__section" aria-label="Entidades">
             <h3 class="form__section-title">Entidades</h3>
-            <div class="message" role="status" aria-live="polite" style="opacity:0.7;">(em breve)</div>
+            <div class="form__grid form__grid--4" id="dash-entidades-cards">
+              <div class="panel" style="padding:0.75rem;">
+                <div class="content__eyebrow">Entidades</div>
+                <div style="font-size:1.6rem; font-weight:600;" id="dash-total-entidades">—</div>
+                <div style="opacity:0.8;">Total de entidades cadastradas</div>
+              </div>
+            </div>
+
+            <div class="panel" style="margin-top:1rem;">
+              <div class="panel__header panel__header--stacked">
+                <h4 class="panel__title">Entidades por UF</h4>
+              </div>
+              <div style="overflow:auto;">
+                <table class="table" style="width:100%;">
+                  <thead>
+                    <tr><th style="text-align:left;">UF</th><th style="text-align:right;">Qtd.</th></tr>
+                  </thead>
+                  <tbody id="dash-entidades-por-uf">
+                    <tr><td colspan="2" style="opacity:0.7;">Carregando...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </section>
       </main>

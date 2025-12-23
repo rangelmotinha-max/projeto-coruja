@@ -234,8 +234,39 @@
     if (userRoleEl) userRoleEl.textContent = user?.role || '—';
   };
 
-  // Dashboard: seção "Usuários" (totais de Pessoas e por UF)
+  // Dashboard: seção "Usuários" (totais e perfis)
   const carregarDashboardUsuarios = async () => {
+    const homePage = document.querySelector('[data-page="home"]');
+    if (!homePage) return;
+    const totalUsuariosEl = document.getElementById('dash-total-usuarios');
+    const adminEl = document.getElementById('dash-usuarios-admin');
+    const leitorEl = document.getElementById('dash-usuarios-leitor');
+    const editorEl = document.getElementById('dash-usuarios-editor');
+
+    if (totalUsuariosEl) totalUsuariosEl.textContent = '—';
+    if (adminEl) adminEl.textContent = '—';
+    if (leitorEl) leitorEl.textContent = '—';
+    if (editorEl) editorEl.textContent = '—';
+
+    try {
+      const resp = await authorizedFetch('/api/dashboard/usuarios');
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        throw new Error(data?.message || 'Falha ao carregar dashboard.');
+      }
+
+      if (totalUsuariosEl) totalUsuariosEl.textContent = String(data?.totalUsuarios ?? 0);
+      if (adminEl) adminEl.textContent = String(data?.porPerfil?.admin ?? 0);
+      if (leitorEl) leitorEl.textContent = String(data?.porPerfil?.leitor ?? 0);
+      if (editorEl) editorEl.textContent = String(data?.porPerfil?.editor ?? 0);
+    } catch (error) {
+      // Exibe erro mínimo em um dos cards
+      if (totalUsuariosEl) totalUsuariosEl.textContent = '—';
+    }
+  };
+
+  // Dashboard: seção "Pessoas" (totais e por UF)
+  const carregarDashboardPessoas = async () => {
     const homePage = document.querySelector('[data-page="home"]');
     if (!homePage) return;
 
@@ -248,17 +279,72 @@
     if (ufTbody) ufTbody.innerHTML = '<tr><td colspan="2" style="opacity:0.7;">Carregando...</td></tr>';
 
     try {
-      const resp = await authorizedFetch('/api/dashboard/usuarios');
+      const resp = await authorizedFetch('/api/dashboard/pessoas');
       const data = await resp.json().catch(() => ({}));
-      if (!resp.ok) {
-        throw new Error(data?.message || 'Falha ao carregar dashboard.');
-      }
+      if (!resp.ok) throw new Error(data?.message || 'Falha ao carregar pessoas.');
 
       if (totalEl) totalEl.textContent = String(data?.totalPessoas ?? 0);
       if (faccaoEl) faccaoEl.textContent = String(data?.pessoasComFaccao ?? 0);
-
       if (ufTbody) {
         const lista = Array.isArray(data?.pessoasPorUF) ? data.pessoasPorUF : [];
+        if (!lista.length) {
+          ufTbody.innerHTML = '<tr><td colspan="2" style="opacity:0.7;">Sem dados</td></tr>';
+        } else {
+          ufTbody.innerHTML = lista
+            .map((r) => `<tr><td>${(r.uf || '—')}</td><td style="text-align:right;">${r.total}</td></tr>`)
+            .join('');
+        }
+      }
+    } catch (error) {
+      if (ufTbody) ufTbody.innerHTML = `<tr><td colspan="2" style="color:var(--danger-600);">${error?.message || 'Erro'}</td></tr>`;
+    }
+  };
+
+  // Dashboard: seção "Empresas" (total e situação)
+  const carregarDashboardEmpresas = async () => {
+    const homePage = document.querySelector('[data-page="home"]');
+    if (!homePage) return;
+
+    const totalEl = document.getElementById('dash-total-empresas');
+    const ativaEl = document.getElementById('dash-empresas-ativa');
+    const inativaEl = document.getElementById('dash-empresas-inativa');
+    const inaptaEl = document.getElementById('dash-empresas-inapta');
+
+    if (totalEl) totalEl.textContent = '—';
+    if (ativaEl) ativaEl.textContent = '—';
+    if (inativaEl) inativaEl.textContent = '—';
+    if (inaptaEl) inaptaEl.textContent = '—';
+
+    try {
+      const resp = await authorizedFetch('/api/dashboard/empresas');
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) throw new Error(data?.message || 'Falha ao carregar empresas.');
+
+      if (totalEl) totalEl.textContent = String(data?.totalEmpresas ?? 0);
+      if (ativaEl) ativaEl.textContent = String(data?.situacao?.Ativa ?? 0);
+      if (inativaEl) inativaEl.textContent = String(data?.situacao?.Inativa ?? 0);
+      if (inaptaEl) inaptaEl.textContent = String(data?.situacao?.Inapta ?? 0);
+    } catch (_) {}
+  };
+
+  // Dashboard: seção "Entidades" (total e por UF)
+  const carregarDashboardEntidades = async () => {
+    const homePage = document.querySelector('[data-page="home"]');
+    if (!homePage) return;
+
+    const totalEl = document.getElementById('dash-total-entidades');
+    const ufTbody = document.getElementById('dash-entidades-por-uf');
+    if (totalEl) totalEl.textContent = '—';
+    if (ufTbody) ufTbody.innerHTML = '<tr><td colspan="2" style="opacity:0.7;">Carregando...</td></tr>';
+
+    try {
+      const resp = await authorizedFetch('/api/dashboard/entidades');
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) throw new Error(data?.message || 'Falha ao carregar entidades.');
+
+      if (totalEl) totalEl.textContent = String(data?.totalEntidades ?? 0);
+      if (ufTbody) {
+        const lista = Array.isArray(data?.entidadesPorUF) ? data.entidadesPorUF : [];
         if (!lista.length) {
           ufTbody.innerHTML = '<tr><td colspan="2" style="opacity:0.7;">Sem dados</td></tr>';
         } else {
@@ -464,6 +550,9 @@
   (async () => {
     await carregarPerfil();
     await carregarDashboardUsuarios();
+    await carregarDashboardPessoas();
+    await carregarDashboardEmpresas();
+    await carregarDashboardEntidades();
   })();
 
   // Global: máscara e limite para todos os campos de telefone

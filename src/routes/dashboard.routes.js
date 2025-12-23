@@ -17,4 +17,31 @@ router.get('/usuarios', authorize(['admin', 'editor', 'viewer', 'user', 'leitor'
   }
 });
 
+router.get('/pessoas', authorize(['admin', 'editor', 'viewer', 'user', 'leitor']), async (req, res, next) => {
+  try {
+    const data = await dashboardService.getPessoasSummary();
+    res.json(data);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get('/empresas', authorize(['admin', 'editor', 'viewer', 'user', 'leitor']), async (req, res, next) => {
+  try {
+    const data = await dashboardService.getEmpresasSummary();
+    res.json(data);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get('/entidades', authorize(['admin', 'editor', 'viewer', 'user', 'leitor']), async (req, res, next) => {
+  try {
+    const data = await dashboardService.getEntidadesSummary();
+    res.json(data);
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;
