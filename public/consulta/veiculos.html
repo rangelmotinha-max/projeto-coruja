@@ -81,18 +81,6 @@
           <form class="form" aria-label="Filtros de consulta de veículos" data-veiculos-form>
             <div class="form__grid form__grid--2">
               <label class="form__field">
-                <span class="form__label">Placa</span>
-                <!-- Campo de busca pela placa principal do veículo -->
-                <input class="form__input" type="text" name="placa" placeholder="ABC1D23" maxlength="7" />
-              </label>
-              <label class="form__field">
-                <span class="form__label">Marca/Modelo</span>
-                <!-- Campo para pesquisar por marca ou modelo combinados -->
-                <input class="form__input" type="text" name="marcaModelo" placeholder="Ex.: Toyota Corolla" />
-              </label>
-            </div>
-            <div class="form__grid form__grid--2">
-              <label class="form__field">
                 <span class="form__label">Nome do Proprietário</span>
                 <!-- Campo dedicado a localizar veículos pelo proprietário principal -->
                 <input class="form__input" type="text" name="nomeProprietario" placeholder="Digite o nome do proprietário" />
@@ -101,6 +89,18 @@
                 <span class="form__label">CPF do Proprietário</span>
                 <!-- Campo numérico para vincular o CPF ao cadastro do proprietário -->
                 <input class="form__input" type="text" name="cpf" placeholder="000.000.000-00" inputmode="numeric" />
+              </label>
+            </div>
+            <div class="form__grid form__grid--2">
+              <label class="form__field">
+                <span class="form__label">Placa</span>
+                <!-- Campo de busca pela placa principal do veículo -->
+                <input class="form__input" type="text" name="placa" placeholder="ABC1D23" maxlength="7" />
+              </label>
+              <label class="form__field">
+                <span class="form__label">Marca/Modelo</span>
+                <!-- Campo para pesquisar por marca ou modelo combinados -->
+                <input class="form__input" type="text" name="marcaModelo" placeholder="Ex.: Toyota Corolla" />
               </label>
             </div>
             <div class="form__actions">
