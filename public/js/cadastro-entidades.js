@@ -100,6 +100,11 @@
           <button class="button button--ghost" type="button" data-remover-lideranca="${index}">Remover</button>
         </div>
       `;
+      const input = linha.querySelector('input[data-lideranca-index]');
+      input.addEventListener('input', (e) => {
+        const idx = Number(e.target.getAttribute('data-lideranca-index'));
+        estado.liderancas[idx] = e.target.value;
+      });
       liderancasContainer.appendChild(linha);
     });
   };
