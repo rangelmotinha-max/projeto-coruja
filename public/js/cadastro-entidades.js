@@ -126,10 +126,12 @@
       const inputTelefone = document.createElement('input');
       inputTelefone.type = 'tel';
       inputTelefone.className = 'form__input';
-      inputTelefone.inputMode = 'tel';
+      inputTelefone.inputMode = 'numeric';
+      try { inputTelefone.setAttribute('maxlength', '16'); } catch {}
       inputTelefone.value = telefone || '';
       inputTelefone.placeholder = '(XX) XXXXX-XXXX';
       inputTelefone.addEventListener('input', (e) => {
+        e.target.value = aplicarMascaraTelefone(e.target.value);
         estado.telefones[indice] = e.target.value;
       });
       divTelefone.appendChild(inputTelefone);

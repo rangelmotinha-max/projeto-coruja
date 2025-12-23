@@ -1281,10 +1281,12 @@
           const inputTelefone = document.createElement('input');
           inputTelefone.type = 'tel';
           inputTelefone.className = 'form__input';
-          inputTelefone.inputMode = 'tel';
+          inputTelefone.inputMode = 'numeric';
+          try { inputTelefone.setAttribute('maxlength', '16'); } catch {}
           inputTelefone.value = telefone;
           inputTelefone.placeholder = '(XX) XXXXX-XXXX';
           inputTelefone.addEventListener('input', (e) => {
+            // Máscara global em /js/main.js garantirá o limite de 11 dígitos
             telefones[indice] = e.target.value;
           });
           divTelefone.appendChild(inputTelefone);

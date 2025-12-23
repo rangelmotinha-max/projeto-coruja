@@ -422,6 +422,64 @@
     }
   };
 
+  // Global: máscara e limite para todos os campos de telefone
+  const aplicarMascaraTelefoneGlobal = (valor) => {
+    const dig = String(valor || '').replace(/\D/g, '').slice(0, 11);
+    if (dig.length <= 10) {
+      return dig.replace(/(\d{0,2})(\d{0,4})(\d{0,4}).*/, (_, a, b, c) => {
+        let r = '';
+        if (a) r += '(' + a + ') ';
+        if (b) r += b + (c ? '-' : '');
+        if (c) r += c;
+        return r;
+      });
+    }
+    return dig.replace(/(\d{0,2})(\d{0,5})(\d{0,4}).*/, (_, a, b, c) => {
+      let r = '';
+      if (a) r += '(' + a + ') ';
+      if (b) r += b + (c ? '-' : '');
+      if (c) r += c;
+      return r;
+    });
+  };
+
+  const isNavegacaoOuEdicao = (e) => {
+    const k = e.key;
+    return (
+      k === 'Backspace' || k === 'Delete' || k === 'Tab' ||
+      k === 'ArrowLeft' || k === 'ArrowRight' || k === 'ArrowUp' || k === 'ArrowDown' ||
+      k === 'Home' || k === 'End'
+    );
+  };
+
+  document.addEventListener('focusin', (e) => {
+    const el = e.target;
+    if (el && el.tagName === 'INPUT' && (el.type === 'tel' || el.name === 'telefone' || el.classList.contains('telefone'))) {
+      try { el.setAttribute('inputmode', 'numeric'); } catch {}
+      try { el.setAttribute('maxlength', '16'); } catch {}
+      if (!el.placeholder) el.placeholder = '(XX) XXXXX-XXXX';
+    }
+  });
+
+  document.addEventListener('input', (e) => {
+    const el = e.target;
+    if (el && el.tagName === 'INPUT' && (el.type === 'tel' || el.name === 'telefone' || el.classList.contains('telefone'))) {
+      el.value = aplicarMascaraTelefoneGlobal(el.value || '');
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    const el = e.target;
+    if (!(el && el.tagName === 'INPUT' && (el.type === 'tel' || el.name === 'telefone' || el.classList.contains('telefone')))) return;
+    if (isNavegacaoOuEdicao(e)) return;
+    const selLen = Math.abs((el.selectionEnd || 0) - (el.selectionStart || 0));
+    const digits = String(el.value || '').replace(/\D/g, '');
+    // Bloqueia novas entradas de dígitos quando já há 11 e não há seleção substituindo
+    if (/^\d$/.test(e.key) && digits.length >= 11 && selLen === 0) {
+      e.preventDefault();
+    }
+  });
+
   const handleLogout = () => {
     clearAuth();
     window.location.href = '/';
