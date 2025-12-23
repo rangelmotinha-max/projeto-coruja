@@ -42,6 +42,8 @@
       cnpj: formData.get('cnpj'),
       razaoSocial: formData.get('razaoSocial'),
       socio: formData.get('socio'),
+      endereco: formData.get('endereco'),
+      cep: formData.get('cep'),
     };
 
     Object.entries(filtros).forEach(([chave, valor]) => {
@@ -75,6 +77,15 @@
   };
 
   // Renderiza tabela de resultados contemplando dados principais e os sócios associados.
+  const formatEnderecos = (enderecos) => {
+    if (!Array.isArray(enderecos) || enderecos.length === 0) return '—';
+    return enderecos.map((e) => {
+      const partes = [e.uf, e.logradouro, e.bairro].filter(Boolean).join(', ');
+      const cep = e.cep ? ` CEP: ${e.cep}` : '';
+      return `${partes}${cep}`.trim() || '—';
+    }).join(' | ');
+  };
+
   const renderResults = (empresas) => {
     if (!resultsContainer) return;
     resultsContainer.innerHTML = '';
@@ -89,7 +100,7 @@
 
     const header = document.createElement('thead');
     const headerRow = document.createElement('tr');
-    ['Razão Social', 'CNPJ', 'Telefone', 'Sócios'].forEach((heading) => {
+    ['Razão Social', 'CNPJ', 'Telefone', 'Endereços', 'Sócios'].forEach((heading) => {
       const th = document.createElement('th');
       th.textContent = heading;
       headerRow.appendChild(th);
@@ -103,6 +114,7 @@
       row.appendChild(createCell(empresa.razaoSocial || empresa.nomeFantasia || 'Empresa sem razão social'));
       row.appendChild(createCell(empresa.cnpj));
       row.appendChild(createCell(empresa.telefone));
+      row.appendChild(createCell(formatEnderecos(empresa.enderecos)));
       row.appendChild(createCell(formatSocios(empresa.socios)));
       body.appendChild(row);
     });

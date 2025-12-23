@@ -2,6 +2,40 @@ const { randomUUID } = require('crypto');
 const { initDatabase } = require('../database/sqlite');
 
 class EmpresaCatalogoModel {
+  static async _listarEnderecos(db, empresaId) {
+    return db.all(
+      'SELECT id, uf, logradouro, bairro, cep, complemento, lat_long as latLong, criadoEm, atualizadoEm FROM empresas_enderecos WHERE empresa_id = ? ORDER BY atualizadoEm DESC',
+      [empresaId]
+    );
+  }
+
+  static async _salvarEnderecos(db, empresaId, enderecos) {
+    if (!Array.isArray(enderecos) || enderecos.length === 0) return;
+    const agora = new Date().toISOString();
+    for (const e of enderecos) {
+      const id = e.id || randomUUID();
+      await db.run(
+        `INSERT INTO empresas_enderecos (id, empresa_id, uf, logradouro, bairro, cep, complemento, lat_long, criadoEm, atualizadoEm)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          id,
+          empresaId,
+          e.uf || null,
+          e.logradouro || null,
+          e.bairro || null,
+          e.cep || null,
+          e.complemento || null,
+          e.latLong || null,
+          agora,
+          agora,
+        ]
+      );
+    }
+  }
+
+  static async _removerEnderecos(db, empresaId) {
+    await db.run('DELETE FROM empresas_enderecos WHERE empresa_id = ?', [empresaId]);
+  }
   static async create(dados) {
     const db = await initDatabase();
     const agora = new Date().toISOString();
@@ -53,6 +87,10 @@ class EmpresaCatalogoModel {
       }
     }
 
+    if (Array.isArray(dados.enderecos) && dados.enderecos.length) {
+      await this._salvarEnderecos(db, empresa.id, dados.enderecos);
+    }
+
     return this.findById(id);
   }
 
@@ -61,6 +99,7 @@ class EmpresaCatalogoModel {
     const empresas = await db.all('SELECT * FROM empresas_cadastro ORDER BY atualizadoEm DESC');
     for (const e of empresas) {
       e.socios = await db.all('SELECT id, nome, cpf FROM socios_cadastro WHERE empresa_id = ? ORDER BY criadoEm ASC', [e.id]);
+      e.enderecos = await this._listarEnderecos(db, e.id);
     }
     return empresas;
   }
@@ -70,6 +109,7 @@ class EmpresaCatalogoModel {
     const e = await db.get('SELECT * FROM empresas_cadastro WHERE id = ?', [id]);
     if (!e) return null;
     e.socios = await db.all('SELECT id, nome, cpf FROM socios_cadastro WHERE empresa_id = ? ORDER BY criadoEm ASC', [id]);
+    e.enderecos = await this._listarEnderecos(db, id);
     return e;
   }
 
@@ -104,11 +144,17 @@ class EmpresaCatalogoModel {
       }
     }
 
+    if (Array.isArray(updates.enderecos)) {
+      await this._removerEnderecos(db, id);
+      await this._salvarEnderecos(db, id, updates.enderecos);
+    }
+
     return this.findById(id);
   }
 
   static async delete(id) {
     const db = await initDatabase();
+    await this._removerEnderecos(db, id);
     const r = await db.run('DELETE FROM empresas_cadastro WHERE id = ?', [id]);
     return r.changes > 0;
   }

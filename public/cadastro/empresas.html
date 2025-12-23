@@ -116,17 +116,18 @@
 
             <div class="form__grid form__grid--3">
               <label class="form__field">
-                <span class="form__label">Endereço</span>
-                <input name="endereco" type="text" class="form__input" />
-              </label>
-              <label class="form__field">
-                <span class="form__label">CEP</span>
-                <input id="empresa-cep" name="cep" type="text" class="form__input" inputmode="numeric" placeholder="00000-000" />
-              </label>
-              <label class="form__field">
                 <span class="form__label">Telefone</span>
                 <input id="empresa-telefone" name="telefone" type="tel" class="form__input" inputmode="numeric" placeholder="(XX) XXXXX-XXXX" maxlength="16" aria-describedby="Ajuda: até 11 dígitos" />
               </label>
+            </div>
+
+            <!-- Endereços da empresa -->
+            <div class="form__section" aria-label="Endereços da empresa">
+              <div class="form__section-header" style="display:flex; justify-content: space-between; align-items: center;">
+                <h3 class="form__section-title" style="font-size:1rem; margin:0;">Endereços</h3>
+                <button class="button button--secondary" id="adicionar-endereco-empresa" type="button">+</button>
+              </div>
+              <div id="lista-enderecos-empresa" class="form__section-body" style="display:flex; flex-direction:column; gap:0.75rem;"></div>
             </div>
 
             <div class="form__subsection">
@@ -180,6 +181,7 @@
       let empresasFiltradas = [];
       let termoBusca = '';
       let socios = [];
+      let enderecosEmpresa = [];
       let empresaEmEdicao = null;
 
       // Helpers de autenticação (locais desta página)
@@ -196,7 +198,7 @@
       const aplicarMascaraCnpj = (v) => { const d=String(v||'').replace(/\D/g,'').slice(0,14); let r=d; if(d.length>2) r=d.slice(0,2)+'.'+d.slice(2); if(d.length>5) r=r.slice(0,6)+'.'+d.slice(5); if(d.length>8) r=r.slice(0,10)+'/'+d.slice(8); if(d.length>12) r=r.slice(0,15)+'-'+d.slice(12); return r; };
       const validarCnpj14 = (valor) => { const dig=String(valor||'').replace(/\D/g,''); return dig.length===14; };
       const aplicarMascaraTelefone = (valor) => { const dig=String(valor||'').replace(/\D/g,'').slice(0,11); if(dig.length<=10){ return dig.replace(/(\d{0,2})(\d{0,4})(\d{0,4}).*/, (_,a,b,c)=>{ let r=''; if(a) r+='('+a+') '; if(b) r+=b+(c?'-':''); if(c) r+=c; return r; }); } else { return dig.replace(/(\d{0,2})(\d{0,5})(\d{0,4}).*/, (_,a,b,c)=>{ let r=''; if(a) r+='('+a+') '; if(b) r+=b+(c?'-':''); if(c) r+=c; return r; }); } };
-      const aplicarMascaraCep = (valor) => { const dig=String(valor||'').replace(/\D/g,'').slice(0,8); return dig.length<=5?dig:dig.slice(0,5)+'-'+dig.slice(5); };
+      const aplicarMascaraCep = (valor) => { const dig=String(valor||'').replace(/\D/g,'').slice(0,8); return dig.length>5?dig.slice(0,5)+'-'+dig.slice(5):dig; };
       const renderizarSocios = () => {
         const lista = document.getElementById('lista-socios');
         lista.innerHTML = '';
@@ -232,7 +234,7 @@
         });
       };
       const adicionarSocio = () => { socios.push({ nome:'', cpf:'' }); renderizarSocios(); };
-      const obterDadosFormulario = () => { const fd=new FormData(empresaForm); const dados=Object.fromEntries(fd.entries()); dados.cnpj=aplicarMascaraCnpj(dados.cnpj).replace(/\D/g,''); dados.cep=aplicarMascaraCep(dados.cep).replace(/\D/g,''); dados.telefone=aplicarMascaraTelefone(dados.telefone); dados.socios=socios.map(s=>({ nome:String(s.nome||'').trim(), cpf:String(s.cpf||'').replace(/\D/g,'') })).filter(s=>s.nome||s.cpf); return dados; };
+      const obterDadosFormulario = () => { const fd=new FormData(empresaForm); const dados=Object.fromEntries(fd.entries()); dados.cnpj=aplicarMascaraCnpj(dados.cnpj).replace(/\D/g,''); dados.telefone=aplicarMascaraTelefone(dados.telefone); dados.socios=socios.map(s=>({ nome:String(s.nome||'').trim(), cpf:String(s.cpf||'').replace(/\D/g,'') })).filter(s=>s.nome||s.cpf); dados.enderecos=enderecosEmpresa.map(e=>({ uf:String(e.uf||'').trim()||null, logradouro:String(e.logradouro||'').trim()||null, bairro:String(e.bairro||'').trim()||null, complemento:String(e.complemento||'').trim()||null, cep:String(e.cep||'').replace(/\D/g,'').slice(0,8)||null, latLong:String(e.latLong||'').trim()||null })).filter(e=>Object.values(e).some(v=>v)); return dados; };
       const atualizarRotuloSubmit = () => { submitBtn.textContent = empresaEmEdicao ? 'Salvar' : 'Incluir'; };
       const salvarEmpresa = async (e) => {
         e.preventDefault();
@@ -430,11 +432,11 @@
         empresaForm.naturezaJuridica.value = e.naturezaJuridica || '';
         empresaForm.dataInicioAtividade.value = e.dataInicioAtividade || '';
         empresaForm.situacaoCadastral.value = e.situacaoCadastral || '';
-        empresaForm.endereco.value = e.endereco || '';
-        empresaForm.cep.value = aplicarMascaraCep(e.cep || '');
         empresaForm.telefone.value = aplicarMascaraTelefone(e.telefone || '');
         socios = Array.isArray(e.socios) ? e.socios.map(s=>({ nome: s.nome||'', cpf: s.cpf||'' })) : [];
+        enderecosEmpresa = Array.isArray(e.enderecos) ? e.enderecos.map(x=>({ uf:x.uf||'', logradouro:x.logradouro||'', bairro:x.bairro||'', complemento:x.complemento||'', cep: x.cep||'', latLong: x.latLong||'' })) : [];
         renderizarSocios();
+        renderizarEnderecosEmpresa();
       };
 
       const editarEmpresa = (e) => {
@@ -464,16 +466,173 @@
       const inicializar = () => {
         atualizarRotuloSubmit();
         document.getElementById('empresa-cnpj')?.addEventListener('input', e=>{ e.target.value=aplicarMascaraCnpj(e.target.value); });
-        document.getElementById('empresa-cep')?.addEventListener('input', e=>{ e.target.value=aplicarMascaraCep(e.target.value); });
         document.getElementById('empresa-telefone')?.addEventListener('input', e=>{ e.target.value=aplicarMascaraTelefone(e.target.value); });
         document.getElementById('adicionar-socio')?.addEventListener('click', adicionarSocio);
+        document.getElementById('adicionar-endereco-empresa')?.addEventListener('click', adicionarEnderecoEmpresa);
         empresaForm.addEventListener('submit', salvarEmpresa);
         listarBtn?.addEventListener('click', listarEmpresas);
         campoConsulta?.addEventListener('input', (e) => { termoBusca = e.target.value || ''; filtrarEmpresas(termoBusca); });
         renderizarSocios();
+        renderizarEnderecosEmpresa();
         listarEmpresas();
       };
       document.addEventListener('DOMContentLoaded', inicializar);
+
+      // ---------- Endereços dinâmicos (reuso da lógica de veículos) ----------
+      const createEstadosSelect = () => {
+        return `<option value="">Selecione</option>
+                    <option value="AC">Acre (AC)</option>
+                    <option value="AL">Alagoas (AL)</option>
+                    <option value="AP">Amapá (AP)</option>
+                    <option value="AM">Amazonas (AM)</option>
+                    <option value="BA">Bahia (BA)</option>
+                    <option value="CE">Ceará (CE)</option>
+                    <option value="DF">Distrito Federal (DF)</option>
+                    <option value="ES">Espírito Santo (ES)</option>
+                    <option value="GO">Goiás (GO)</option>
+                    <option value="MA">Maranhão (MA)</option>
+                    <option value="MT">Mato Grosso (MT)</option>
+                    <option value="MS">Mato Grosso do Sul (MS)</option>
+                    <option value="MG">Minas Gerais (MG)</option>
+                    <option value="PA">Pará (PA)</option>
+                    <option value="PB">Paraíba (PB)</option>
+                    <option value="PR">Paraná (PR)</option>
+                    <option value="PE">Pernambuco (PE)</option>
+                    <option value="PI">Piauí (PI)</option>
+                    <option value="RJ">Rio de Janeiro (RJ)</option>
+                    <option value="RN">Rio Grande do Norte (RN)</option>
+                    <option value="RS">Rio Grande do Sul (RS)</option>
+                    <option value="RO">Rondônia (RO)</option>
+                    <option value="RR">Roraima (RR)</option>
+                    <option value="SC">Santa Catarina (SC)</option>
+                    <option value="SP">São Paulo (SP)</option>
+                    <option value="SE">Sergipe (SE)</option>
+                    <option value="TO">Tocantins (TO)</option>`;
+      };
+
+      const renderizarEnderecosEmpresa = () => {
+        const lista = document.getElementById('lista-enderecos-empresa');
+        if (!lista) return;
+        lista.innerHTML = '';
+        if (!enderecosEmpresa.length) {
+          lista.innerHTML = '<p style="color: var(--muted); margin: 0;">Nenhum endereço adicionado. Clique para adicionar.</p>';
+          return;
+        }
+        enderecosEmpresa.forEach((endereco, idx) => {
+          const div = document.createElement('div');
+          div.style.cssText = 'border: 1px solid var(--border); border-radius: 0.5rem; padding: 1rem;';
+          const grid = document.createElement('div');
+          grid.className = 'form__grid form__grid--4';
+          grid.innerHTML = `
+            <label class="form__field">
+              <span class="form__label">UF</span>
+              <select class="form__input endereco-uf" data-index="${idx}">${createEstadosSelect()}</select>
+            </label>
+            <label class="form__field form__field--wide">
+              <span class="form__label">Logradouro/Nome</span>
+              <input class="form__input endereco-logradouro" type="text" data-index="${idx}" />
+            </label>
+            <label class="form__field">
+              <span class="form__label">Bairro/Cidade</span>
+              <input class="form__input endereco-bairro" type="text" data-index="${idx}" />
+            </label>
+            <label class="form__field">
+              <span class="form__label">CEP</span>
+              <input class="form__input endereco-cep" type="text" inputmode="numeric" data-index="${idx}" />
+            </label>
+            <label class="form__field">
+              <span class="form__label">Complemento</span>
+              <input class="form__input endereco-complemento" type="text" data-index="${idx}" />
+            </label>
+            <label class="form__field form__field--wide">
+              <span class="form__label">Lat/Long</span>
+              <input class="form__input endereco-latlong" type="text" data-index="${idx}" placeholder="-23.5, -46.6" />
+            </label>`;
+          div.appendChild(grid);
+
+          grid.querySelector('.endereco-uf').value = endereco.uf || '';
+          grid.querySelector('.endereco-logradouro').value = endereco.logradouro || '';
+          grid.querySelector('.endereco-bairro').value = endereco.bairro || '';
+          grid.querySelector('.endereco-cep').value = aplicarMascaraCep(endereco.cep || '');
+          grid.querySelector('.endereco-complemento').value = endereco.complemento || '';
+          grid.querySelector('.endereco-latlong').value = endereco.latLong || '';
+
+          grid.querySelector('.endereco-uf').addEventListener('change', (e) => { enderecosEmpresa[idx].uf = e.target.value; });
+          grid.querySelector('.endereco-logradouro').addEventListener('input', (e) => { enderecosEmpresa[idx].logradouro = e.target.value; });
+          grid.querySelector('.endereco-bairro').addEventListener('input', (e) => { enderecosEmpresa[idx].bairro = e.target.value; });
+          grid.querySelector('.endereco-cep').addEventListener('input', (e) => { e.target.value = aplicarMascaraCep(e.target.value); enderecosEmpresa[idx].cep = e.target.value; });
+          grid.querySelector('.endereco-complemento').addEventListener('input', (e) => { enderecosEmpresa[idx].complemento = e.target.value; });
+          grid.querySelector('.endereco-latlong').addEventListener('input', (e) => { enderecosEmpresa[idx].latLong = e.target.value; });
+
+          const statusDiv = document.createElement('div');
+          statusDiv.className = `cep-status-empresa-${idx}`;
+          statusDiv.style.cssText = 'margin-top: 0.5rem; font-size: 0.85rem; display:none;';
+          div.appendChild(statusDiv);
+
+          grid.querySelector('.endereco-cep').addEventListener('blur', (e) => {
+            const v = String(e.target.value||'').replace(/\D/g,'');
+            if (v.length === 8) {
+              mostrarCarregamentoCepEmpresa(idx, true);
+              buscarEnderecoPorCepEmpresa(v, idx);
+            }
+          });
+
+          const actions = document.createElement('div');
+          actions.className = 'form__actions';
+          const removerBtn = document.createElement('button');
+          removerBtn.type = 'button';
+          removerBtn.className = 'button button--danger';
+          removerBtn.textContent = 'Remover';
+          removerBtn.addEventListener('click', () => { enderecosEmpresa.splice(idx,1); renderizarEnderecosEmpresa(); });
+          actions.appendChild(removerBtn);
+          div.appendChild(actions);
+
+          lista.appendChild(div);
+        });
+      };
+
+      const adicionarEnderecoEmpresa = () => { enderecosEmpresa.push({ uf:'', logradouro:'', bairro:'', cep:'', complemento:'', latLong:'' }); renderizarEnderecosEmpresa(); };
+
+      const buscarEnderecoPorCepEmpresa = async (cepNumeros, idx) => {
+        try {
+          const response = await fetch(`https://viacep.com.br/ws/${cepNumeros}/json/`);
+          const data = await response.json();
+          if (data.erro) {
+            exibirStatusCepEmpresa(idx, 'CEP não encontrado', 'error');
+          } else {
+            enderecosEmpresa[idx].uf = data.uf || '';
+            enderecosEmpresa[idx].logradouro = data.logradouro || '';
+            enderecosEmpresa[idx].bairro = `${data.bairro || ''} ${data.localidade || ''}`.trim();
+            enderecosEmpresa[idx].cep = cepNumeros;
+            renderizarEnderecosEmpresa();
+            exibirStatusCepEmpresa(idx, 'Endereço carregado com sucesso', 'success');
+          }
+        } catch (error) {
+          exibirStatusCepEmpresa(idx, 'Erro ao buscar CEP', 'error');
+        } finally {
+          mostrarCarregamentoCepEmpresa(idx, false);
+        }
+      };
+
+      const mostrarCarregamentoCepEmpresa = (idx, mostrando) => {
+        const el = document.querySelector(`.cep-status-empresa-${idx}`);
+        if (!el) return;
+        if (mostrando) {
+          el.innerHTML = `<div style="display:flex; align-items:center; gap:0.5rem; color: var(--primary);"><div class="spinner" style="width: 16px; height: 16px; border: 2px solid var(--primary); border-top: 2px solid transparent; border-radius: 50%; animation: spin 0.6s linear infinite;"></div><span>Carregando endereço...</span></div>`;
+          el.style.display = 'block';
+        } else {
+          el.style.display = 'none';
+        }
+      };
+
+      const exibirStatusCepEmpresa = (idx, mensagem, tipo) => {
+        const el = document.querySelector(`.cep-status-empresa-${idx}`);
+        if (!el) return;
+        const cores = { success: 'var(--success-text)', error: 'var(--error-text)' };
+        el.innerHTML = `<div style="display:flex; align-items:center; gap:0.5rem; color:${cores[tipo]||'var(--text)'};"><span>${tipo==='success'?'✓':'✕'}</span><span>${mensagem}</span></div>`;
+        el.style.display = 'block';
+        setTimeout(() => { if (el.style.display !== 'none') el.style.display = 'none'; }, 3000);
+      };
     </script>
     <div id="alterar-senha-modal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="alterar-senha-title">
       <div class="modal__overlay" data-modal-close></div>

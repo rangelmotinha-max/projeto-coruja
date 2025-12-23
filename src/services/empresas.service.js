@@ -3,7 +3,6 @@ const { criarErro } = require('../utils/helpers');
 
 function sanitizeEmpresa(payload) {
   const cnpjDigits = String(payload.cnpj || '').replace(/\D/g, '');
-  const cepDigits = String(payload.cep || '').replace(/\D/g, '');
   const telefone = String(payload.telefone || '').trim();
   const socios = Array.isArray(payload.socios)
     ? payload.socios.map((s) => ({
@@ -19,9 +18,8 @@ function sanitizeEmpresa(payload) {
     naturezaJuridica: payload.naturezaJuridica ? String(payload.naturezaJuridica).trim() : null,
     dataInicioAtividade: payload.dataInicioAtividade || null,
     situacaoCadastral: payload.situacaoCadastral || null,
-    endereco: payload.endereco ? String(payload.endereco).trim() : null,
-    cep: cepDigits || null,
     telefone: telefone || null,
+    enderecos: require('../utils/validators').validarEnderecos(payload.enderecos || []),
     socios,
   };
 }
@@ -43,8 +41,10 @@ async function listar(filtros = {}) {
   const filtroRazao = normalizarTexto(filtros.razaoSocial || filtros.nomeFantasia);
   const filtroSocioTexto = normalizarTexto(filtros.socio);
   const filtroSocioDigitos = somenteDigitos(filtros.socio);
+  const filtroEnderecoTexto = normalizarTexto(filtros.endereco);
+  const filtroCep = somenteDigitos(filtros.cep);
 
-  const temFiltro = filtroCnpj || filtroRazao || filtroSocioTexto || filtroSocioDigitos;
+  const temFiltro = filtroCnpj || filtroRazao || filtroSocioTexto || filtroSocioDigitos || filtroEnderecoTexto || filtroCep;
   if (!temFiltro) return empresas;
 
   return empresas.filter((empresa) => {
@@ -67,7 +67,27 @@ async function listar(filtros = {}) {
         })
       : true;
 
-    return cnpjAtende && razaoAtende && socioAtende;
+    const enderecosArr = Array.isArray(empresa.enderecos) ? empresa.enderecos : [];
+    const enderecoTextoAtende = filtroEnderecoTexto
+      ? enderecosArr.some((e) => {
+          const uf = normalizarTexto(e.uf);
+          const logradouro = normalizarTexto(e.logradouro);
+          const bairro = normalizarTexto(e.bairro);
+          const complemento = normalizarTexto(e.complemento);
+          return (
+            uf.includes(filtroEnderecoTexto) ||
+            logradouro.includes(filtroEnderecoTexto) ||
+            bairro.includes(filtroEnderecoTexto) ||
+            complemento.includes(filtroEnderecoTexto)
+          );
+        })
+      : true;
+
+    const cepAtende = filtroCep
+      ? enderecosArr.some((e) => somenteDigitos(e.cep).includes(filtroCep))
+      : true;
+
+    return cnpjAtende && razaoAtende && socioAtende && enderecoTextoAtende && cepAtende;
   });
 }
 
