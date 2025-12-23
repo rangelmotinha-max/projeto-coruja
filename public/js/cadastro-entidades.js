@@ -374,7 +374,7 @@
           logradouroAnchor.title = 'Abrir endereço no Google Maps';
           logradouroAnchor.style.display = 'flex';
           logradouroCampo.style.color = 'transparent';
-          logradouroCampo.style.textShadow = '0 0 0 var(--text)';
+          logradouroCampo.style.textShadow = 'none';
           logradouroCampo.style.caretColor = 'var(--text)';
           logradouroCampo.style.pointerEvents = 'none';
         } else {
