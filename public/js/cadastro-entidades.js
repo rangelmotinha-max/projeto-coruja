@@ -738,7 +738,6 @@
     renderizarEnderecos();
     renderizarFotosAtuais();
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    exibirMensagem(formMsgEl, 'Modo edição ativo. Ajuste os campos e salve.', 'info');
   };
 
   const carregarEntidades = async () => {

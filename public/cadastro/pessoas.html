@@ -2860,7 +2860,7 @@
             const id = pessoa.id || pessoa._id;
             if (!id) return;
             try {
-              exibirMensagem('Carregando dados completos para edição...', 'info');
+              // Removido banner informativo de edição
               const resp = await fetchAutenticado(`${API_PESSOAS_URL}/${id}`);
               const dados = await resp.json().catch(() => ({}));
               if (!resp.ok) {
@@ -2871,7 +2871,7 @@
               pessoaEmEdicao = pessoaCompleta.id || pessoaCompleta._id || id;
               preencherFormulario(pessoaCompleta);
               atualizarRotuloSubmit();
-              exibirMensagem('Editando registro selecionado.', 'success');
+              // Removido banner informativo de edição ativa
             } catch (err) {
               exibirMensagem(err?.message || 'Erro ao carregar dados completos para edição.', 'error');
               // fallback: pelo menos preenche campos básicos
