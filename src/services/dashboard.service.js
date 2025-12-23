@@ -88,4 +88,18 @@ module.exports = {
   getPessoasSummary,
   getEmpresasSummary,
   getEntidadesSummary,
+  async getVeiculosSummary() {
+    const db = await initDatabase();
+    const totalRow = await db.get('SELECT COUNT(*) AS total FROM veiculos');
+    const porUf = await db.all(
+      `SELECT UPPER(COALESCE(uf, '—')) AS uf, COUNT(DISTINCT veiculo_id) AS total
+       FROM veiculos_enderecos
+       GROUP BY UPPER(COALESCE(uf, '—'))
+       ORDER BY total DESC, uf ASC`
+    );
+    return {
+      totalVeiculos: totalRow?.total || 0,
+      veiculosPorUF: porUf,
+    };
+  },
 };

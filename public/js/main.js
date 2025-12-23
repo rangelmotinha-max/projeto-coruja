@@ -358,6 +358,37 @@
     }
   };
 
+  // Dashboard: seção "Veículos" (total e por UF)
+  const carregarDashboardVeiculos = async () => {
+    const homePage = document.querySelector('[data-page="home"]');
+    if (!homePage) return;
+
+    const totalEl = document.getElementById('dash-total-veiculos');
+    const ufTbody = document.getElementById('dash-veiculos-por-uf');
+    if (totalEl) totalEl.textContent = '—';
+    if (ufTbody) ufTbody.innerHTML = '<tr><td colspan="2" style="opacity:0.7;">Carregando...</td></tr>';
+
+    try {
+      const resp = await authorizedFetch('/api/dashboard/veiculos');
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) throw new Error(data?.message || 'Falha ao carregar veículos.');
+
+      if (totalEl) totalEl.textContent = String(data?.totalVeiculos ?? 0);
+      if (ufTbody) {
+        const lista = Array.isArray(data?.veiculosPorUF) ? data.veiculosPorUF : [];
+        if (!lista.length) {
+          ufTbody.innerHTML = '<tr><td colspan="2" style="opacity:0.7;">Sem dados</td></tr>';
+        } else {
+          ufTbody.innerHTML = lista
+            .map((r) => `<tr><td>${(r.uf || '—')}</td><td style="text-align:right;">${r.total}</td></tr>`)
+            .join('');
+        }
+      }
+    } catch (error) {
+      if (ufTbody) ufTbody.innerHTML = `<tr><td colspan="2" style="color:var(--danger-600);">${error?.message || 'Erro'}</td></tr>`;
+    }
+  };
+
   // Preenche o formulário de edição de perfil com os dados disponíveis
   const fillProfileForm = (user) => {
     if (!profileForm || !user) return;
@@ -553,6 +584,7 @@
     await carregarDashboardPessoas();
     await carregarDashboardEmpresas();
     await carregarDashboardEntidades();
+    await carregarDashboardVeiculos();
   })();
 
   // Global: máscara e limite para todos os campos de telefone

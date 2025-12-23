@@ -30,6 +30,10 @@
   --error-surface: rgba(239, 68, 68, 0.12);
   --error-border: rgba(239, 68, 68, 0.3);
   --error-text: #fecdd3;
+  --warning-surface: rgba(245, 158, 11, 0.14);
+  --warning-border: rgba(245, 158, 11, 0.35);
+  --sky-surface: rgba(59, 130, 246, 0.14);
+  --sky-border: rgba(59, 130, 246, 0.35);
 }
 
 /* Paleta do tema claro inspirada em Material Design 3 (tons suaves) */
@@ -59,6 +63,10 @@
   --error-surface: #fce8e8;
   --error-border: #f5b5b8;
   --error-text: #9f1239;
+  --warning-surface: #FEF3C7;
+  --warning-border: #FACC15;
+  --sky-surface: #E0F2FE;
+  --sky-border: #93C5FD;
 }
 
 * {
@@ -446,6 +454,37 @@ body {
   border: 1px solid var(--border);
   border-radius: 14px;
   background: var(--surface-raised);
+}
+
+/* Variantes de cores para seções do dashboard */
+.dashboard-section {
+  background: var(--surface-raised);
+}
+
+.dashboard-section--usuarios {
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface-raised));
+  border-color: color-mix(in srgb, var(--primary) 35%, var(--border));
+}
+
+.dashboard-section--pessoas {
+  background: var(--success-surface);
+  border-color: var(--success-border);
+}
+
+
+.dashboard-section--empresas {
+  background: var(--sky-surface);
+  border-color: var(--sky-border);
+}
+
+.dashboard-section--entidades {
+  background: var(--warning-surface);
+  border-color: var(--warning-border);
+}
+
+.dashboard-section--veiculos {
+  background: var(--error-surface);
+  border-color: var(--error-border);
 }
 
 .form__section-header {

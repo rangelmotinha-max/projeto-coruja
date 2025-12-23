@@ -44,4 +44,13 @@ router.get('/entidades', authorize(['admin', 'editor', 'viewer', 'user', 'leitor
   }
 });
 
+router.get('/veiculos', authorize(['admin', 'editor', 'viewer', 'user', 'leitor']), async (req, res, next) => {
+  try {
+    const data = await dashboardService.getVeiculosSummary();
+    res.json(data);
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;
