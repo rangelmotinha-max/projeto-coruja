@@ -2890,7 +2890,6 @@
           excluirBtn.addEventListener('click', async () => {
             if (!confirm('Deseja realmente excluir este registro?')) return;
             try {
-              exibirMensagem('Removendo registro...', 'info');
               const response = await fetchAutenticado(`${API_PESSOAS_URL}/${pessoa.id || pessoa._id}`, {
                 method: 'DELETE',
               });
@@ -2899,7 +2898,6 @@
                 const erro = data?.mensagem || data?.message || 'Erro ao excluir o registro.';
                 throw new Error(erro);
               }
-              exibirMensagem('Pessoa excluída com sucesso!', 'success');
               alert('Pessoa excluída com sucesso!');
               carregarPessoas();
             } catch (error) {
@@ -3103,10 +3101,8 @@
 
           const foiEdicao = Boolean(pessoaEmEdicao);
           if (foiEdicao) {
-            exibirMensagemForm('Alterações realizadas com sucesso!', 'success');
             alert('Alterações realizadas com sucesso!');
           } else {
-            exibirMensagemForm('Pessoa cadastrada com sucesso!', 'success');
             alert('Pessoa cadastrada com sucesso!');
           }
           ultimaAcaoFoiEdicao = foiEdicao;

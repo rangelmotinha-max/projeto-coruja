@@ -252,7 +252,12 @@
             const msg = data?.mensagem || data?.message || 'Não foi possível salvar a empresa.';
             throw new Error(msg);
           }
-          exibirMensagemForm('Empresa salva com sucesso!', 'success');
+          // Sucesso: exibe apenas popup (sem mensagem superior)
+          if (empresaEmEdicao) {
+            alert('Alterações realizadas com sucesso!');
+          } else {
+            alert('Empresa cadastrada com sucesso!');
+          }
           empresaForm.reset();
           socios = [];
           renderizarSocios();
@@ -449,7 +454,7 @@
             const msg = data?.mensagem || data?.message || 'Não foi possível excluir.';
             throw new Error(msg);
           }
-          exibirMensagem('Empresa excluída com sucesso.', 'success');
+          alert('Empresa excluída com sucesso!');
           if (empresaEmEdicao === e.id) { empresaEmEdicao = null; atualizarRotuloSubmit(); empresaForm.reset(); socios = []; renderizarSocios(); }
           listarEmpresas();
         } catch (err) {
