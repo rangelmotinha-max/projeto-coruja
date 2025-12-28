@@ -791,11 +791,13 @@
           const info = String(p?.info || '').trim();
           return (data || info) ? { data, info } : null;
         }).filter(Boolean);
-        // Monitoramento: eventos com possível foto única por item
+        // Monitoramento: eventos com possível foto(s) por item
         const monitorList = (monitoramentos || []).map((m) => {
           const data = String(m?.data || '').trim();
           const descricao = String(m?.descricao || '').trim();
-          const possuiArquivo = !!m?.arquivo;
+          const possuiArquivo = Array.isArray(m?.imagensSelecionadas)
+            ? m.imagensSelecionadas.length > 0
+            : !!m?.arquivo;
           const possuiDados = data || descricao || possuiArquivo;
           if (!possuiDados) return null;
           const item = { data, descricao };
@@ -828,16 +830,18 @@
         // Primeiro agregamos arquivos e calculamos índices de upload por evento
         const arquivosMonitoramentoAgregados = [];
         monitoramentos.forEach((evento) => {
-          const file = evento?.arquivo || null;
-          if (file) {
+          const imagens = Array.isArray(evento?.imagensSelecionadas) ? evento.imagensSelecionadas : [];
+          const indices = [];
+          imagens.forEach((img) => {
+            const file = img?.file || null;
+            if (!file) return;
             const base = arquivosMonitoramentoAgregados.length;
             const nomeArquivo = file.name || `monitoramento-${base + 1}`;
             formDataEnvio.append('imagensMonitoramento', file, nomeArquivo);
-            evento.imagensUploadIndices = [base];
             arquivosMonitoramentoAgregados.push(file);
-          } else {
-            evento.imagensUploadIndices = [];
-          }
+            indices.push(base);
+          });
+          evento.imagensUploadIndices = indices;
         });
 
         // Atualiza ocorrencias.monitoramentos no payload com os índices calculados
@@ -845,7 +849,12 @@
           data: String(m?.data || '').trim(),
           descricao: String(m?.descricao || '').trim(),
           imagensUploadIndices: Array.isArray(m?.imagensUploadIndices) ? m.imagensUploadIndices : [],
-        })).filter((it) => it.data || it.descricao || (Array.isArray(it.imagensUploadIndices) && it.imagensUploadIndices.length));
+          imagens: Array.isArray(m?.imagens)
+            ? m.imagens
+              .map((img) => ({ caminho: String(img?.caminho || img || '').trim(), nome: String(img?.nome || '').trim() }))
+              .filter((it) => it.caminho)
+            : [],
+        })).filter((it) => it.data || it.descricao || (Array.isArray(it.imagensUploadIndices) && it.imagensUploadIndices.length) || (Array.isArray(it.imagens) && it.imagens.length));
 
         const occ = dadosEnvio.ocorrencias && typeof dadosEnvio.ocorrencias === 'object' ? { ...dadosEnvio.ocorrencias } : {};
         const monPayload = construirMonitoramentosPayload();
@@ -2318,17 +2327,34 @@
           inputFoto.className = 'form__input occ-doc';
           inputFoto.dataset.index = i;
           inputFoto.accept = 'image/*';
+          try { inputFoto.setAttribute('multiple', ''); } catch {}
           const hintFoto = document.createElement('small');
           hintFoto.className = 'form__hint';
-          hintFoto.textContent = item?.arquivo?.name ? `Selecionado: ${item.arquivo.name}` : '';
+          const qtdSelecionadas = Array.isArray(item?.imagensSelecionadas) ? item.imagensSelecionadas.length : (item?.arquivo ? 1 : 0);
+          hintFoto.textContent = qtdSelecionadas ? `${qtdSelecionadas} imagem(ns) selecionada(s)` : '';
           const limiteFoto = document.createElement('small');
           limiteFoto.className = 'form__hint';
           limiteFoto.textContent = 'até 5MB';
 
           inputFoto.addEventListener('change', (e) => {
-            const file = (e.target.files && e.target.files[0]) || null;
-            monitoramentos[i].arquivo = (file && (file.type || '').startsWith('image/')) ? file : null;
-            hintFoto.textContent = monitoramentos[i].arquivo ? `Selecionado: ${monitoramentos[i].arquivo.name}` : '';
+            const files = Array.from(e.target.files || []);
+            const imagens = files.filter((f) => (f.type || '').startsWith('image/'));
+            if (!Array.isArray(monitoramentos[i].imagensSelecionadas)) {
+              monitoramentos[i].imagensSelecionadas = [];
+            }
+            imagens.forEach((file) => {
+              monitoramentos[i].imagensSelecionadas.push({
+                file,
+                nome: file.name || 'Foto',
+                previewUrl: URL.createObjectURL(file),
+              });
+            });
+            hintFoto.textContent = monitoramentos[i].imagensSelecionadas.length
+              ? `${monitoramentos[i].imagensSelecionadas.length} imagem(ns) selecionada(s)`
+              : '';
+            // Limpa value para permitir selecionar o mesmo arquivo novamente
+            try { e.target.value = ''; } catch {}
+            renderizarMonitoramentos();
           });
 
           campoFoto.appendChild(labelFoto);
@@ -2337,15 +2363,133 @@
           campoFoto.appendChild(limiteFoto);
           const existentes = Array.isArray(item?.imagens) ? item.imagens : [];
           if (existentes.length) {
-            const listaExistentes = document.createElement('div');
-            listaExistentes.className = 'form__hint';
-            listaExistentes.style.marginTop = '0.25rem';
-            listaExistentes.innerHTML = existentes.map((img) => {
-              const url = img?.caminho || img;
-              const nome = img?.nome || 'Imagem';
-              return `<a href="${url}" target="_blank" rel="noopener">${nome}</a>`;
-            }).join(' • ');
-            campoFoto.appendChild(listaExistentes);
+            const gridExistentes = document.createElement('div');
+            gridExistentes.style.display = 'grid';
+            gridExistentes.style.gap = '0.75rem';
+            gridExistentes.style.gridTemplateColumns = 'repeat(auto-fill, minmax(160px, 1fr))';
+            existentes.forEach((imgObj, idx) => {
+              const url = imgObj?.caminho || imgObj;
+              const nome = imgObj?.nome || 'Imagem';
+              const wrap = document.createElement('div');
+              wrap.style.border = '1px solid var(--border)';
+              wrap.style.padding = '0.5rem';
+              wrap.style.borderRadius = '0.5rem';
+              wrap.style.background = 'var(--surface)';
+              wrap.style.display = 'flex';
+              wrap.style.flexDirection = 'column';
+              wrap.style.gap = '0.5rem';
+
+              const imgEl = document.createElement('img');
+              imgEl.src = url;
+              imgEl.alt = nome;
+              imgEl.style.width = '100%';
+              imgEl.style.height = '140px';
+              imgEl.style.objectFit = 'cover';
+              imgEl.style.borderRadius = '0.35rem';
+
+              const legend = document.createElement('div');
+              legend.textContent = nome;
+              legend.style.fontSize = '0.9rem';
+              legend.style.fontWeight = '600';
+
+              const actions = document.createElement('div');
+              actions.style.display = 'flex';
+              actions.style.gap = '0.5rem';
+
+              const verBtn = document.createElement('a');
+              verBtn.href = url;
+              verBtn.target = '_blank';
+              verBtn.rel = 'noopener';
+              verBtn.className = 'button button--ghost';
+              verBtn.textContent = 'Abrir';
+
+              const removerBtn = document.createElement('button');
+              removerBtn.type = 'button';
+              removerBtn.className = 'button button--danger';
+              removerBtn.textContent = 'Remover';
+              removerBtn.addEventListener('click', () => {
+                const ok = window.confirm('Deseja realmente excluir essa imagem?');
+                if (!ok) return;
+                if (Array.isArray(monitoramentos[i].imagens)) {
+                  monitoramentos[i].imagens.splice(idx, 1);
+                  renderizarMonitoramentos();
+                }
+              });
+
+              actions.appendChild(verBtn);
+              actions.appendChild(removerBtn);
+
+              wrap.appendChild(imgEl);
+              wrap.appendChild(legend);
+              wrap.appendChild(actions);
+              gridExistentes.appendChild(wrap);
+            });
+            const tituloExist = document.createElement('div');
+            tituloExist.className = 'form__hint';
+            tituloExist.textContent = 'Imagens já salvas';
+            campoFoto.appendChild(tituloExist);
+            campoFoto.appendChild(gridExistentes);
+          }
+
+          // Pré-visualização no mesmo estilo da seção Identificação (suporta múltiplas imagens)
+          const previews = Array.isArray(item?.imagensSelecionadas)
+            ? item.imagensSelecionadas
+            : (item?.previewUrl ? [{ nome: item.nome, previewUrl: item.previewUrl, singleLegacy: true }] : []);
+          if (previews.length) {
+            const grid = document.createElement('div');
+            grid.style.display = 'grid';
+            grid.style.gap = '0.75rem';
+            grid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(160px, 1fr))';
+            previews.forEach((foto, idx) => {
+              const previewWrapper = document.createElement('div');
+              previewWrapper.style.border = '1px solid var(--border)';
+              previewWrapper.style.padding = '0.5rem';
+              previewWrapper.style.borderRadius = '0.5rem';
+              previewWrapper.style.background = 'var(--surface)';
+              previewWrapper.style.display = 'flex';
+              previewWrapper.style.flexDirection = 'column';
+              previewWrapper.style.gap = '0.5rem';
+
+              const imgPrev = document.createElement('img');
+              imgPrev.src = foto.previewUrl;
+              imgPrev.alt = foto.nome || 'Foto selecionada';
+              imgPrev.style.width = '100%';
+              imgPrev.style.height = '140px';
+              imgPrev.style.objectFit = 'cover';
+              imgPrev.style.borderRadius = '0.35rem';
+
+              const legendPrev = document.createElement('div');
+              legendPrev.textContent = foto.nome || 'Foto';
+              legendPrev.style.fontSize = '0.9rem';
+              legendPrev.style.fontWeight = '600';
+
+              const removerPrevBtn = document.createElement('button');
+              removerPrevBtn.type = 'button';
+              removerPrevBtn.className = 'button button--ghost';
+              removerPrevBtn.textContent = 'Remover';
+              removerPrevBtn.addEventListener('click', () => {
+                const ok = window.confirm('Deseja realmente excluir essa imagem?');
+                if (!ok) return;
+                if (foto?.previewUrl && !foto.singleLegacy) {
+                  try { URL.revokeObjectURL(foto.previewUrl); } catch {}
+                }
+                if (Array.isArray(monitoramentos[i].imagensSelecionadas)) {
+                  monitoramentos[i].imagensSelecionadas.splice(idx, 1);
+                } else {
+                  // Legado: limpeza do único previewUrl
+                  monitoramentos[i].arquivo = null;
+                  monitoramentos[i].previewUrl = '';
+                  monitoramentos[i].nome = '';
+                }
+                renderizarMonitoramentos();
+              });
+
+              previewWrapper.appendChild(imgPrev);
+              previewWrapper.appendChild(legendPrev);
+              previewWrapper.appendChild(removerPrevBtn);
+              grid.appendChild(previewWrapper);
+            });
+            campoFoto.appendChild(grid);
           }
 
           // Botão Remover
@@ -2368,7 +2512,13 @@
           descricaoEl.value = String(item?.descricao || '');
           dataEl.addEventListener('input', (e) => { monitoramentos[i].data = e.target.value; renderizarMonitoramentos(); });
           descricaoEl.addEventListener('input', (e) => { monitoramentos[i].descricao = e.target.value; });
-          btnRemover.addEventListener('click', () => { monitoramentos.splice(i,1); renderizarMonitoramentos(); });
+          btnRemover.addEventListener('click', () => {
+            // Revoga URLs de preview para liberar memória
+            const imgs = Array.isArray(monitoramentos[i]?.imagensSelecionadas) ? monitoramentos[i].imagensSelecionadas : [];
+            imgs.forEach((f) => { try { URL.revokeObjectURL(f.previewUrl); } catch {} });
+            monitoramentos.splice(i,1);
+            renderizarMonitoramentos();
+          });
 
           linha.appendChild(campoData);
           linha.appendChild(btnRemover);
@@ -2386,7 +2536,7 @@
       const adicionarProcesso = () => { processos.push({ data: '', info: '' }); renderizarProcessos(); };
       const adicionarAbordagem = () => { abordagens.push({ data: '', info: '' }); renderizarAbordagens(); };
       const adicionarPrisao = () => { prisoes.push({ data: '', info: '' }); renderizarPrisoes(); };
-      const adicionarMonitoramento = () => { monitoramentos.push({ data: '', descricao: '', arquivo: null, imagensUploadIndices: [] }); renderizarMonitoramentos(); };
+      const adicionarMonitoramento = () => { monitoramentos.push({ data: '', descricao: '', imagensSelecionadas: [], imagensUploadIndices: [] }); renderizarMonitoramentos(); };
 
       const createEstadosSelect = () => {
         return `<option value="">Selecione</option>
@@ -3399,6 +3549,13 @@
           renderizarAbordagens();
           prisoes = [];
           renderizarPrisoes();
+          // Revoga URLs dos previews dos eventos de monitoramento antes de limpar
+          try {
+            (Array.isArray(monitoramentos) ? monitoramentos : []).forEach((m) => {
+              const imgs = Array.isArray(m?.imagensSelecionadas) ? m.imagensSelecionadas : [];
+              imgs.forEach((f) => { try { URL.revokeObjectURL(f.previewUrl); } catch {} });
+            });
+          } catch {}
           monitoramentos = [];
           renderizarMonitoramentos();
         });

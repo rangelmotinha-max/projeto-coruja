@@ -409,7 +409,7 @@ function validarOcorrencias(ocorrencias, documentosOcorrencias = [], imagensMoni
   const processos = normalizarItens(ocorrencias.processos);
   const abordagens = normalizarItens(ocorrencias.abordagens);
   const prisoes = normalizarItens(ocorrencias.prisoes);
-  // Monitoramentos: múltiplas imagens por evento via índices de upload
+  // Monitoramentos: múltiplas imagens por evento via índices de upload + referências existentes
   const monitoramentos = Array.isArray(ocorrencias.monitoramentos) ? ocorrencias.monitoramentos.map((m, idx) => {
     const data = normalizarOpcional(m.data);
     const evento = normalizarOpcional(m.evento);
@@ -424,6 +424,28 @@ function validarOcorrencias(ocorrencias, documentosOcorrencias = [], imagensMoni
         mimeType: arquivo.mimetype,
         tamanho: arquivo.size,
       }));
+    // Imagens existentes enviadas no payload devem ser preservadas
+    const existentesPayload = Array.isArray(m.imagens) ? m.imagens
+      .map((img) => {
+        const caminho = normalizarOpcional(img?.caminho || img);
+        const nome = normalizarOpcional(img?.nome);
+        if (!caminho) return null;
+        const cam = caminho.startsWith('/uploads/ocorrencias/')
+          ? caminho
+          : (caminho.startsWith('uploads/ocorrencias/') ? `/${caminho}` : null);
+        if (!cam) return null;
+        return { caminho: cam, nome: nome || null };
+      })
+      .filter(Boolean) : [];
+    const todos = [...existentesPayload, ...imagens];
+    const vistos = new Set();
+    imagens = todos.filter((img) => {
+      const key = img.caminho;
+      if (!key) return false;
+      if (vistos.has(key)) return false;
+      vistos.add(key);
+      return true;
+    });
     // Fallback: se nenhum índice foi enviado, usa posição do item
     if (!imagens.length && imagensMonitoramento[idx]) {
       const arquivo = imagensMonitoramento[idx];

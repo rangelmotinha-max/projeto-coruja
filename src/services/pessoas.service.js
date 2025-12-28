@@ -236,6 +236,38 @@ async function atualizar(id, payload, arquivos = []) {
     atualizacoes.vinculos_json = JSON.stringify(vinculos);
   }
   if (ocorrencias) {
+    // Remoção física de imagens de monitoramento que deixaram de ser referenciadas
+    try {
+      const coletarImagens = (oc) => {
+        if (!oc || typeof oc !== 'object') return [];
+        const lista = Array.isArray(oc.monitoramentos) ? oc.monitoramentos : [];
+        const imagens = [];
+        for (const m of lista) {
+          const arr = Array.isArray(m?.imagens) ? m.imagens : [];
+          for (const img of arr) {
+            const caminho = String(img?.caminho || '').trim();
+            if (caminho) imagens.push(caminho);
+          }
+        }
+        return imagens;
+      };
+
+      const anteriores = coletarImagens(existente.ocorrencias);
+      const novas = coletarImagens(ocorrencias);
+      const setNovas = new Set(novas);
+      const remover = anteriores.filter((c) => !setNovas.has(c));
+
+      if (remover.length) {
+        const path = require('path');
+        const fs = require('fs');
+        const publicDir = path.join(__dirname, '../../public');
+        for (const caminhoRel of remover) {
+          const absoluto = path.join(publicDir, caminhoRel.replace(/^[\\/]+/, ''));
+          fs.promises.unlink(absoluto).catch(() => {});
+        }
+      }
+    } catch {}
+
     atualizacoes.ocorrencias_json = JSON.stringify(ocorrencias);
   }
 
