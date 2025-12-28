@@ -803,6 +803,12 @@
           const item = { data, descricao };
           const indices = Array.isArray(m?.imagensUploadIndices) ? m.imagensUploadIndices : [];
           if (indices.length) item.imagensUploadIndices = indices;
+          // Inclui referências de imagens já salvas que foram mantidas no formulário
+          const existentes = Array.isArray(m?.imagens) ? m.imagens : [];
+          const existentesNormalizados = existentes
+            .map((img) => ({ caminho: String(img?.caminho || img || '').trim(), nome: String(img?.nome || '').trim() }))
+            .filter((it) => it.caminho);
+          if (existentesNormalizados.length) item.imagens = existentesNormalizados;
           return item;
         }).filter(Boolean);
         if (occPol.length) ocorrenciasObj.policiais = occPol;
@@ -3397,7 +3403,8 @@
           const hasFotosNovas = Array.isArray(fotosSelecionadas) && fotosSelecionadas.some((f) => !!f.file);
           const hasFotosSelecionadas = Array.isArray(fotosSelecionadas) && fotosSelecionadas.length > 0;
           const hasDocsOcorrencia = Array.isArray(ocorrenciasPoliciais) && ocorrenciasPoliciais.some((o) => !!o.arquivo);
-          const hasImgsMonitoramento = Array.isArray(monitoramentos) && monitoramentos.some((m) => !!m.arquivo);
+          const hasImgsMonitoramento = Array.isArray(monitoramentos)
+            && monitoramentos.some((m) => Array.isArray(m.imagensSelecionadas) && m.imagensSelecionadas.length > 0);
           const hasFiles = hasFotosNovas || hasDocsOcorrencia || hasFotosSelecionadas || hasImgsMonitoramento;
           const body = hasFiles ? montarFormDataEnvio(payload) : JSON.stringify(payload);
 
