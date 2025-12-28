@@ -2340,7 +2340,7 @@
           hintFoto.textContent = qtdSelecionadas ? `${qtdSelecionadas} imagem(ns) selecionada(s)` : '';
           const limiteFoto = document.createElement('small');
           limiteFoto.className = 'form__hint';
-          limiteFoto.textContent = 'até 5MB';
+          limiteFoto.textContent = 'limite máximo: 5MB';
 
           inputFoto.addEventListener('change', (e) => {
             const files = Array.from(e.target.files || []);
