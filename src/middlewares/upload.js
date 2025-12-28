@@ -15,7 +15,7 @@ fs.mkdirSync(uploadDirEntidades, { recursive: true });
 const storage = multer.diskStorage({
   destination: (_req, file, cb) => {
     // Fotos continuam em "pessoas"; documentos de ocorrência vão para o diretório próprio
-    const destino = file.fieldname === 'documentosOcorrenciasPoliciais'
+    const destino = (file.fieldname === 'documentosOcorrenciasPoliciais' || file.fieldname === 'imagensMonitoramento')
       ? uploadDirDocumentos
       : uploadDirFotos;
     cb(null, destino);

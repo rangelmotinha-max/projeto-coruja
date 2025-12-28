@@ -364,6 +364,20 @@
               </div>
             </div>
 
+              <!-- Seção 7: Monitoramento -->
+              <div class="form__section">
+                <div class="form__section-header">
+                  <h3 class="form__section-title" style="text-align: center; width: 100%;">Monitoramento</h3>
+                </div>
+
+                <div class="form__subsection">
+                  <div style="display: flex; justify-content: flex-end; align-items: center; width: 100%; margin: 0.75rem 0;">
+                    <button class="button button--secondary" id="adicionar-monitoramento" type="button" aria-label="Adicionar evento de monitoramento" title="Adicionar">+</button>
+                  </div>
+                  <div id="lista-monitoramentos" style="display:flex; flex-direction:column; gap:0.5rem;"></div>
+                </div>
+              </div>
+
             <div class="form__actions">
               <button class="button button--primary" id="submit-pessoa" type="submit">Incluir</button>
               <button class="button button--ghost" id="listar-pessoas" type="button">Listar</button>
@@ -777,10 +791,23 @@
           const info = String(p?.info || '').trim();
           return (data || info) ? { data, info } : null;
         }).filter(Boolean);
+        // Monitoramento: eventos com possível foto única por item
+        const monitorList = (monitoramentos || []).map((m) => {
+          const data = String(m?.data || '').trim();
+          const descricao = String(m?.descricao || '').trim();
+          const possuiArquivo = !!m?.arquivo;
+          const possuiDados = data || descricao || possuiArquivo;
+          if (!possuiDados) return null;
+          const item = { data, descricao };
+          const indices = Array.isArray(m?.imagensUploadIndices) ? m.imagensUploadIndices : [];
+          if (indices.length) item.imagensUploadIndices = indices;
+          return item;
+        }).filter(Boolean);
         if (occPol.length) ocorrenciasObj.policiais = occPol;
         if (procList.length) ocorrenciasObj.processos = procList;
         if (abordList.length) ocorrenciasObj.abordagens = abordList;
         if (prisList.length) ocorrenciasObj.prisoes = prisList;
+        if (monitorList.length) ocorrenciasObj.monitoramentos = monitorList;
         dados.ocorrencias = Object.keys(ocorrenciasObj).length ? ocorrenciasObj : undefined;
 
         dados.fotosExistentes = fotosSelecionadas
@@ -796,13 +823,44 @@
       // Monta um FormData com os arquivos e demais campos serializados
       const montarFormDataEnvio = (dados) => {
         const formDataEnvio = new FormData();
+        const dadosEnvio = { ...dados };
 
-        // Garante envio explícito do nome para evitar perda em mutações ou quando o payload veio de um FormData original
-        formDataEnvio.append('nomeCompleto', dados.nomeCompleto ? String(dados.nomeCompleto).trim() : '');
+        // Primeiro agregamos arquivos e calculamos índices de upload por evento
+        const arquivosMonitoramentoAgregados = [];
+        monitoramentos.forEach((evento) => {
+          const file = evento?.arquivo || null;
+          if (file) {
+            const base = arquivosMonitoramentoAgregados.length;
+            const nomeArquivo = file.name || `monitoramento-${base + 1}`;
+            formDataEnvio.append('imagensMonitoramento', file, nomeArquivo);
+            evento.imagensUploadIndices = [base];
+            arquivosMonitoramentoAgregados.push(file);
+          } else {
+            evento.imagensUploadIndices = [];
+          }
+        });
 
-        // Serializa todos os campos para o FormData (listas vão em JSON)
-        Object.entries(dados || {}).forEach(([chave, valor]) => {
-          // Evita duplicar nomeCompleto, já inserido acima de forma explícita e normalizada
+        // Atualiza ocorrencias.monitoramentos no payload com os índices calculados
+        const construirMonitoramentosPayload = () => (monitoramentos || []).map((m) => ({
+          data: String(m?.data || '').trim(),
+          descricao: String(m?.descricao || '').trim(),
+          imagensUploadIndices: Array.isArray(m?.imagensUploadIndices) ? m.imagensUploadIndices : [],
+        })).filter((it) => it.data || it.descricao || (Array.isArray(it.imagensUploadIndices) && it.imagensUploadIndices.length));
+
+        const occ = dadosEnvio.ocorrencias && typeof dadosEnvio.ocorrencias === 'object' ? { ...dadosEnvio.ocorrencias } : {};
+        const monPayload = construirMonitoramentosPayload();
+        if (monPayload.length) {
+          occ.monitoramentos = monPayload;
+        } else if (occ.monitoramentos) {
+          delete occ.monitoramentos;
+        }
+        dadosEnvio.ocorrencias = Object.keys(occ).length ? occ : undefined;
+
+        // Garante envio explícito do nome
+        formDataEnvio.append('nomeCompleto', dadosEnvio.nomeCompleto ? String(dadosEnvio.nomeCompleto).trim() : '');
+
+        // Serializa todos os campos (listas vão em JSON)
+        Object.entries(dadosEnvio || {}).forEach(([chave, valor]) => {
           if (valor === undefined || valor === null || chave === 'fotosExistentes' || chave === 'nomeCompleto') return;
           const precisaJson = typeof valor === 'object';
           formDataEnvio.append(chave, precisaJson ? JSON.stringify(valor) : valor);
@@ -1262,6 +1320,7 @@
       let processos = [];
       let abordagens = [];
       let prisoes = [];
+      let monitoramentos = [];
 
       const renderizarTelefones = () => {
         const listaTelefonesEl = document.getElementById('lista-telefones');
@@ -2230,6 +2289,95 @@
       const renderizarProcessos = () => renderizarLinhaDataInfo(processos, 'lista-processos', 'Data', 'Informação');
       const renderizarAbordagens = () => renderizarLinhaDataInfo(abordagens, 'lista-abordagens', 'Data', 'Informação');
       const renderizarPrisoes = () => renderizarLinhaDataInfo(prisoes, 'lista-prisoes', 'Data', 'Informação');
+      const renderizarMonitoramentos = () => {
+        const lista = document.getElementById('lista-monitoramentos');
+        if (!lista) return;
+        lista.innerHTML = '';
+        if (monitoramentos.length === 0) {
+          lista.innerHTML = '<p style="color: var(--muted); font-size: 0.85rem; margin: 0;">Nenhum evento adicionado. Clique para adicionar.</p>';
+          return;
+        }
+        monitoramentos.forEach((item, i) => {
+          const linha = document.createElement('div');
+          linha.style.cssText = 'display:grid; grid-template-columns: 1fr auto; gap:0.5rem; align-items:end;';
+
+          // Campo de data
+          const campoData = document.createElement('label');
+          campoData.className = 'form__field';
+          campoData.style.gridColumn = '1 / 2';
+          campoData.innerHTML = `<span class="form__label">Data</span><input class="form__input" type="date" data-index="${i}" />`;
+
+          // Campo de Foto (uma imagem por evento)
+          const campoFoto = document.createElement('div');
+          campoFoto.className = 'form__field';
+          const labelFoto = document.createElement('span');
+          labelFoto.className = 'form__label';
+          labelFoto.textContent = 'Foto';
+          const inputFoto = document.createElement('input');
+          inputFoto.type = 'file';
+          inputFoto.className = 'form__input occ-doc';
+          inputFoto.dataset.index = i;
+          inputFoto.accept = 'image/*';
+          const hintFoto = document.createElement('small');
+          hintFoto.className = 'form__hint';
+          hintFoto.textContent = item?.arquivo?.name ? `Selecionado: ${item.arquivo.name}` : '';
+          const limiteFoto = document.createElement('small');
+          limiteFoto.className = 'form__hint';
+          limiteFoto.textContent = 'até 5MB';
+
+          inputFoto.addEventListener('change', (e) => {
+            const file = (e.target.files && e.target.files[0]) || null;
+            monitoramentos[i].arquivo = (file && (file.type || '').startsWith('image/')) ? file : null;
+            hintFoto.textContent = monitoramentos[i].arquivo ? `Selecionado: ${monitoramentos[i].arquivo.name}` : '';
+          });
+
+          campoFoto.appendChild(labelFoto);
+          campoFoto.appendChild(inputFoto);
+          campoFoto.appendChild(hintFoto);
+          campoFoto.appendChild(limiteFoto);
+          const existentes = Array.isArray(item?.imagens) ? item.imagens : [];
+          if (existentes.length) {
+            const listaExistentes = document.createElement('div');
+            listaExistentes.className = 'form__hint';
+            listaExistentes.style.marginTop = '0.25rem';
+            listaExistentes.innerHTML = existentes.map((img) => {
+              const url = img?.caminho || img;
+              const nome = img?.nome || 'Imagem';
+              return `<a href="${url}" target="_blank" rel="noopener">${nome}</a>`;
+            }).join(' • ');
+            campoFoto.appendChild(listaExistentes);
+          }
+
+          // Botão Remover
+          const btnRemover = document.createElement('button');
+          btnRemover.className = 'button button--danger';
+          btnRemover.type = 'button';
+          btnRemover.title = 'Excluir';
+          btnRemover.setAttribute('aria-label', 'Remover');
+          btnRemover.textContent = '−';
+
+          // Descrição (abaixo da data; ocupa toda a largura)
+          const campoDescricao = document.createElement('label');
+          campoDescricao.className = 'form__field';
+          campoDescricao.style.gridColumn = '1 / -1';
+          campoDescricao.innerHTML = `<span class=\"form__label\">Descrição</span><textarea class=\"form__input\" rows=\"3\" data-index=\"${i}\" placeholder=\"Digite a descrição do evento\"></textarea>`;
+
+          const dataEl = campoData.querySelector('input[type="date"]');
+          const descricaoEl = campoDescricao.querySelector('textarea');
+          dataEl.value = String(item?.data || '');
+          descricaoEl.value = String(item?.descricao || '');
+          dataEl.addEventListener('input', (e) => { monitoramentos[i].data = e.target.value; renderizarMonitoramentos(); });
+          descricaoEl.addEventListener('input', (e) => { monitoramentos[i].descricao = e.target.value; });
+          btnRemover.addEventListener('click', () => { monitoramentos.splice(i,1); renderizarMonitoramentos(); });
+
+          linha.appendChild(campoData);
+          linha.appendChild(btnRemover);
+          linha.appendChild(campoDescricao);
+          campoFoto.style.gridColumn = '1 / -1';
+          linha.appendChild(campoFoto);
+          lista.appendChild(linha);
+        });
+      };
 
       const adicionarOcorrenciaPolicial = () => {
         ocorrenciasPoliciais.push({ data: '', info: '', documento: null, documentoNome: '', arquivo: null });
@@ -2238,6 +2386,7 @@
       const adicionarProcesso = () => { processos.push({ data: '', info: '' }); renderizarProcessos(); };
       const adicionarAbordagem = () => { abordagens.push({ data: '', info: '' }); renderizarAbordagens(); };
       const adicionarPrisao = () => { prisoes.push({ data: '', info: '' }); renderizarPrisoes(); };
+      const adicionarMonitoramento = () => { monitoramentos.push({ data: '', descricao: '', arquivo: null, imagensUploadIndices: [] }); renderizarMonitoramentos(); };
 
       const createEstadosSelect = () => {
         return `<option value="">Selecione</option>
@@ -2748,16 +2897,29 @@
           processos = Array.isArray(pessoa.ocorrencias.processos) ? JSON.parse(JSON.stringify(pessoa.ocorrencias.processos)) : [];
           abordagens = Array.isArray(pessoa.ocorrencias.abordagens) ? JSON.parse(JSON.stringify(pessoa.ocorrencias.abordagens)) : [];
           prisoes = Array.isArray(pessoa.ocorrencias.prisoes) ? JSON.parse(JSON.stringify(pessoa.ocorrencias.prisoes)) : [];
+          // Monitoramentos
+          monitoramentos = Array.isArray(pessoa.ocorrencias.monitoramentos)
+            ? pessoa.ocorrencias.monitoramentos.map((ev) => ({
+                data: ev?.data || '',
+                descricao: ev?.descricao || ev?.evento || '',
+                arquivo: null,
+                imagens: Array.isArray(ev?.imagens)
+                  ? ev.imagens.map((img) => ({ caminho: img?.caminho || img, nome: img?.nome || '' }))
+                  : [],
+              }))
+            : [];
         } else {
           ocorrenciasPoliciais = [];
           processos = [];
           abordagens = [];
           prisoes = [];
+          monitoramentos = [];
         }
         renderizarOcorrenciasPoliciais();
         renderizarProcessos();
         renderizarAbordagens();
         renderizarPrisoes();
+        renderizarMonitoramentos();
 
         // Carrega fotos existentes para manter a lista na edição
         carregarFotosExistentes(pessoa.fotos || pessoa.imagens || []);
@@ -3085,7 +3247,8 @@
           const hasFotosNovas = Array.isArray(fotosSelecionadas) && fotosSelecionadas.some((f) => !!f.file);
           const hasFotosSelecionadas = Array.isArray(fotosSelecionadas) && fotosSelecionadas.length > 0;
           const hasDocsOcorrencia = Array.isArray(ocorrenciasPoliciais) && ocorrenciasPoliciais.some((o) => !!o.arquivo);
-          const hasFiles = hasFotosNovas || hasDocsOcorrencia || hasFotosSelecionadas;
+          const hasImgsMonitoramento = Array.isArray(monitoramentos) && monitoramentos.some((m) => !!m.arquivo);
+          const hasFiles = hasFotosNovas || hasDocsOcorrencia || hasFotosSelecionadas || hasImgsMonitoramento;
           const body = hasFiles ? montarFormDataEnvio(payload) : JSON.stringify(payload);
 
           const response = await fetchAutenticado(url, {
@@ -3236,6 +3399,8 @@
           renderizarAbordagens();
           prisoes = [];
           renderizarPrisoes();
+          monitoramentos = [];
+          renderizarMonitoramentos();
         });
         nomeCompletoInput?.addEventListener('input', sincronizarCamposVeiculo);
         cpfInput?.addEventListener('input', aplicarMascaraCpf);
@@ -3388,6 +3553,10 @@
         const addPrisaoBtn = document.getElementById('adicionar-prisao');
         addPrisaoBtn?.addEventListener('click', adicionarPrisao);
 
+        // Event listener para adicionar eventos de Monitoramento
+        const addMonBtn = document.getElementById('adicionar-monitoramento');
+        addMonBtn?.addEventListener('click', adicionarMonitoramento);
+
         
 
         renderizarTelefones();
@@ -3407,6 +3576,7 @@
         renderizarProcessos();
         renderizarAbordagens();
         renderizarPrisoes();
+        renderizarMonitoramentos();
         // Lista fica oculta até o usuário clicar em "Listar"
 
         // Preenche automaticamente se houver pessoaId na URL

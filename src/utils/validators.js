@@ -201,7 +201,8 @@ function validarCadastroPessoa(payload, arquivos = []) {
   // Empresa removida do cadastro de Pessoas; não validar aqui
   const vinculosObj = validarVinculos(payload.vinculos);
   const docsOcorrencias = extrairArquivosCampo(arquivos, 'documentosOcorrenciasPoliciais');
-  const ocorrenciasObj = validarOcorrencias(payload.ocorrencias, docsOcorrencias);
+  const imgsMonitoramento = extrairArquivosCampo(arquivos, 'imagensMonitoramento');
+  const ocorrenciasObj = validarOcorrencias(payload.ocorrencias, docsOcorrencias, imgsMonitoramento);
   const fotosUpload = validarFotosUpload(extrairArquivosCampo(arquivos, 'fotos'));
   // Veículo associado ao cadastro de pessoa pode herdar dados do titular
   // Somente valida veículo se houver dados relevantes (ex.: placa ou proprietário)
@@ -366,7 +367,7 @@ function validarVinculos(vinculos) {
   return { pessoas, empresas, entidades, empregaticio, veiculos };
 }
 
-function validarOcorrencias(ocorrencias, documentosOcorrencias = []) {
+function validarOcorrencias(ocorrencias, documentosOcorrencias = [], imagensMonitoramento = []) {
   if (!ocorrencias || typeof ocorrencias !== 'object') return undefined;
   const normalizarItens = (lista, docs = []) => Array.isArray(lista) ? lista.map((i, idx) => {
     const data = normalizarOpcional(i.data);
@@ -408,9 +409,42 @@ function validarOcorrencias(ocorrencias, documentosOcorrencias = []) {
   const processos = normalizarItens(ocorrencias.processos);
   const abordagens = normalizarItens(ocorrencias.abordagens);
   const prisoes = normalizarItens(ocorrencias.prisoes);
-  const temAlgum = policiais.length || processos.length || abordagens.length || prisoes.length;
+  // Monitoramentos: múltiplas imagens por evento via índices de upload
+  const monitoramentos = Array.isArray(ocorrencias.monitoramentos) ? ocorrencias.monitoramentos.map((m, idx) => {
+    const data = normalizarOpcional(m.data);
+    const evento = normalizarOpcional(m.evento);
+    const descricao = normalizarOpcional(m.descricao);
+    const indices = Array.isArray(m.imagensUploadIndices) ? m.imagensUploadIndices : [];
+    let imagens = indices
+      .map((ix) => (Number.isInteger(ix) ? imagensMonitoramento[ix] : null))
+      .filter(Boolean)
+      .map((arquivo) => ({
+        caminho: `/uploads/ocorrencias/${arquivo.filename}`,
+        nome: arquivo.originalname,
+        mimeType: arquivo.mimetype,
+        tamanho: arquivo.size,
+      }));
+    // Fallback: se nenhum índice foi enviado, usa posição do item
+    if (!imagens.length && imagensMonitoramento[idx]) {
+      const arquivo = imagensMonitoramento[idx];
+      imagens = [{
+        caminho: `/uploads/ocorrencias/${arquivo.filename}`,
+        nome: arquivo.originalname,
+        mimeType: arquivo.mimetype,
+        tamanho: arquivo.size,
+      }];
+    }
+
+    const temDados = data || evento || descricao || (imagens.length > 0);
+    if (!temDados) return null;
+    const item = { data, evento, descricao };
+    if (imagens.length) item.imagens = imagens;
+    return item;
+  }).filter(Boolean) : [];
+
+  const temAlgum = policiais.length || processos.length || abordagens.length || prisoes.length || monitoramentos.length;
   if (!temAlgum) return undefined;
-  return { policiais, processos, abordagens, prisoes };
+  return { policiais, processos, abordagens, prisoes, monitoramentos };
 }
 
 // Validação de atualização de pessoa garantindo ao menos um campo.
@@ -496,7 +530,8 @@ function validarAtualizacaoPessoa(payload, arquivos = []) {
   }
   if (payload.ocorrencias !== undefined) {
     const docsOcorrencias = extrairArquivosCampo(arquivos, 'documentosOcorrenciasPoliciais');
-    atualizacoes.ocorrencias = validarOcorrencias(payload.ocorrencias, docsOcorrencias);
+    const imgsMonitoramento = extrairArquivosCampo(arquivos, 'imagensMonitoramento');
+    atualizacoes.ocorrencias = validarOcorrencias(payload.ocorrencias, docsOcorrencias, imgsMonitoramento);
   }
 
   // Veículo na atualização será validado posteriormente com dados completos do titular
