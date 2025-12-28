@@ -203,7 +203,7 @@
         const lista = document.getElementById('lista-socios');
         lista.innerHTML = '';
         if (!socios.length) {
-          lista.innerHTML = '<p style="color: var(--muted); font-size: 0.85rem; margin: 0;">Nenhum sócio adicionado. Clique para adicionar.</p>';
+          lista.innerHTML = '';
           return;
         }
         socios.forEach((s, i) => {
@@ -515,7 +515,7 @@
         if (!lista) return;
         lista.innerHTML = '';
         if (!enderecosEmpresa.length) {
-          lista.innerHTML = '<p style="color: var(--muted); margin: 0;">Nenhum endereço adicionado. Clique para adicionar.</p>';
+          lista.innerHTML = '';
           return;
         }
         enderecosEmpresa.forEach((endereco, idx) => {
