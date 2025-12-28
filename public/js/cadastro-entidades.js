@@ -113,7 +113,7 @@
     telefonesContainer.innerHTML = '';
 
     if (estado.telefones.length === 0) {
-      telefonesContainer.innerHTML = '<p style="color: var(--muted); font-size: 0.85rem; margin: 0;">Nenhum telefone adicionado. Clique para adicionar.</p>';
+      // Não exibe placeholder quando não há telefones
       return;
     }
 
@@ -260,7 +260,7 @@
     enderecosContainer.innerHTML = '';
 
     if (estado.enderecos.length === 0) {
-      enderecosContainer.innerHTML = '<p style="color: var(--muted); margin: 1rem 0;">Nenhum endereço adicionado. Clique no botão para adicionar</p>';
+      // Não exibe placeholder quando não há endereços
       return;
     }
 

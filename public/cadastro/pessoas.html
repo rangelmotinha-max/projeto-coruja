@@ -1342,7 +1342,7 @@
         listaTelefonesEl.innerHTML = '';
 
         if (telefones.length === 0) {
-          listaTelefonesEl.innerHTML = '<p style="color: var(--muted); font-size: 0.85rem; margin: 0;">Nenhum telefone adicionado. Clique para adicionar.</p>';
+          // Não exibe placeholder quando não há telefones
           return;
         }
 
@@ -1395,7 +1395,7 @@
         listaEmailsEl.innerHTML = '';
 
         if (emails.length === 0) {
-          listaEmailsEl.innerHTML = '<p style="color: var(--muted); font-size: 0.85rem; margin: 0;">Nenhum email adicionado. Clique para adicionar.</p>';
+          // Não exibe placeholder quando não há emails
           return;
         }
 
@@ -1445,7 +1445,7 @@
         listaRedesEl.innerHTML = '';
 
         if (redes.length === 0) {
-          listaRedesEl.innerHTML = '<p style="color: var(--muted); font-size: 0.85rem; margin: 0;">Nenhuma rede adicionada. Clique para adicionar.</p>';
+          // Não exibe placeholder quando não há redes
           return;
         }
 
@@ -1525,7 +1525,7 @@
         listaVeiculosEl.innerHTML = '';
 
         if (!veiculos.length) {
-          listaVeiculosEl.innerHTML = '<p style="color: var(--muted); font-size: 0.9rem; margin: 0;">Nenhum veículo adicionado. Clique para incluir.</p>';
+          // Não exibe placeholder quando não há veículos adicionados
           return;
         }
 
@@ -1834,7 +1834,7 @@
         listaVinculosVeiculosEl.innerHTML = '';
 
         if (!vinculosVeiculos.length) {
-          listaVinculosVeiculosEl.innerHTML = '<p style="color: var(--muted); margin: 0;">Nenhum veículo vinculado.</p>';
+          // Não exibe placeholder quando não há veículos vinculados
           return;
         }
 
@@ -2084,7 +2084,7 @@
         if (!lista) return;
         lista.innerHTML = '';
         if (vinculosEmpregaticio.length === 0) {
-          lista.innerHTML = '<p style="color: var(--muted); font-size: 0.85rem; margin: 0;">Nenhum vínculo empregatício adicionado. Clique para adicionar.</p>';
+          // Não exibe placeholder quando não há vínculos empregatícios
           return;
         }
         vinculosEmpregaticio.forEach((item, i) => {
@@ -2141,7 +2141,7 @@
         if (!lista) return;
         lista.innerHTML = '';
         if (vinculosEntidades.length === 0) {
-          lista.innerHTML = '<p style="color: var(--muted); font-size: 0.85rem; margin: 0;">Nenhuma entidade adicionada. Clique para adicionar.</p>';
+          // Não exibe placeholder quando não há entidades
           return;
         }
         vinculosEntidades.forEach((ent, i) => {
@@ -2184,7 +2184,7 @@
         if (!lista) return;
         lista.innerHTML = '';
         if (arrRef.length === 0) {
-          lista.innerHTML = '<p style="color: var(--muted); font-size: 0.85rem; margin: 0;">Nenhum item adicionado. Clique para adicionar.</p>';
+          // Não exibe placeholder quando a lista está vazia
           return;
         }
         arrRef.forEach((item, i) => {
@@ -2219,7 +2219,7 @@
         lista.innerHTML = '';
 
         if (ocorrenciasPoliciais.length === 0) {
-          lista.innerHTML = '<p style="color: var(--muted); font-size: 0.85rem; margin: 0;">Nenhuma ocorrência adicionada. Clique para adicionar.</p>';
+          // Não exibe placeholder quando não há ocorrências
           return;
         }
 
@@ -2309,7 +2309,7 @@
         if (!lista) return;
         lista.innerHTML = '';
         if (monitoramentos.length === 0) {
-          lista.innerHTML = '<p style="color: var(--muted); font-size: 0.85rem; margin: 0;">Nenhum evento adicionado. Clique para adicionar.</p>';
+          // Não exibe placeholder quando não há eventos
           return;
         }
         monitoramentos.forEach((item, i) => {
