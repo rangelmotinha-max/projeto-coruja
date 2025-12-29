@@ -308,8 +308,17 @@
               <div class="form__subsection">
                 <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin: 0.75rem 0;">
                   <h4 class="form__section-title" style="font-size: 1rem; margin: 0;">Entidades</h4>
-                  <button class="button button--secondary" id="adicionar-vinculo-entidade" type="button" aria-label="Adicionar vínculo de entidade" title="Adicionar">+</button>
                 </div>
+                <div class="form__grid form__grid--3" style="align-items:end;">
+                  <label class="form__field" style="margin:0;">
+                    <input class="form__input" type="text" id="vinculo-entidade-busca" placeholder="Digite nome da entidade ou líder" aria-label="Nome da entidade ou líder" />
+                  </label>
+                  <div class="form__actions" style="margin:0;">
+                    <button class="button button--secondary" id="buscar-vinculo-entidade" type="button" aria-label="Buscar entidade para vínculo" title="Procurar" style="min-width:8rem;">Procurar</button>
+                  </div>
+                  <small id="vinculo-entidade-status" style="color: var(--muted);"></small>
+                </div>
+                <div id="vinculo-entidade-resultado" class="panel" style="margin-top: 0.75rem; padding: 0.75rem; display: none;"></div>
                 <div id="lista-vinculos-entidades" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
               </div>
               <div class="form__subsection">
@@ -398,6 +407,7 @@
           <ul id="pessoas-lista" class="list" aria-live="polite"></ul>
         </section>
       </main>
+      <script src="/js/vinculo-entidade.js"></script>
     </div>
 
     <script src="/js/main.js"></script>
