@@ -328,7 +328,9 @@ function validarVinculos(vinculos) {
     nome: normalizarOpcional(p.nome),
     cpf: normalizarOpcional((p.cpf || '').replace(/\D/g, '')),
     tipo: normalizarOpcional(p.tipo),
-  })).filter(p => p.nome || p.cpf || p.tipo) : [];
+    // Campo livre para registrar observações curtas sobre o relacionamento
+    descricao: normalizarOpcional(p.descricao),
+  })).filter(p => p.nome || p.cpf || p.tipo || p.descricao) : [];
   // Permite vínculos de empresas tanto por ID quanto por nome/observações
   const empresas = Array.isArray(vinculos.empresas) ? vinculos.empresas
     .map((e) => {
@@ -338,15 +340,19 @@ function validarVinculos(vinculos) {
         : undefined;
       const nome = normalizarOpcional(e?.nome);
       const observacoes = normalizarOpcional(e?.observacoes);
-      const possuiDados = idNormalizado !== undefined || nome || observacoes;
+      // Comentário: descrição detalha o tipo de relação com a empresa
+      const descricao = normalizarOpcional(e?.descricao);
+      const possuiDados = idNormalizado !== undefined || nome || observacoes || descricao;
       if (!possuiDados) return null;
-      return { id: idNormalizado, nome, observacoes };
+      return { id: idNormalizado, nome, observacoes, descricao };
     })
     .filter(Boolean) : [];
   const entidades = Array.isArray(vinculos.entidades) ? vinculos.entidades.map(e => ({
     nome: normalizarOpcional(e.nome),
     observacoes: normalizarOpcional(e.observacoes),
-  })).filter(e => e.nome || e.observacoes) : [];
+    // Descrição adicional para contextualizar o vínculo
+    descricao: normalizarOpcional(e.descricao),
+  })).filter(e => e.nome || e.observacoes || e.descricao) : [];
   const empregaticio = Array.isArray(vinculos.empregaticio) ? vinculos.empregaticio.map(e => ({
     info: normalizarOpcional(e.info),
   })).filter(e => e.info) : [];
@@ -356,9 +362,11 @@ function validarVinculos(vinculos) {
       const marcaModelo = normalizarOpcional(veiculo?.marcaModelo);
       const nome = normalizarOpcional(veiculo?.nome || veiculo?.nomeProprietario);
       const cpf = normalizarOpcional((veiculo?.cpf || '').replace(/\D/g, ''));
-      const possuiDados = placa || marcaModelo || nome || cpf;
+      // Comentário: descrição armazena observações sobre uso ou histórico do veículo
+      const descricao = normalizarOpcional(veiculo?.descricao);
+      const possuiDados = placa || marcaModelo || nome || cpf || descricao;
       if (!possuiDados) return null;
-      return { placa, marcaModelo, nome, cpf };
+      return { placa, marcaModelo, nome, cpf, descricao };
     })
     .filter(Boolean)
     : [];
