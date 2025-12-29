@@ -724,26 +724,30 @@
           nome: String(v.nome||'').trim(),
           cpf: String(v.cpf||'').trim(),
           tipo: String(v.tipo||'').trim(),
-        })).filter(v => v.nome || v.cpf || v.tipo);
+          // Comentário: descrição opcional ajuda a contextualizar o relacionamento
+          descricao: String(v.descricao || '').trim(),
+        })).filter(v => v.nome || v.cpf || v.tipo || v.descricao);
         const veiculosVinc = (vinculosVeiculos || [])
           .map((v) => {
             const placa = normalizarPlaca(v?.placa || '');
             const marcaModelo = String(v?.marcaModelo || '').trim();
             const nome = String(v?.nome || '').trim();
             const cpf = String(v?.cpf || '').replace(/\D/g, '');
-            return (placa || marcaModelo || nome || cpf)
-              ? { placa, marcaModelo, nome, cpf }
+            const descricao = String(v?.descricao || '').trim();
+            return (placa || marcaModelo || nome || cpf || descricao)
+              ? { placa, marcaModelo, nome, cpf, descricao }
               : null;
           })
           .filter(Boolean);
         const empresasVinc = (empresasVinculadas || [])
           .map((entrada) => {
-            const { id, nome, observacoes } = normalizarVinculoEmpresa(entrada);
+            const { id, nome, observacoes, descricao } = normalizarVinculoEmpresa(entrada);
             const idLimpo = id !== undefined && id !== null && String(id).trim() !== '' ? id : undefined;
             const nomeLimpo = String(nome || '').trim();
             const obsLimpa = String(observacoes || '').trim();
-            return (idLimpo !== undefined || nomeLimpo || obsLimpa)
-              ? { id: idLimpo, nome: nomeLimpo, observacoes: obsLimpa }
+            const descLimpa = String(descricao || '').trim();
+            return (idLimpo !== undefined || nomeLimpo || obsLimpa || descLimpa)
+              ? { id: idLimpo, nome: nomeLimpo, observacoes: obsLimpa, descricao: descLimpa }
               : null;
           })
           .filter(Boolean);
@@ -751,7 +755,8 @@
           .map(e => {
             const nome = String(e?.nome || '').trim();
             const observacoes = String(e?.observacoes || '').trim();
-            return (nome || observacoes) ? { nome, observacoes } : null;
+            const descricao = String(e?.descricao || '').trim();
+            return (nome || observacoes || descricao) ? { nome, observacoes, descricao } : null;
           })
           .filter(Boolean);
         const empregList = (vinculosEmpregaticio || [])
@@ -919,7 +924,7 @@
       // Empresa vinculada (seleção única)
       const API_EMPRESAS_URL = '/api/empresas';
       let empresasOpcoes = [];
-      let empresasVinculadas = []; // array de objetos { id, nome?, observacoes? }
+      let empresasVinculadas = []; // array de objetos { id, nome?, observacoes?, descricao? }
 
       const normalizarVinculoEmpresa = (entrada) => {
         // Normaliza diferentes formatos para um objeto consistente
@@ -929,9 +934,11 @@
             id: idLimpo !== undefined && idLimpo !== null && String(idLimpo).trim() !== '' ? idLimpo : undefined,
             nome: entrada.nome || entrada.razaoSocial || entrada.nomeFantasia || '',
             observacoes: entrada.observacoes || '',
+            // Comentário: descrição resume como a pessoa se relaciona com a empresa
+            descricao: entrada.descricao || '',
           };
         }
-        return { id: entrada, nome: '', observacoes: '' };
+        return { id: entrada, nome: '', observacoes: '', descricao: '' };
       };
 
       const validarCnpjBasico = (valor) => {
@@ -1028,6 +1035,8 @@
               id: empresa.id,
               nome: empresa.razaoSocial || empresa.nomeFantasia || '',
               observacoes: empresa.observacoes || '',
+              // Campo livre para registrar uma descrição contextual do vínculo com a empresa
+              descricao: '',
             });
             renderizarEmpresasVinculadasLista();
           }
@@ -1087,6 +1096,7 @@
               <th style="text-align:left; padding:0.5rem;">Razão Social</th>
               <th style="text-align:left; padding:0.5rem;">Nome Fantasia</th>
               <th style="text-align:left; padding:0.5rem;">Situação Cadastral</th>
+              <th style="text-align:left; padding:0.5rem;">Descrição</th>
               <th style="text-align:center; padding:0.5rem;">Ações</th>
             </tr>
           </thead>
@@ -1103,6 +1113,14 @@
           const tdRazao = document.createElement('td'); tdRazao.style.padding = '0.5rem'; tdRazao.textContent = emp?.razaoSocial || normalizado.nome || '';
           const tdFantasia = document.createElement('td'); tdFantasia.style.padding = '0.5rem'; tdFantasia.textContent = emp?.nomeFantasia || '';
           const tdSituacao = document.createElement('td'); tdSituacao.style.padding = '0.5rem'; tdSituacao.textContent = emp?.situacaoCadastral || normalizado.observacoes || '';
+          const tdDescricao = document.createElement('td'); tdDescricao.style.padding = '0.5rem'; tdDescricao.style.minWidth = '14rem';
+          tdDescricao.innerHTML = `
+            <label class="form__field" style="margin:0;">
+              <span class="form__label" style="font-size:0.85rem;">Descrição</span>
+              <!-- Descreve como a pessoa está ligada à empresa selecionada -->
+              <textarea class="form__input" rows="2" data-index="${index}" placeholder="Detalhe o vínculo" style="resize: vertical; min-height: 2.5rem;"></textarea>
+            </label>
+          `;
           const tdAcoes = document.createElement('td'); tdAcoes.style.padding = '0.5rem'; tdAcoes.style.textAlign = 'center';
           const btnRemover = document.createElement('button');
           btnRemover.type = 'button';
@@ -1117,8 +1135,20 @@
           tr.appendChild(tdRazao);
           tr.appendChild(tdFantasia);
           tr.appendChild(tdSituacao);
+          tr.appendChild(tdDescricao);
           tr.appendChild(tdAcoes);
           tbody.appendChild(tr);
+
+          const campoDescricao = tdDescricao.querySelector('textarea');
+          if (campoDescricao) {
+            campoDescricao.value = normalizado.descricao || '';
+            campoDescricao.addEventListener('input', (e) => {
+              empresasVinculadas[index] = {
+                ...empresasVinculadas[index],
+                descricao: e.target.value,
+              };
+            });
+          }
         });
         cont.appendChild(table);
       };
@@ -1721,47 +1751,57 @@
         }
         vinculosPessoas.forEach((v, i) => {
           const linha = document.createElement('div');
-          linha.style.cssText = 'display:grid; grid-template-columns: 1fr 16rem 16rem auto; gap:0.5rem; align-items:end;';
+          linha.style.cssText = 'display:flex; flex-direction:column; gap:0.35rem; border:1px solid var(--border); padding:0.5rem; border-radius:0.5rem; background:var(--surface);';
           linha.innerHTML = `
-            <label class="form__field">
-              <span class="form__label">Nome</span>
-              <input class="form__input vpc-nome" type="text" data-index="${i}" />
+            <div style="display:grid; grid-template-columns: 1fr 16rem 16rem auto; gap:0.5rem; align-items:end;">
+              <label class="form__field" style="margin:0;">
+                <span class="form__label">Nome</span>
+                <input class="form__input vpc-nome" type="text" data-index="${i}" />
+              </label>
+              <label class="form__field" style="margin:0;">
+                <span class="form__label">CPF</span>
+                <input class="form__input vpc-cpf" type="text" data-index="${i}" placeholder="000.000.000-00" />
+              </label>
+              <label class="form__field" style="margin:0;">
+                <span class="form__label">Tipo</span>
+                <select class="form__input vpc-tipo" data-index="${i}">
+                  <option value="">Selecione</option>
+                  <option>Esposa(o)</option>
+                  <option>Filho(a)</option>
+                  <option>Irmão(a)</option>
+                  <option>Sócio(a)</option>
+                  <option>Namorado(a)</option>
+                  <option>Primo(a)</option>
+                  <option>Tio(a)</option>
+                  <option>Avô(ó)</option>
+                  <option>Amigo(a)</option>
+                  <option>Comparsa</option>
+                  <option>Advogado(a)</option>
+                  <option>Contador</option>
+                  <option>Outro</option>
+                </select>
+              </label>
+              <button class="button button--danger" type="button" title="Excluir" aria-label="Remover vínculo">−</button>
+            </div>
+            <label class="form__field" style="margin:0;">
+              <span class="form__label">Descrição</span>
+              <!-- Comentário: campo de apoio para registrar detalhes do vínculo entre as pessoas -->
+              <textarea class="form__input vpc-descricao" data-index="${i}" rows="2" placeholder="Descreva o vínculo" style="resize: vertical; min-height: 2.5rem;"></textarea>
             </label>
-            <label class="form__field">
-              <span class="form__label">CPF</span>
-              <input class="form__input vpc-cpf" type="text" data-index="${i}" placeholder="000.000.000-00" />
-            </label>
-            <label class="form__field">
-              <span class="form__label">Tipo</span>
-              <select class="form__input vpc-tipo" data-index="${i}">
-                <option value="">Selecione</option>
-                <option>Esposa(o)</option>
-                <option>Filho(a)</option>
-                <option>Irmão(a)</option>
-                <option>Sócio(a)</option>
-                <option>Namorado(a)</option>
-                <option>Primo(a)</option>
-                <option>Tio(a)</option>
-                <option>Avô(ó)</option>
-                <option>Amigo(a)</option>
-                <option>Comparsa</option>
-                <option>Advogado(a)</option>
-                <option>Contador</option>
-                <option>Outro</option>
-              </select>
-            </label>
-            <button class="button button--danger" type="button" title="Excluir" aria-label="Remover vínculo">−</button>
           `;
           const nomeEl = linha.querySelector('.vpc-nome');
           const cpfEl = linha.querySelector('.vpc-cpf');
           const tipoEl = linha.querySelector('.vpc-tipo');
+          const descEl = linha.querySelector('.vpc-descricao');
           const btn = linha.querySelector('button');
           nomeEl.value = v.nome || '';
           cpfEl.value = aplicarMascaraCpfInline(v.cpf || '');
           tipoEl.value = v.tipo || '';
+          descEl.value = v.descricao || '';
           nomeEl.addEventListener('input', (e) => { vinculosPessoas[i].nome = e.target.value; });
           cpfEl.addEventListener('input', (e) => { vinculosPessoas[i].cpf = aplicarMascaraCpfInline(e.target.value); e.target.value = vinculosPessoas[i].cpf; });
           tipoEl.addEventListener('change', (e) => { vinculosPessoas[i].tipo = e.target.value; });
+          descEl.addEventListener('input', (e) => { vinculosPessoas[i].descricao = e.target.value; });
           btn.addEventListener('click', () => { vinculosPessoas.splice(i,1); renderizarVinculosPessoas(); });
           lista.appendChild(linha);
         });
@@ -1858,6 +1898,7 @@
               <th style="text-align:left; padding: 0.35rem;">Marca/Modelo</th>
               <th style="text-align:left; padding: 0.35rem;">Nome</th>
               <th style="text-align:left; padding: 0.35rem;">CPF</th>
+              <th style="text-align:left; padding: 0.35rem;">Descrição</th>
               <th style="text-align:left; padding: 0.35rem;">Ações</th>
             </tr>
           </thead>
@@ -1872,6 +1913,13 @@
             <td style="padding: 0.35rem;">${veiculo.marcaModelo || ''}</td>
             <td style="padding: 0.35rem;">${veiculo.nome || ''}</td>
             <td style="padding: 0.35rem;">${aplicarMascaraCpfInline(veiculo.cpf || '')}</td>
+            <td style="padding: 0.35rem; min-width: 14rem;">
+              <label class="form__field" style="margin:0;">
+                <span class="form__label" style="font-size:0.85rem;">Descrição</span>
+                <!-- Comentário: descreve o tipo de ligação com o veículo vinculado -->
+                <textarea class="form__input vv-descricao" data-index="${indice}" rows="2" placeholder="Observações" style="resize: vertical; min-height: 2.4rem;"></textarea>
+              </label>
+            </td>
             <td style="padding: 0.35rem;">
               <button class="button button--ghost" type="button" aria-label="Remover vínculo de veículo">Remover</button>
             </td>
@@ -1882,6 +1930,17 @@
             vinculosVeiculos.splice(indice, 1); // Comentário: remove veículo da lista vinculada
             renderizarVinculosVeiculos();
           });
+
+          const descEl = linha.querySelector('.vv-descricao');
+          if (descEl) {
+            descEl.value = veiculo.descricao || '';
+            descEl.addEventListener('input', (e) => {
+              vinculosVeiculos[indice] = {
+                ...vinculosVeiculos[indice],
+                descricao: e.target.value,
+              };
+            });
+          }
 
           corpo.appendChild(linha);
         });
@@ -1897,6 +1956,8 @@
           nome: String(dados?.nome || '').trim(),
           cpf: aplicarMascaraCpfInline(dados?.cpf || ''),
           tipo: String(dados?.tipo || ''),
+          // Texto livre para detalhar como se dá a relação com a pessoa vinculada
+          descricao: String(dados?.descricao || '').trim(),
         };
 
         vinculosPessoas.push(novoVinculo);
@@ -2073,6 +2134,8 @@
             marcaModelo: veiculoSelecionado.marcaModelo || '',
             nome: (veiculoSelecionado.nomeProprietario || veiculoSelecionado.nome || '').trim(),
             cpf: normalizarCpfSomenteDigitos(veiculoSelecionado.cpf || ''),
+            // Espaço opcional para descrever o vínculo com o veículo encontrado
+            descricao: '',
           });
 
           renderizarVinculosVeiculos();
@@ -2156,32 +2219,45 @@
         }
         vinculosEntidades.forEach((ent, i) => {
           const linha = document.createElement('div');
-          linha.style.cssText = 'display:grid; grid-template-columns: 1fr 1fr auto; gap:0.5rem; align-items:end;';
+          linha.style.cssText = 'display:flex; flex-direction:column; gap:0.35rem; border:1px solid var(--border); padding:0.5rem; border-radius:0.5rem; background:var(--surface);';
           linha.innerHTML = `
-            <label class="form__field">
-              <span class="form__label">Nome</span>
-              <input class="form__input ven-nome" type="text" data-index="${i}" placeholder="Digite o nome" />
+            <div style="display:grid; grid-template-columns: 1fr 1fr auto; gap:0.5rem; align-items:end;">
+              <label class="form__field" style="margin:0;">
+                <span class="form__label">Nome</span>
+                <input class="form__input ven-nome" type="text" data-index="${i}" placeholder="Digite o nome" />
+              </label>
+              <label class="form__field" style="margin:0;">
+                <span class="form__label">Observações</span>
+                <textarea class="form__input ven-obs" data-index="${i}" placeholder="Observações" rows="1" style="resize: vertical; min-height: 2.6rem;"></textarea>
+              </label>
+              <button class="button button--danger" type="button" title="Excluir" aria-label="Remover entidade">−</button>
+            </div>
+            <label class="form__field" style="margin:0;">
+              <span class="form__label">Descrição</span>
+              <!-- Comentário: detalha o contexto do vínculo com a entidade -->
+              <textarea class="form__input ven-descricao" data-index="${i}" placeholder="Descreva o vínculo" rows="2" style="resize: vertical; min-height: 2.4rem;"></textarea>
             </label>
-            <label class="form__field">
-              <span class="form__label">Observações</span>
-              <textarea class="form__input ven-obs" data-index="${i}" placeholder="Observações" rows="1" style="resize: vertical; min-height: 2.6rem;"></textarea>
-            </label>
-            <button class="button button--danger" type="button" title="Excluir" aria-label="Remover entidade">−</button>
           `;
           const nomeEl = linha.querySelector('.ven-nome');
           const obsEl = linha.querySelector('.ven-obs');
+          const descEl = linha.querySelector('.ven-descricao');
           const btn = linha.querySelector('button');
           nomeEl.value = String(ent?.nome || '');
           obsEl.value = String(ent?.observacoes || '');
-          nomeEl.addEventListener('input', (e) => { if (!vinculosEntidades[i]) vinculosEntidades[i] = { nome: '', observacoes: '' }; vinculosEntidades[i].nome = e.target.value; });
-          obsEl.addEventListener('input', (e) => { if (!vinculosEntidades[i]) vinculosEntidades[i] = { nome: '', observacoes: '' }; vinculosEntidades[i].observacoes = e.target.value; });
+          if (descEl) descEl.value = String(ent?.descricao || '');
+          nomeEl.addEventListener('input', (e) => { if (!vinculosEntidades[i]) vinculosEntidades[i] = { nome: '', observacoes: '', descricao: '' }; vinculosEntidades[i].nome = e.target.value; });
+          obsEl.addEventListener('input', (e) => { if (!vinculosEntidades[i]) vinculosEntidades[i] = { nome: '', observacoes: '', descricao: '' }; vinculosEntidades[i].observacoes = e.target.value; });
+          descEl?.addEventListener('input', (e) => {
+            if (!vinculosEntidades[i]) vinculosEntidades[i] = { nome: '', observacoes: '', descricao: '' };
+            vinculosEntidades[i].descricao = e.target.value;
+          });
           btn.addEventListener('click', () => { vinculosEntidades.splice(i,1); renderizarVinculosEntidades(); });
           lista.appendChild(linha);
         });
       };
 
       const adicionarVinculoEntidade = () => {
-        vinculosEntidades.push({ nome: '', observacoes: '' });
+        vinculosEntidades.push({ nome: '', observacoes: '', descricao: '' });
         renderizarVinculosEntidades();
       };
 
@@ -2984,6 +3060,7 @@
             nome: String(v?.nome || ''),
             cpf: String(v?.cpf || ''),
             tipo: String(v?.tipo || ''),
+            descricao: String(v?.descricao || ''),
           }));
         } else {
           vinculosPessoas = [];
@@ -2997,6 +3074,7 @@
             marcaModelo: String(v?.marcaModelo || '').trim(),
             nome: String(v?.nome || v?.nomeProprietario || '').trim(),
             cpf: String(v?.cpf || '').trim(),
+            descricao: String(v?.descricao || '').trim(),
           }));
         } else {
           vinculosVeiculos = [];
@@ -3008,6 +3086,7 @@
           vinculosEntidades = pessoa.vinculos.entidades.map(e => ({
             nome: String(e?.nome || ''),
             observacoes: String(e?.observacoes || ''),
+            descricao: String(e?.descricao || ''),
           }));
         } else {
           vinculosEntidades = [];
@@ -3021,7 +3100,7 @@
           empresasVinculadas = pessoa.vinculos.empresas
             .map((entrada) => {
               const normalizado = normalizarVinculoEmpresa(entrada);
-              const possuiDados = normalizado.id !== undefined || normalizado.nome || normalizado.observacoes;
+              const possuiDados = normalizado.id !== undefined || normalizado.nome || normalizado.observacoes || normalizado.descricao;
               return possuiDados ? normalizado : null;
             })
             .filter(Boolean);
@@ -3549,6 +3628,8 @@
           renderizarVinculosPessoas();
           vinculosVeiculos = [];
           renderizarVinculosVeiculos();
+          empresasVinculadas = [];
+          renderizarEmpresasVinculadasLista();
           vinculosEmpresas = [];
           vinculosEntidades = [];
           renderizarVinculosEntidades();
