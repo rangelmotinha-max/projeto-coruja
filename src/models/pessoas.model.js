@@ -304,13 +304,7 @@ class PessoaModel {
       }
     }
     const vinculosPessoas = await this.obterVinculosPessoas(pessoa.id);
-    const pessoasJson = Array.isArray(vinculosFromJson.pessoas) ? vinculosFromJson.pessoas : null;
-    const pessoasComDescricao = (pessoasJson || vinculosPessoas).map((vp, idx) => ({
-      // Comentário: mescla dados da tabela (ids/descrição) com qualquer informação extra enviada no JSON
-      ...vinculosPessoas[idx],
-      ...vp,
-    })).filter(Boolean);
-    pessoa.vinculos = { ...vinculosFromJson, pessoas: pessoasComDescricao };
+    pessoa.vinculos = { pessoas: vinculosPessoas, ...vinculosFromJson };
     // Ocorrencias via JSON
     if (pessoa.ocorrencias_json) {
       try {
@@ -757,7 +751,7 @@ class PessoaModel {
   static async obterVinculosPessoas(pessoaId, dbArg) {
     const db = dbArg || await initDatabase();
     return db.all(
-      'SELECT id, nome, cpf, tipo, descricao FROM vinculos_pessoas WHERE pessoa_id = ? ORDER BY criadoEm ASC',
+      'SELECT id, nome, cpf, tipo FROM vinculos_pessoas WHERE pessoa_id = ? ORDER BY criadoEm ASC',
       [pessoaId]
     );
   }
@@ -771,15 +765,13 @@ class PessoaModel {
       nome: vinc.nome || null,
       cpf: vinc.cpf ? String(vinc.cpf).replace(/\D/g,'') : null,
       tipo: vinc.tipo || null,
-      // Campo de texto livre que descreve o relacionamento direto entre as pessoas
-      descricao: vinc.descricao ? String(vinc.descricao).trim() : null,
       criadoEm: agora,
       atualizadoEm: agora,
     };
     await db.run(
-      `INSERT INTO vinculos_pessoas (id, pessoa_id, nome, cpf, tipo, descricao, criadoEm, atualizadoEm)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [novo.id, novo.pessoa_id, novo.nome, novo.cpf, novo.tipo, novo.descricao, novo.criadoEm, novo.atualizadoEm]
+      `INSERT INTO vinculos_pessoas (id, pessoa_id, nome, cpf, tipo, criadoEm, atualizadoEm)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [novo.id, novo.pessoa_id, novo.nome, novo.cpf, novo.tipo, novo.criadoEm, novo.atualizadoEm]
     );
     return novo;
   }

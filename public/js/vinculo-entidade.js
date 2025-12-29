@@ -44,7 +44,7 @@
           if (window.vinculosEntidades && Array.isArray(window.vinculosEntidades)) {
             // Evita duplicidade
             if (!window.vinculosEntidades.some(e => (e.nome||'').trim().toLowerCase() === (entidade.nome||'').trim().toLowerCase())) {
-              window.vinculosEntidades.push({ nome: entidade.nome, observacoes: '', descricao: '' });
+              window.vinculosEntidades.push({ nome: entidade.nome, observacoes: '' });
               if (window.renderizarVinculosEntidades) window.renderizarVinculosEntidades();
             }
           }
