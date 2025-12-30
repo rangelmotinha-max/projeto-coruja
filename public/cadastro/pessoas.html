@@ -1779,38 +1779,87 @@
           container.style.display = 'block';
           return;
         }
+        // Renderizar tabela com Nome | CPF e coluna de confirmação (Sim / Não)
+        const wrapperTabela = document.createElement('div');
+        wrapperTabela.style.overflowX = 'auto';
+        wrapperTabela.style.width = '100%';
 
-        container.style.display = 'grid';
-        container.style.gridTemplateColumns = 'repeat(auto-fill, minmax(260px, 1fr))';
-        container.style.gap = '0.75rem';
+        const tabela = document.createElement('table');
+        tabela.style.width = '100%';
+        tabela.style.borderCollapse = 'collapse';
+        tabela.className = 'panel';
+
+        tabela.innerHTML = `
+          <thead>
+            <tr>
+              <th style="text-align:left; padding:0.35rem;">Nome</th>
+              <th style="text-align:left; padding:0.35rem;">CPF</th>
+              <th style="text-align:right; padding:0.35rem;">Vincular</th>
+            </tr>
+          </thead>
+        `;
+
+        const corpo = document.createElement('tbody');
 
         resultadosBuscaPessoas.forEach((pessoa, indice) => {
           const nomeEncontrado = pessoa.nomeCompleto || pessoa.apelido || 'Pessoa encontrada';
           const cpfEncontrado = aplicarMascaraCpfInline(pessoa.cpf || '');
 
-          const card = document.createElement('div');
-          card.className = 'panel';
-          card.style.padding = '0.75rem';
-          card.style.display = 'flex';
-          card.style.flexDirection = 'column';
-          card.style.gap = '0.35rem';
-
-          card.innerHTML = `
-            <div style="display:flex; justify-content:space-between; gap:0.5rem; align-items:flex-start;">
-              <div>
-                <p style="margin:0; font-weight:700;">${nomeEncontrado}</p>
-                <p style="margin:0; color:var(--muted);">${cpfEncontrado ? `CPF: ${cpfEncontrado}` : 'CPF não informado'}</p>
-                <p style="margin:0; color:var(--muted);">${pessoa.apelido ? `Vulgo: ${pessoa.apelido}` : ''}</p>
-              </div>
-              <button class="button button--primary" type="button" data-indice="${indice}">Vincular</button>
-            </div>
+          const linha = document.createElement('tr');
+          linha.innerHTML = `
+            <td style="padding:0.35rem;">${nomeEncontrado}</td>
+            <td style="padding:0.35rem;">${cpfEncontrado || ''}</td>
+            <td style="padding:0.35rem; text-align:right;"></td>
           `;
 
-          const botao = card.querySelector('button');
-          botao.addEventListener('click', () => confirmarVinculoPessoa(indice));
+          const acoesTd = linha.querySelector('td:last-child');
+          acoesTd.style.minWidth = '180px';
 
-          container.appendChild(card);
+          const perguntaDiv = document.createElement('div');
+          perguntaDiv.style.color = 'var(--muted)';
+          perguntaDiv.style.marginBottom = '0.25rem';
+          perguntaDiv.textContent = 'Deseja vincular a pessoa?';
+          perguntaDiv.style.textAlign = window.innerWidth < 480 ? 'left' : 'right';
+
+          const botoesDiv = document.createElement('div');
+          botoesDiv.style.display = 'flex';
+          botoesDiv.style.justifyContent = window.innerWidth < 480 ? 'flex-start' : 'flex-end';
+          botoesDiv.style.gap = '0.35rem';
+          botoesDiv.style.flexDirection = window.innerWidth < 480 ? 'column' : 'row';
+
+          const btnSim = document.createElement('button');
+          btnSim.type = 'button';
+          btnSim.className = 'button button--primary';
+          btnSim.textContent = 'Sim';
+          btnSim.addEventListener('click', () => confirmarVinculoPessoa(indice));
+
+          const btnNao = document.createElement('button');
+          btnNao.type = 'button';
+          btnNao.className = 'button button--ghost';
+          btnNao.textContent = 'Não';
+          btnNao.addEventListener('click', () => {
+            // Remove apenas este resultado da lista de exibição
+            resultadosBuscaPessoas.splice(indice, 1);
+            renderizarResultadosPessoasBusca();
+          });
+
+          if (window.innerWidth < 480) {
+            btnSim.style.width = '100%';
+            btnNao.style.width = '100%';
+          }
+
+          botoesDiv.appendChild(btnSim);
+          botoesDiv.appendChild(btnNao);
+          acoesTd.appendChild(perguntaDiv);
+          acoesTd.appendChild(botoesDiv);
+
+          corpo.appendChild(linha);
         });
+
+        tabela.appendChild(corpo);
+        wrapperTabela.appendChild(tabela);
+        container.appendChild(wrapperTabela);
+        container.style.display = 'block';
       };
 
       // Comentário: limpa o estado e a área visual de resultados de busca
