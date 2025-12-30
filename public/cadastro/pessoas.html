@@ -1035,6 +1035,11 @@
           cont.innerHTML = '';
         });
         btnNao.addEventListener('click', () => {
+          // Limpa resultado, campo CNPJ e status
+          const inputCnpj = document.getElementById('empresa-cnpj-input');
+          if (inputCnpj) inputCnpj.value = '';
+          const statusEl = document.getElementById('empresa-vinculada-status');
+          if (statusEl) statusEl.textContent = '';
           cont.innerHTML = '';
         });
         grupo.appendChild(btnSim);
@@ -1234,6 +1239,7 @@
       let veiculos = [];
       // Comentário: armazenamos os resultados da busca de pessoas para renderizar múltiplas opções
       let resultadosBuscaPessoas = [];
+      let mostrarMensagemResultadosPessoas = true;
       let vinculosPessoas = [];
       let vinculosEmpresas = [];
       let vinculosEntidades = [];
@@ -1775,8 +1781,13 @@
         container.innerHTML = '';
 
         if (!resultadosBuscaPessoas.length) {
-          container.innerHTML = '<p style="color: var(--muted); margin: 0;">Nenhum resultado para mostrar. Refine a busca.</p>';
-          container.style.display = 'block';
+          if (mostrarMensagemResultadosPessoas) {
+            container.innerHTML = '<p style="color: var(--muted); margin: 0;">Nenhum resultado para mostrar. Refine a busca.</p>';
+            container.style.display = 'block';
+          } else {
+            container.innerHTML = '';
+            container.style.display = 'none';
+          }
           return;
         }
         // Renderizar tabela com Nome | CPF e coluna de confirmação (Sim / Não)
@@ -1839,9 +1850,15 @@
           btnNao.className = 'button button--ghost';
           btnNao.textContent = 'Não';
           btnNao.addEventListener('click', () => {
-            // Remove apenas este resultado da lista de exibição
+            // Não exibir mensagem; limpar campo de busca e resultados
             resultadosBuscaPessoas.splice(indice, 1);
+            if (vinculoPessoaBuscaInput) vinculoPessoaBuscaInput.value = '';
+            if (formMessageEl) formMessageEl.textContent = '';
+            // Suprime a mensagem "Nenhum resultado..." ao re-renderizar
+            mostrarMensagemResultadosPessoas = false;
             renderizarResultadosPessoasBusca();
+            // Restabelece comportamento padrão para buscas futuras
+            setTimeout(() => { mostrarMensagemResultadosPessoas = true; }, 0);
           });
 
           if (window.innerWidth < 480) {
@@ -2022,6 +2039,8 @@
       };
 
       const buscarPessoaParaVinculo = async () => {
+        // Permitimos exibir a mensagem padrão de "Nenhum resultado..." para esta busca
+        mostrarMensagemResultadosPessoas = true;
         const termoBusca = vinculoPessoaBuscaInput?.value || '';
         try {
           const { query, descricao } = montarFiltrosBuscaVinculo(termoBusca);
