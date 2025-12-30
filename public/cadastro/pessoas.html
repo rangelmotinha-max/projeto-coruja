@@ -986,7 +986,7 @@
               <th style="text-align:left; padding:0.5rem;">Razão Social</th>
               <th style="text-align:left; padding:0.5rem;">Nome Fantasia</th>
               <th style="text-align:left; padding:0.5rem;">Situação Cadastral</th>
-              <th style="text-align:center; padding:0.5rem;">Vincular</th>
+              <th style="text-align:center; padding:0.5rem;"></th>
             </tr>
           </thead>
           <tbody></tbody>
@@ -1789,12 +1789,13 @@
         tabela.style.borderCollapse = 'collapse';
         tabela.className = 'panel';
 
+        tabela.style.marginTop = '0.5rem';
         tabela.innerHTML = `
           <thead>
-            <tr>
+            <tr style="background: var(--surface-muted);">
               <th style="text-align:left; padding:0.35rem;">Nome</th>
               <th style="text-align:left; padding:0.35rem;">CPF</th>
-              <th style="text-align:right; padding:0.35rem;">Vincular</th>
+              <th style="text-align:right; padding:0.35rem;"></th>
             </tr>
           </thead>
         `;
@@ -1816,7 +1817,7 @@
           acoesTd.style.minWidth = '180px';
 
           const perguntaDiv = document.createElement('div');
-          perguntaDiv.style.color = 'var(--muted)';
+          perguntaDiv.style.color = 'white';
           perguntaDiv.style.marginBottom = '0.25rem';
           perguntaDiv.textContent = 'Deseja vincular a pessoa?';
           perguntaDiv.style.textAlign = window.innerWidth < 480 ? 'left' : 'right';
@@ -1831,7 +1832,7 @@
           btnSim.type = 'button';
           btnSim.className = 'button button--primary';
           btnSim.textContent = 'Sim';
-          btnSim.addEventListener('click', () => confirmarVinculoPessoa(indice));
+          btnSim.addEventListener('click', () => confirmarVinculoPessoa(indice, true));
 
           const btnNao = document.createElement('button');
           btnNao.type = 'button';
@@ -1976,7 +1977,7 @@
       };
 
       // Comentário: confirma e aplica o vínculo selecionado em cada resultado
-      const confirmarVinculoPessoa = (indice) => {
+      const confirmarVinculoPessoa = (indice, skipConfirm = false) => {
         const pessoaEncontrada = resultadosBuscaPessoas[indice];
 
         if (!pessoaEncontrada) {
@@ -1988,10 +1989,12 @@
         const cpfEncontrado = aplicarMascaraCpfInline(pessoaEncontrada.cpf || '');
         const resumoPessoa = cpfEncontrado ? `${nomeEncontrado} (CPF: ${cpfEncontrado})` : nomeEncontrado;
 
-        const confirmarVinculo = confirm(`Deseja vincular ${resumoPessoa} ao cadastro atual?`);
-        if (!confirmarVinculo) {
-          exibirMensagemForm('Vínculo cancelado pelo usuário.', 'info');
-          return;
+        if (!skipConfirm) {
+          const confirmarVinculo = confirm(`Deseja vincular ${resumoPessoa} ao cadastro atual?`);
+          if (!confirmarVinculo) {
+            exibirMensagemForm('Vínculo cancelado pelo usuário.', 'info');
+            return;
+          }
         }
 
         const cpfLimpoEncontrado = normalizarCpfSomenteDigitos(pessoaEncontrada.cpf || '');
@@ -3710,7 +3713,7 @@
               if (statusEl) statusEl.textContent = '';
             } else {
               renderizarResultadoBuscaEmpresa(empresa);
-              if (statusEl) statusEl.textContent = 'Empresa encontrada.';
+              if (statusEl) statusEl.textContent = '';
             }
           } catch (err) {
             if (statusEl) statusEl.textContent = 'Erro ao buscar empresa.';
