@@ -1092,7 +1092,7 @@
               <th style="text-align:left; padding:0.5rem;">Razão Social</th>
               <th style="text-align:left; padding:0.5rem;">Nome Fantasia</th>
               <th style="text-align:left; padding:0.5rem;">Situação Cadastral</th>
-              <th style="text-align:center; padding:0.5rem;">Ações</th>
+              <th style="text-align:center; padding:0.5rem;" aria-label="Controles" title="Controles"></th>
             </tr>
           </thead>
           <tbody></tbody>
@@ -1953,7 +1953,7 @@
               <th style="text-align:left; padding:0.35rem;">Marca/Modelo</th>
               <th style="text-align:left; padding:0.35rem;">Proprietário</th>
               <th style="text-align:left; padding:0.35rem;">CPF</th>
-              <th style="text-align:right; padding:0.35rem;">Ações</th>
+              <th style="text-align:right; padding:0.35rem;" aria-label="Controles" title="Controles"></th>
             </tr>
           </thead>
         `;
@@ -2050,7 +2050,7 @@
               <th style="text-align:left; padding: 0.35rem;">Marca/Modelo</th>
               <th style="text-align:left; padding: 0.35rem;">Proprietário</th>
               <th style="text-align:left; padding: 0.35rem;">CPF</th>
-              <th style="text-align:center; padding: 0.35rem;">Ações</th>
+              <th style="text-align:center; padding: 0.35rem;" aria-label="Controles" title="Controles"></th>
             </tr>
           </thead>
           <tbody></tbody>
@@ -3399,7 +3399,7 @@
               <th style="padding: 0.75rem; border: 1px solid var(--border); text-align: left;">Mãe</th>
               <th style="padding: 0.75rem; border: 1px solid var(--border); text-align: left;">Facção</th>
               <th style="padding: 0.75rem; border: 1px solid var(--border); text-align: left;">Último Endereço</th>
-              <th style="padding: 0.75rem; border: 1px solid var(--border); text-align: center;">Ações</th>
+              <th style="padding: 0.75rem; border: 1px solid var(--border); text-align: center;" aria-label="Controles" title="Controles"></th>
             </tr>
           </thead>
           <tbody></tbody>
@@ -3452,7 +3452,7 @@
           tdEndereco.textContent = ultimoEndereco;
           tr.appendChild(tdEndereco);
 
-          // Ações
+          // Controles: coluna reservada para botões de edição e exclusão
           const tdAcoes = document.createElement('td');
           tdAcoes.style.padding = '0.75rem';
           tdAcoes.style.display = 'flex';

@@ -292,14 +292,21 @@
 
         const thead = document.createElement('thead');
         const headRow = document.createElement('tr');
-        const ths = ['CNPJ', 'Razão Social', 'Nome Fantasia', 'Situação Cadastral', 'Ações'];
-        ths.forEach(t => {
+        const ths = ['CNPJ', 'Razão Social', 'Nome Fantasia', 'Situação Cadastral'];
+        ths.forEach((titulo) => {
           const th = document.createElement('th');
-          th.textContent = t;
+          th.textContent = titulo;
           th.style.textAlign = 'left';
           th.style.padding = '0.5rem';
           headRow.appendChild(th);
         });
+        // Comentário: cabeçalho da coluna de controles fica sem rótulo visível para evitar o texto "Ações"
+        const thControles = document.createElement('th');
+        thControles.style.textAlign = 'center';
+        thControles.style.padding = '0.5rem';
+        thControles.setAttribute('aria-label', 'Controles');
+        thControles.title = 'Controles';
+        headRow.appendChild(thControles);
         thead.appendChild(headRow);
         table.appendChild(thead);
 
