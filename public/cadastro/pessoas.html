@@ -2775,9 +2775,16 @@
         }
 
         try {
-          exibirStatusVinculoEntidade('Buscando entidades...', 'info');
+          exibirStatusVinculoEntidade('Buscando entidades por nome ou liderança...', 'info');
           exibirMensagemVinculoEntidade('Buscando a entidade informada...', 'info');
-          const resp = await fetchAutenticado(`/api/entidades?nome=${encodeURIComponent(termo)}`);
+
+          const params = new URLSearchParams({
+            nome: termo,
+            lider: termo, // Comentário: garante busca específica por liderança
+            q: termo, // Comentário: mantém compatibilidade com filtros globais
+          });
+
+          const resp = await fetchAutenticado(`/api/entidades?${params.toString()}`);
           const data = await resp.json().catch(() => ({}));
 
           if (!resp.ok) {
@@ -2797,10 +2804,10 @@
 
           renderizarResultadosEntidadesBusca();
           if (resultadosBuscaEntidades.length) {
-            exibirStatusVinculoEntidade('Selecione uma entidade nos resultados abaixo.', 'success');
+            exibirStatusVinculoEntidade('Selecione uma entidade encontrada pelo nome ou líder.', 'success');
             exibirMensagemVinculoEntidade('');
           } else {
-            exibirStatusVinculoEntidade('Nenhuma entidade encontrada. Você pode cadastrá-la.', 'info');
+            exibirStatusVinculoEntidade('Nenhuma entidade encontrada. Você pode cadastrá-la ou ajustar o líder informado.', 'info');
           }
         } catch (error) {
           limparResultadosEntidadesBusca();
