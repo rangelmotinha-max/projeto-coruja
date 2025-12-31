@@ -473,6 +473,7 @@
                 <div class="form__subsection">
                   <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin: 0.75rem 0;">
                     <h4 class="form__section-title" style="font-size: 1rem; margin: 0;">Entidades</h4>
+                    <button class="button button--secondary" id="adicionar-vinculo-entidade" type="button" aria-label="Adicionar entidade manualmente" title="Adicionar">+</button>
                   </div>
                   <div class="form__grid form__grid--3" style="align-items:end;">
                     <label class="form__field" style="margin:0;">
@@ -481,10 +482,10 @@
                     <div class="form__actions" style="margin:0;">
                       <button class="button button--secondary" id="buscar-vinculo-entidade" type="button" aria-label="Buscar entidade para vínculo" title="Procurar" style="min-width:8rem;">Procurar</button>
                     </div>
-                    <small id="vinculo-entidade-status" style="color: var(--muted);"></small>
+                    <small id="vinculo-entidade-status" class="message" style="margin: 0;"></small>
                   </div>
                   <div id="vinculo-entidade-resultado" class="panel" style="margin-top: 0.75rem; padding: 0.75rem; display: none;"></div>
-                  <div id="lista-vinculos-entidades" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
+                  <div id="lista-vinculos-entidades" style="display: grid; gap: 0.75rem;"></div>
                 </div>
                 <div class="form__subsection">
                   <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin: 0.75rem 0;">
@@ -2622,32 +2623,55 @@
         if (!lista) return;
         lista.innerHTML = '';
         if (vinculosEntidades.length === 0) {
-          // Não exibe placeholder quando não há entidades
+          // Comentário: não exibe placeholder quando não há entidades vinculadas
           return;
         }
         vinculosEntidades.forEach((ent, i) => {
+          const card = document.createElement('div');
+          card.className = 'panel';
+          card.style.padding = '0.75rem';
+          card.style.display = 'flex';
+          card.style.flexDirection = 'column';
+          card.style.gap = '0.5rem';
+
+          const cabecalho = document.createElement('div');
+          cabecalho.style.display = 'flex';
+          cabecalho.style.justifyContent = 'space-between';
+          cabecalho.style.alignItems = 'center';
+          cabecalho.innerHTML = `<strong style="font-size:0.95rem;">Entidade ${i + 1}</strong>`;
+
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'button button--danger';
+          btn.textContent = 'Remover';
+          btn.title = 'Excluir';
+          btn.setAttribute('aria-label', 'Remover entidade vinculada');
+          btn.addEventListener('click', () => { vinculosEntidades.splice(i,1); renderizarVinculosEntidades(); });
+
+          cabecalho.appendChild(btn);
+          card.appendChild(cabecalho);
+
           const linha = document.createElement('div');
-          linha.style.cssText = 'display:grid; grid-template-columns: 1fr 1fr auto; gap:0.5rem; align-items:end;';
+          linha.className = 'form__grid form__grid--2';
           linha.innerHTML = `
             <label class="form__field">
               <span class="form__label">Nome</span>
-              <input class="form__input ven-nome" type="text" data-index="${i}" placeholder="Digite o nome" />
+              <input class="form__input ven-nome" type="text" data-index="${i}" placeholder="Digite o nome da entidade" />
             </label>
             <label class="form__field">
               <span class="form__label">Observações</span>
-              <textarea class="form__input ven-obs" data-index="${i}" placeholder="Observações" rows="1" style="resize: vertical; min-height: 2.6rem;"></textarea>
+              <textarea class="form__input ven-obs" data-index="${i}" placeholder="Observações ou liderança" rows="2" style="resize: vertical; min-height: 2.8rem;"></textarea>
             </label>
-            <button class="button button--danger" type="button" title="Excluir" aria-label="Remover entidade">−</button>
           `;
+
           const nomeEl = linha.querySelector('.ven-nome');
           const obsEl = linha.querySelector('.ven-obs');
-          const btn = linha.querySelector('button');
           nomeEl.value = String(ent?.nome || '');
           obsEl.value = String(ent?.observacoes || '');
           nomeEl.addEventListener('input', (e) => { if (!vinculosEntidades[i]) vinculosEntidades[i] = { nome: '', observacoes: '' }; vinculosEntidades[i].nome = e.target.value; });
           obsEl.addEventListener('input', (e) => { if (!vinculosEntidades[i]) vinculosEntidades[i] = { nome: '', observacoes: '' }; vinculosEntidades[i].observacoes = e.target.value; });
-          btn.addEventListener('click', () => { vinculosEntidades.splice(i,1); renderizarVinculosEntidades(); });
-          lista.appendChild(linha);
+          card.appendChild(linha);
+          lista.appendChild(card);
         });
       };
 
