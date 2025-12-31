@@ -83,18 +83,24 @@ function sanitizarEntidade(payload, arquivos = []) {
 // Aplica filtros simples em memória para facilitar a busca rápida
 function filtrarEntidades(lista, filtros = {}) {
   const termo = (filtros.q || filtros.nome || '').toString().toLowerCase().trim();
+  const termoLideranca = (filtros.lider || '').toString().toLowerCase().trim();
   const cnpjFiltro = (filtros.cnpj || '').toString().replace(/\D/g, '');
   const telefoneFiltro = (filtros.telefone || '').toString().replace(/\D/g, '');
 
   return lista.filter((entidade) => {
-    const nomeOk = termo ? entidade.nome.toLowerCase().includes(termo) : true;
+    const liderancas = Array.isArray(entidade.liderancas) ? entidade.liderancas : [];
+    const liderancaCombina = (valor) => liderancas.some((l) => String(l || '').toLowerCase().includes(valor));
+    const nomeOuLiderOk = termo
+      ? entidade.nome.toLowerCase().includes(termo) || liderancaCombina(termo)
+      : true;
+    const liderOk = termoLideranca ? liderancaCombina(termoLideranca) : true; // Comentário: permite filtro dedicado para liderança
     const cnpjOk = cnpjFiltro
       ? String(entidade.cnpj || '').replace(/\D/g, '').includes(cnpjFiltro)
       : true;
     const telefoneOk = telefoneFiltro
       ? (entidade.telefones || []).some((t) => String(t.numero || '').includes(telefoneFiltro))
       : true;
-    return nomeOk && cnpjOk && telefoneOk;
+    return nomeOuLiderOk && liderOk && cnpjOk && telefoneOk;
   });
 }
 
