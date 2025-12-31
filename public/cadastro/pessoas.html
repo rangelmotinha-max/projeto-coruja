@@ -2354,7 +2354,10 @@
 
           exibirMensagemVinculoVeiculo('');
           renderizarResultadosVeiculosBusca();
-          if (vinculoVeiculoStatusEl) vinculoVeiculoStatusEl.textContent = 'Selecione um veículo para vincular.';
+          if (vinculoVeiculoStatusEl) {
+            // Comentário: limpa o status para evitar mensagem duplicada após exibir os resultados
+            vinculoVeiculoStatusEl.textContent = '';
+          }
         } catch (error) {
           resultadosBuscaVeiculos = [];
           mostrarMensagemResultadosVeiculos = true;
