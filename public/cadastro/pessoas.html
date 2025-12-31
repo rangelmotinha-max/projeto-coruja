@@ -2026,57 +2026,121 @@
         vinculoVeiculoResultadoEl.style.display = 'block';
       };
 
-      // Comentário: renderiza tabela com veículos vinculados ao cadastro atual
+      // Comentário: renderiza tabela editável com veículos vinculados ao cadastro
       const renderizarVinculosVeiculos = () => {
         if (!listaVinculosVeiculosEl) return;
         listaVinculosVeiculosEl.innerHTML = '';
 
         if (!vinculosVeiculos.length) {
-          // Não exibe placeholder quando não há veículos vinculados
+          // Comentário: evita placeholders quando não há vínculos de veículos
           return;
         }
+
+        const painel = document.createElement('div');
+        painel.className = 'panel';
+        painel.style.padding = '0.75rem';
 
         const tabela = document.createElement('table');
         tabela.style.width = '100%';
         tabela.style.borderCollapse = 'collapse';
         tabela.innerHTML = `
           <thead>
-            <tr>
+            <tr style="background: var(--surface-muted);">
               <th style="text-align:left; padding: 0.35rem;">Placa</th>
               <th style="text-align:left; padding: 0.35rem;">Marca/Modelo</th>
-              <th style="text-align:left; padding: 0.35rem;">Nome</th>
+              <th style="text-align:left; padding: 0.35rem;">Proprietário</th>
               <th style="text-align:left; padding: 0.35rem;">CPF</th>
-              <th style="text-align:left; padding: 0.35rem;">Ações</th>
+              <th style="text-align:center; padding: 0.35rem;">Ações</th>
             </tr>
           </thead>
+          <tbody></tbody>
         `;
 
-        const corpo = document.createElement('tbody');
+        const corpo = tabela.querySelector('tbody');
 
         vinculosVeiculos.forEach((veiculo, indice) => {
           const linha = document.createElement('tr');
-          const placaFormatada = aplicarMascaraPlaca(veiculo.placa || '');
-          linha.innerHTML = `
-            <td style="padding: 0.35rem;">${placaFormatada || ''}</td>
-            <td style="padding: 0.35rem;">${veiculo.marcaModelo || ''}</td>
-            <td style="padding: 0.35rem;">${veiculo.nome || ''}</td>
-            <td style="padding: 0.35rem;">${aplicarMascaraCpfInline(veiculo.cpf || '')}</td>
-            <td style="padding: 0.35rem;">
-              <button class="button button--ghost" type="button" aria-label="Remover vínculo de veículo">Remover</button>
-            </td>
-          `;
+          linha.style.borderBottom = '1px solid var(--border)';
 
-          const removerBtn = linha.querySelector('button');
-          removerBtn.addEventListener('click', () => {
-            vinculosVeiculos.splice(indice, 1); // Comentário: remove veículo da lista vinculada
+          const tdPlaca = document.createElement('td');
+          tdPlaca.style.padding = '0.35rem';
+          const inputPlaca = document.createElement('input');
+          inputPlaca.className = 'form__input';
+          inputPlaca.type = 'text';
+          inputPlaca.placeholder = 'AAA-0A00';
+          inputPlaca.value = aplicarMascaraPlaca(veiculo.placa || '');
+          inputPlaca.addEventListener('input', (event) => {
+            // Comentário: mantém o valor normalizado no array e mascarado no campo
+            const valorNormalizado = normalizarPlaca(event.target.value);
+            vinculosVeiculos[indice].placa = valorNormalizado;
+            event.target.value = aplicarMascaraPlaca(valorNormalizado);
+          });
+          tdPlaca.appendChild(inputPlaca);
+
+          const tdMarcaModelo = document.createElement('td');
+          tdMarcaModelo.style.padding = '0.35rem';
+          const inputMarcaModelo = document.createElement('input');
+          inputMarcaModelo.className = 'form__input';
+          inputMarcaModelo.type = 'text';
+          inputMarcaModelo.placeholder = 'Marca e modelo';
+          inputMarcaModelo.value = veiculo.marcaModelo || '';
+          inputMarcaModelo.addEventListener('input', (event) => {
+            vinculosVeiculos[indice].marcaModelo = event.target.value;
+          });
+          tdMarcaModelo.appendChild(inputMarcaModelo);
+
+          const tdProprietario = document.createElement('td');
+          tdProprietario.style.padding = '0.35rem';
+          const inputProprietario = document.createElement('input');
+          inputProprietario.className = 'form__input';
+          inputProprietario.type = 'text';
+          inputProprietario.placeholder = 'Proprietário';
+          inputProprietario.value = veiculo.nome || '';
+          inputProprietario.addEventListener('input', (event) => {
+            // Comentário: guarda o nome informado para compor o payload
+            vinculosVeiculos[indice].nome = event.target.value;
+          });
+          tdProprietario.appendChild(inputProprietario);
+
+          const tdCpf = document.createElement('td');
+          tdCpf.style.padding = '0.35rem';
+          const inputCpf = document.createElement('input');
+          inputCpf.className = 'form__input';
+          inputCpf.type = 'text';
+          inputCpf.inputMode = 'numeric';
+          inputCpf.placeholder = '000.000.000-00';
+          inputCpf.value = aplicarMascaraCpfInline(veiculo.cpf || '');
+          inputCpf.addEventListener('input', (event) => {
+            // Comentário: aplica máscara inline e atualiza o array sincronizando o payload
+            const cpfMascarado = aplicarMascaraCpfInline(event.target.value);
+            vinculosVeiculos[indice].cpf = cpfMascarado;
+            event.target.value = cpfMascarado;
+          });
+          tdCpf.appendChild(inputCpf);
+
+          const tdAcoes = document.createElement('td');
+          tdAcoes.style.padding = '0.35rem';
+          tdAcoes.style.textAlign = 'center';
+          const btnRemover = document.createElement('button');
+          btnRemover.className = 'button button--danger';
+          btnRemover.type = 'button';
+          btnRemover.textContent = 'Remover';
+          btnRemover.addEventListener('click', () => {
+            vinculosVeiculos.splice(indice, 1);
             renderizarVinculosVeiculos();
           });
+          tdAcoes.appendChild(btnRemover);
 
+          linha.appendChild(tdPlaca);
+          linha.appendChild(tdMarcaModelo);
+          linha.appendChild(tdProprietario);
+          linha.appendChild(tdCpf);
+          linha.appendChild(tdAcoes);
           corpo.appendChild(linha);
         });
 
-        tabela.appendChild(corpo);
-        listaVinculosVeiculosEl.appendChild(tabela);
+        painel.appendChild(tabela);
+        listaVinculosVeiculosEl.appendChild(painel);
       };
 
       const adicionarVinculoPessoa = (dados = { nome: '', cpf: '', tipo: '' }) => {
