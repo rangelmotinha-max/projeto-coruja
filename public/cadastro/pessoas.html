@@ -2444,7 +2444,15 @@
 
           if (!pessoasEncontradas.length) {
             abrirConfirmacao('Pessoa não encontrada. Deseja cadastrar?', () => {
-              window.location.href = '/cadastro/pessoas';
+              // Comentário: abre a página de cadastro em nova aba para manter o formulário atual
+              const novaAbaCadastro = window.open('/cadastro/pessoas', '_blank');
+              if (novaAbaCadastro) {
+                // Comentário: remove referência ao formulário atual para evitar acesso entre abas
+                novaAbaCadastro.opener = null;
+              } else {
+                // Comentário: fallback quando o navegador bloqueia pop-ups
+                window.location.href = '/cadastro/pessoas';
+              }
             });
             exibirMensagemForm('Nenhuma pessoa encontrada com o filtro informado.', 'info');
             limparResultadosPessoasBusca(true);
