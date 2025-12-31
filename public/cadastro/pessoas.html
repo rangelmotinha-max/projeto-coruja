@@ -944,14 +944,15 @@
         const entidadesVinc = [];
         const entidadesVistas = new Set();
         (vinculosEntidades || []).forEach((e) => {
-          const idLimpo = e?.id !== undefined && e?.id !== null && String(e.id).trim() !== '' ? e.id : undefined;
+          const idLimpo = e?.id !== undefined && e?.id !== null && String(e.id).trim() !== '' ? e.id : (e?.entidadeId ?? undefined);
           const nome = String(e?.nome || '').trim();
           const observacoes = String(e?.observacoes || e?.lider || '').trim();
+          const lider = String(e?.lider || '').trim();
           const chave = idLimpo !== undefined ? `id:${String(idLimpo).trim()}` : (nome ? `nome:${nome.toLowerCase()}` : null);
           if (!chave || entidadesVistas.has(chave)) return;
           entidadesVistas.add(chave);
-          if (idLimpo !== undefined || nome || observacoes) {
-            entidadesVinc.push({ id: idLimpo, nome, observacoes });
+          if (idLimpo !== undefined || nome || observacoes || lider) {
+            entidadesVinc.push({ id: idLimpo, nome, observacoes, lider });
           }
         });
         const empregList = (vinculosEmpregaticio || [])
@@ -2637,7 +2638,10 @@
         vinculosEntidades.push({
           id: idSelecionado !== undefined ? idSelecionado : undefined,
           nome: nomeEntidade,
-          observacoes: entidadeSelecionada?.observacoes || entidadeSelecionada?.lider || entidadeSelecionada?.lider_nome || '',
+          observacoes: entidadeSelecionada?.observacoes || entidadeSelecionada?.descricao || entidadeSelecionada?.lider || entidadeSelecionada?.lider_nome || '',
+          lider: entidadeSelecionada?.lider || entidadeSelecionada?.lider_nome || entidadeSelecionada?.liderNome || '',
+          descricao: entidadeSelecionada?.descricao || '',
+          liderancas: entidadeSelecionada?.liderancas || [],
         });
 
         renderizarVinculosEntidades();
@@ -2787,6 +2791,8 @@
             nome: entidade?.nome || entidade?.nomeFantasia || entidade?.razaoSocial || '',
             lider: entidade?.lider || entidade?.lider_nome || entidade?.liderNome || entidade?.nomeLider || '',
             observacoes: entidade?.observacoes || '',
+            descricao: entidade?.descricao || '',
+            liderancas: entidade?.liderancas || [],
           }));
 
           renderizarResultadosEntidadesBusca();
@@ -2801,6 +2807,48 @@
           exibirMensagemVinculoEntidade(error?.message || 'Erro ao buscar entidade.', 'error');
           exibirStatusVinculoEntidade('Erro ao buscar entidade.', 'error');
         }
+      };
+
+      // Comentário: enriquece entidades vinculadas usando o ID para buscar nome/liderança/descrição atualizados
+      const hidratarVinculosEntidadesPorId = async (lista = []) => {
+        const atualizada = [...lista];
+        const respostas = await Promise.all(atualizada.map(async (entidade, indice) => {
+          const id = entidade?.id ?? entidade?.entidadeId;
+          const precisaDetalhes = id && (!entidade?.nome || !entidade?.observacoes || !entidade?.lider);
+          if (!precisaDetalhes) return null;
+          try {
+            const resp = await fetchAutenticado(`/api/entidades/${id}`);
+            const dados = await resp.json().catch(() => ({}));
+            if (!resp.ok) {
+              const erro = dados?.mensagem || dados?.message || 'Erro ao detalhar entidade vinculada.';
+              throw new Error(erro);
+            }
+            return { indice, detalhes: dados?.data || dados };
+          } catch (error) {
+            console.error('Não foi possível hidratar a entidade vinculada', error);
+            return null;
+          }
+        }));
+
+        let alterou = false;
+        respostas.filter(Boolean).forEach(({ indice, detalhes }) => {
+          const alvo = atualizada[indice];
+          if (!alvo) return;
+          const nomeDetalhado = detalhes?.nome || detalhes?.nomeFantasia || detalhes?.razaoSocial;
+          const observacaoDetalhada = detalhes?.descricao || alvo.observacoes;
+          const liderDetalhado = Array.isArray(detalhes?.liderancas) ? detalhes.liderancas[0] : (detalhes?.lider || '');
+          const liderancasDetalhadas = Array.isArray(detalhes?.liderancas) ? detalhes.liderancas : [];
+          if (liderancasDetalhadas.length && !Array.isArray(alvo.liderancas)) { alvo.liderancas = []; }
+          if (nomeDetalhado && !alvo.nome) { alvo.nome = nomeDetalhado; alterou = true; }
+          if (observacaoDetalhada && !alvo.observacoes) { alvo.observacoes = observacaoDetalhada; alterou = true; }
+          if (liderDetalhado && !alvo.lider) { alvo.lider = liderDetalhado; alterou = true; }
+          if (observacaoDetalhada && !alvo.descricao) { alvo.descricao = observacaoDetalhada; }
+          if (liderancasDetalhadas.length && (!Array.isArray(alvo.liderancas) || alvo.liderancas.length === 0)) {
+            alvo.liderancas = liderancasDetalhadas;
+          }
+        });
+
+        return alterou ? atualizada : lista;
       };
 
       // Seção de vínculos de Empresa removida: funções excluídas
@@ -2882,6 +2930,7 @@
             <tr style="background: var(--surface-muted);">
               <th style="text-align:left; padding: 0.35rem;">Nome</th>
               <th style="text-align:left; padding: 0.35rem;">Observações</th>
+              <th style="text-align:left; padding: 0.35rem;">Líder/Referência</th>
               <th style="text-align:center; padding: 0.35rem;">Ações</th>
             </tr>
           </thead>
@@ -2902,7 +2951,7 @@
           inputNome.placeholder = 'Nome da entidade';
           inputNome.value = entidade?.nome || '';
           inputNome.addEventListener('input', (event) => {
-            if (!vinculosEntidades[indice]) vinculosEntidades[indice] = { id: undefined, nome: '', observacoes: '' };
+            if (!vinculosEntidades[indice]) vinculosEntidades[indice] = { id: undefined, nome: '', observacoes: '', lider: '' };
             vinculosEntidades[indice].nome = event.target.value;
           });
           tdNome.appendChild(inputNome);
@@ -2914,12 +2963,25 @@
           textareaObs.placeholder = 'Observações ou liderança';
           textareaObs.rows = 2;
           textareaObs.style.resize = 'vertical';
-          textareaObs.value = entidade?.observacoes || entidade?.lider || '';
+          textareaObs.value = entidade?.observacoes || entidade?.descricao || entidade?.lider || '';
           textareaObs.addEventListener('input', (event) => {
-            if (!vinculosEntidades[indice]) vinculosEntidades[indice] = { id: undefined, nome: '', observacoes: '' };
+            if (!vinculosEntidades[indice]) vinculosEntidades[indice] = { id: undefined, nome: '', observacoes: '', lider: '' };
             vinculosEntidades[indice].observacoes = event.target.value;
           });
           tdObs.appendChild(textareaObs);
+
+          const tdLider = document.createElement('td');
+          tdLider.style.padding = '0.35rem';
+          const inputLider = document.createElement('input');
+          inputLider.className = 'form__input';
+          inputLider.type = 'text';
+          inputLider.placeholder = 'Líder ou contato';
+          inputLider.value = entidade?.lider || (Array.isArray(entidade?.liderancas) ? entidade.liderancas[0] : '') || '';
+          inputLider.addEventListener('input', (event) => {
+            if (!vinculosEntidades[indice]) vinculosEntidades[indice] = { id: undefined, nome: '', observacoes: '', lider: '' };
+            vinculosEntidades[indice].lider = event.target.value;
+          });
+          tdLider.appendChild(inputLider);
 
           const tdAcoes = document.createElement('td');
           tdAcoes.style.padding = '0.35rem';
@@ -2936,6 +2998,7 @@
 
           linha.appendChild(tdNome);
           linha.appendChild(tdObs);
+          linha.appendChild(tdLider);
           linha.appendChild(tdAcoes);
           corpo.appendChild(linha);
         });
@@ -2946,7 +3009,7 @@
 
       // Comentário: adiciona uma linha em branco para preenchimento manual
       const adicionarVinculoEntidade = () => {
-        vinculosEntidades.push({ id: undefined, nome: '', observacoes: '' });
+        vinculosEntidades.push({ id: undefined, nome: '', observacoes: '', lider: '' });
         renderizarVinculosEntidades();
       };
 
@@ -3774,8 +3837,13 @@
           const entidadesProcessadas = [];
           pessoa.vinculos.entidades.forEach((e) => {
             const idLimpo = e?.id ?? e?.entidadeId;
-            const nome = String(e?.nome || '').trim();
-            const observacoes = String(e?.observacoes || e?.lider || '').trim();
+            const nome = String(e?.nome || e?.nomeFantasia || e?.razaoSocial || '').trim();
+            const observacoes = String(e?.observacoes || e?.descricao || e?.lider || '').trim();
+            const lider = (() => {
+              if (e?.lider) return String(e.lider).trim();
+              if (Array.isArray(e?.liderancas) && e.liderancas.length) return String(e.liderancas[0]).trim();
+              return String(e?.lider_nome || e?.liderNome || '').trim();
+            })();
             const chave = idLimpo !== undefined && idLimpo !== null && String(idLimpo).trim() !== ''
               ? `id:${String(idLimpo).trim()}`
               : (nome ? `nome:${nome.toLowerCase()}` : null);
@@ -3785,6 +3853,7 @@
               id: idLimpo !== undefined && idLimpo !== null && String(idLimpo).trim() !== '' ? idLimpo : undefined,
               nome,
               observacoes,
+              lider,
             });
           });
           vinculosEntidades = entidadesProcessadas;
@@ -3792,6 +3861,15 @@
           vinculosEntidades = [];
         }
         renderizarVinculosEntidades();
+        // Comentário: em seguida, hidrata detalhes pelo ID para exibir vínculos já persistidos com seus metadados
+        if (vinculosEntidades.some((ent) => ent?.id && (!ent.nome || !ent.observacoes || !ent.lider))) {
+          hidratarVinculosEntidadesPorId(vinculosEntidades).then((lista) => {
+            vinculosEntidades = lista;
+            renderizarVinculosEntidades();
+          }).catch((erro) => {
+            console.error('Falha ao atualizar detalhes das entidades vinculadas', erro);
+          });
+        }
 
         
 
