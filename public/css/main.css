@@ -478,6 +478,67 @@ summary.sidebar__link--parent:active {
   font-size: 0.95rem;
 }
 
+/* ==========================
+   Navegação por abas
+   ----------------------
+   Estiliza o cabeçalho de abas que organiza o formulário
+   de pessoas sem conflitar com os temas claro/escuro.
+   ========================== */
+.tabs {
+  /* Container horizontal das abas */
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.25rem;
+  margin-bottom: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface-raised);
+}
+
+.tabs__button {
+  /* Botões que representam cada aba */
+  appearance: none;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--input-bg);
+  color: var(--text);
+  padding: 0.65rem 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
+}
+
+.tabs__button:hover {
+  /* Realce suave ao passar o mouse */
+  background: var(--hover-surface);
+  border-color: color-mix(in srgb, var(--primary) 35%, transparent);
+}
+
+.tabs__button:focus-visible {
+  /* Indica foco de teclado */
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.tabs__button.is-active {
+  /* Aba ativa herda destaque de cor do tema */
+  background: color-mix(in srgb, var(--primary) 18%, var(--surface-raised));
+  border-color: color-mix(in srgb, var(--primary) 50%, var(--border));
+  color: var(--text);
+  transform: translateY(-1px);
+}
+
+.tab-panel {
+  /* Painel associado a cada aba */
+  display: block;
+}
+
+.tab-panel[hidden] {
+  /* Garante que painéis inativos fiquem invisíveis e inacessíveis */
+  display: none;
+}
+
 .form {
   /* Layout principal do formulário */
   display: flex;
