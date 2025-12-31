@@ -22,6 +22,7 @@
   --glow-1: rgba(124, 58, 237, 0.12);
   --glow-2: rgba(56, 189, 248, 0.14);
   --sidebar-bg: #181818;
+  --sidebar-text: #e2e8f0; /* Tipografia padrão da sidebar no modo escuro */
   --info-surface: color-mix(in srgb, var(--primary) 18%, transparent);
   --info-border: color-mix(in srgb, var(--primary) 35%, transparent);
   --success-surface: rgba(34, 197, 94, 0.12);
@@ -54,6 +55,7 @@
   --glow-1: rgba(103, 80, 164, 0.12);
   --glow-2: rgba(3, 218, 198, 0.14);
   --sidebar-bg: #263238;
+  --sidebar-text: #838F96; /* Tipografia dedicada da sidebar no modo claro */
   --shadow: 0 12px 40px rgba(15, 23, 42, 0.12);
   --info-surface: color-mix(in srgb, var(--primary) 12%, white 88%);
   --info-border: color-mix(in srgb, var(--primary) 35%, white 65%);
@@ -107,6 +109,7 @@ body {
   flex-direction: column;
   gap: 2rem;
   box-shadow: var(--shadow);
+  color: var(--sidebar-text); /* Texto da navegação lateral usa token dedicado */
 }
 
 /* Cabeçalho da sidebar que agrupa marca e controle de tema */
@@ -133,7 +136,7 @@ body {
   border-radius: 10px;
   border: 1px solid var(--border);
   background: var(--surface-muted);
-  color: var(--text);
+  color: var(--sidebar-text);
   cursor: pointer;
   font-weight: 700;
   font-size: 0.95rem;
@@ -157,7 +160,7 @@ body {
 }
 
 .sidebar__link {
-  color: var(--text);
+  color: var(--sidebar-text);
   text-decoration: none;
   padding: 0.65rem 0.85rem;
   border-radius: 12px;
@@ -171,12 +174,14 @@ body {
 .sidebar__link:hover {
   background: var(--hover-surface);
   border-color: color-mix(in srgb, var(--primary) 45%, transparent);
+  color: var(--sidebar-text);
   transform: translateX(2px);
 }
 
 .sidebar__link--active {
   background: linear-gradient(90deg, color-mix(in srgb, var(--primary) 22%, transparent), color-mix(in srgb, var(--primary) 8%, transparent));
   border-color: color-mix(in srgb, var(--primary) 55%, transparent);
+  color: var(--sidebar-text);
   font-weight: 700;
 }
 
@@ -194,6 +199,7 @@ body {
 
 .sidebar__section summary {
   list-style: none;
+  color: var(--sidebar-text);
 }
 
 .sidebar__section summary::-webkit-details-marker {
@@ -243,7 +249,7 @@ body {
   width: 100%;
   border: 1px solid var(--border);
   background: var(--surface-muted);
-  color: var(--text);
+  color: var(--sidebar-text);
   padding: 0.75rem 1rem;
   border-radius: 12px;
   cursor: pointer;
