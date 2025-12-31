@@ -2506,7 +2506,15 @@
 
           if (!veiculosEncontrados.length) {
             abrirConfirmacao('Veículo não encontrado. Deseja cadastrar?', () => {
-              window.location.href = '/cadastro/veiculos';
+              // Comentário: abre o cadastro de veículos em nova aba para preservar o formulário atual
+              const novaAbaCadastro = window.open('/cadastro/veiculos', '_blank');
+              if (novaAbaCadastro) {
+                // Comentário: remove referência entre janelas para evitar acessos indevidos
+                novaAbaCadastro.opener = null;
+              } else {
+                // Comentário: fallback para navegadores que bloqueiam pop-ups
+                window.location.href = '/cadastro/veiculos';
+              }
             });
             limparResultadosVeiculosBusca(true);
             exibirMensagemVinculoVeiculo('Nenhum veículo localizado com a placa informada.', 'info');
@@ -2535,7 +2543,15 @@
           exibirMensagemVinculoVeiculo('Veículo não encontrado.', 'error');
           if (vinculoVeiculoStatusEl) vinculoVeiculoStatusEl.textContent = 'Veículo não encontrado.';
           abrirConfirmacao('Veículo não encontrado. Deseja cadastrar?', () => {
-            window.location.href = '/cadastro/veiculos';
+            // Comentário: abre o cadastro de veículos em nova aba para preservar o formulário atual
+            const novaAbaCadastro = window.open('/cadastro/veiculos', '_blank');
+            if (novaAbaCadastro) {
+              // Comentário: remove referência entre janelas para evitar acessos indevidos
+              novaAbaCadastro.opener = null;
+            } else {
+              // Comentário: fallback para navegadores que bloqueiam pop-ups
+              window.location.href = '/cadastro/veiculos';
+            }
           });
         }
       };
@@ -4057,7 +4073,15 @@
             if (!empresa) {
               renderizarResultadoBuscaEmpresa(null);
               abrirConfirmacao('Empresa não encontrada. Deseja cadastrar?', () => {
-                window.location.href = '/cadastro/empresas';
+                // Comentário: abre o cadastro de empresas em nova aba para preservar o formulário atual
+                const novaAbaCadastro = window.open('/cadastro/empresas', '_blank');
+                if (novaAbaCadastro) {
+                  // Comentário: remove referência entre janelas para evitar acessos indevidos
+                  novaAbaCadastro.opener = null;
+                } else {
+                  // Comentário: fallback para navegadores que bloqueiam pop-ups
+                  window.location.href = '/cadastro/empresas';
+                }
               });
               if (statusEl) statusEl.textContent = '';
             } else {
