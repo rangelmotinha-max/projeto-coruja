@@ -194,6 +194,28 @@ summary.sidebar__link--parent:active {
   font-weight: 700;
 }
 
+/* Tema claro: evita que o clique/foco clareie itens e seções da navegação */
+.theme-light .sidebar__section[open],
+.theme-light .sidebar__link:active,
+.theme-light .sidebar__link:focus-visible {
+  /* Mantém o fundo sólido da sidebar ao interagir com Cadastro/Consulta */
+  background: var(--sidebar-bg);
+  border-color: transparent;
+  color: var(--sidebar-text);
+}
+
+/* Tema claro: preserva o degradê ativo sem alterar o fundo para um tom claro */
+.theme-light .sidebar__link--active {
+  /* Gradiente parte do fundo da sidebar com leve acento primário */
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--sidebar-bg) 90%, color-mix(in srgb, var(--primary) 10%, transparent)),
+    color-mix(in srgb, var(--sidebar-bg) 94%, color-mix(in srgb, var(--primary) 6%, transparent))
+  );
+  border-color: color-mix(in srgb, var(--primary) 50%, transparent);
+  color: var(--sidebar-text);
+}
+
 /* Submenu de Cadastro: estilização do nível pai e filhos */
 .sidebar__section {
   border-radius: 12px;
