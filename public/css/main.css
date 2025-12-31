@@ -178,6 +178,15 @@ body {
   transform: translateX(2px);
 }
 
+/* Mantém consistência de realce em clique e foco sem alterar gradientes ativos */
+.sidebar__link:active,
+.sidebar__link:focus-visible,
+summary.sidebar__link--parent:active {
+  background: var(--hover-surface);
+  border-color: color-mix(in srgb, var(--primary) 45%, transparent);
+  color: var(--sidebar-text);
+}
+
 .sidebar__link--active {
   background: linear-gradient(90deg, color-mix(in srgb, var(--primary) 22%, transparent), color-mix(in srgb, var(--primary) 8%, transparent));
   border-color: color-mix(in srgb, var(--primary) 55%, transparent);
