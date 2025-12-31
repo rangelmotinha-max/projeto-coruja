@@ -641,7 +641,7 @@
           <th style="text-align:left; padding:0.5rem; border: 1px solid var(--border);">Nome</th>
           <th style="text-align:left; padding:0.5rem; border: 1px solid var(--border);">Liderança</th>
           <th style="text-align:left; padding:0.5rem; border: 1px solid var(--border);">CNPJ</th>
-          <th style="text-align:center; padding:0.5rem; border: 1px solid var(--border);">Ações</th>
+          <th style="text-align:center; padding:0.5rem; border: 1px solid var(--border);" aria-label="Controles" title="Controles"></th>
         </tr>
       </thead>
       <tbody></tbody>
