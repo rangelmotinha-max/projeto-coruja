@@ -6,7 +6,7 @@
 
 /* Paleta do tema escuro preservando os tons atuais */
 .theme-dark {
-  --bg: #0f172a;
+  --bg: #212121;
   --surface: #0b1224;
   --surface-raised: rgba(255, 255, 255, 0.02);
   --surface-muted: rgba(255, 255, 255, 0.04);
@@ -21,7 +21,7 @@
   --overlay: rgba(2, 6, 23, 0.6);
   --glow-1: rgba(124, 58, 237, 0.12);
   --glow-2: rgba(56, 189, 248, 0.14);
-  --sidebar-bg: rgba(15, 23, 42, 0.85);
+  --sidebar-bg: #181818;
   --info-surface: color-mix(in srgb, var(--primary) 18%, transparent);
   --info-border: color-mix(in srgb, var(--primary) 35%, transparent);
   --success-surface: rgba(34, 197, 94, 0.12);
@@ -38,7 +38,7 @@
 
 /* Paleta do tema claro inspirada em Material Design 3 (tons suaves) */
 .theme-light {
-  --bg: #f6f7fb;
+  --bg: #F1F4F5;
   --surface: #ffffff;
   --surface-raised: #ffffff;
   --surface-muted: #f0f4ff;
@@ -53,7 +53,7 @@
   --overlay: rgba(15, 23, 42, 0.45);
   --glow-1: rgba(103, 80, 164, 0.12);
   --glow-2: rgba(3, 218, 198, 0.14);
-  --sidebar-bg: #ffffff;
+  --sidebar-bg: #263238;
   --shadow: 0 12px 40px rgba(15, 23, 42, 0.12);
   --info-surface: color-mix(in srgb, var(--primary) 12%, white 88%);
   --info-border: color-mix(in srgb, var(--primary) 35%, white 65%);
