@@ -2531,6 +2531,12 @@
                 // Comentário: fallback para navegadores que bloqueiam pop-ups
                 window.location.href = '/cadastro/veiculos';
               }
+            }, () => {
+              // Comentário: ao recusar, retornamos ao estado neutro e removemos mensagens da busca
+              if (vinculoVeiculoPlacaInput) vinculoVeiculoPlacaInput.value = '';
+              if (vinculoVeiculoStatusEl) vinculoVeiculoStatusEl.textContent = '';
+              limparResultadosVeiculosBusca(false);
+              exibirMensagemVinculoVeiculo('');
             });
             limparResultadosVeiculosBusca(true);
             exibirMensagemVinculoVeiculo('Nenhum veículo localizado com a placa informada.', 'info');
@@ -2568,6 +2574,12 @@
               // Comentário: fallback para navegadores que bloqueiam pop-ups
               window.location.href = '/cadastro/veiculos';
             }
+          }, () => {
+            // Comentário: ao recusar, limpamos placa, mensagens e resultados para evitar resíduos visuais
+            if (vinculoVeiculoPlacaInput) vinculoVeiculoPlacaInput.value = '';
+            if (vinculoVeiculoStatusEl) vinculoVeiculoStatusEl.textContent = '';
+            limparResultadosVeiculosBusca(false);
+            exibirMensagemVinculoVeiculo('');
           });
         }
       };
