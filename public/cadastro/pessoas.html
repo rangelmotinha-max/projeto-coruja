@@ -1117,11 +1117,15 @@
         return empresasOpcoes.find((emp) => String(emp?.cnpj || '').replace(/\D/g, '') === numero) || null;
       };
 
-      const renderizarResultadoBuscaEmpresa = (empresa) => {
+      const renderizarResultadoBuscaEmpresa = (empresa, { limparApenas = false } = {}) => {
         const cont = document.getElementById('empresa-busca-resultado');
         if (!cont) return;
 
         cont.innerHTML = '';
+        if (limparApenas) {
+          // Comentário: permite reutilizar o helper apenas para limpar feedbacks anteriores
+          return;
+        }
         if (!empresa) {
           // Feedback com convite para cadastro quando nenhum registro é localizado
           const bloco = document.createElement('div');
@@ -1205,12 +1209,12 @@
           cont.innerHTML = '';
         });
         btnNao.addEventListener('click', () => {
-          // Limpa resultado, campo CNPJ e status
+          // Limpa resultado, campo CNPJ e status ao recusar vinculação direta
           const inputCnpj = document.getElementById('empresa-cnpj-input');
           if (inputCnpj) inputCnpj.value = '';
           const statusEl = document.getElementById('empresa-vinculada-status');
           if (statusEl) statusEl.textContent = '';
-          cont.innerHTML = '';
+          renderizarResultadoBuscaEmpresa(null, { limparApenas: true });
         });
         grupo.appendChild(btnSim);
         grupo.appendChild(btnNao);
@@ -4069,6 +4073,8 @@
         document.getElementById('empresa-buscar-cnpj')?.addEventListener('click', async () => {
           const statusEl = document.getElementById('empresa-vinculada-status');
           const cnpjVal = cnpjInput?.value || '';
+          // Comentário: limpa mensagens ou resultados anteriores antes de iniciar uma nova busca
+          renderizarResultadoBuscaEmpresa(null, { limparApenas: true });
           const valido = validarCnpjBasico(cnpjVal);
           if (!valido) {
             if (statusEl) statusEl.textContent = 'Informe um CNPJ completo (14 dígitos).';
@@ -4094,6 +4100,11 @@
                   // Comentário: fallback para navegadores que bloqueiam pop-ups
                   window.location.href = '/cadastro/empresas';
                 }
+              }, () => {
+                // Comentário: em caso de recusa, limpa campo, status e resultado sem exibir mensagens
+                if (cnpjInput) cnpjInput.value = '';
+                if (statusEl) statusEl.textContent = '';
+                renderizarResultadoBuscaEmpresa(null, { limparApenas: true });
               });
               if (statusEl) statusEl.textContent = '';
             } else {
