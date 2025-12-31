@@ -806,10 +806,12 @@
       const faccaoConfirmarNao = document.getElementById('faccao-confirmar-nao');
       const faccaoConfirmarTexto = document.getElementById('faccao-confirmar-texto');
       let confirmacaoOnSimHandler = null;
-      const abrirConfirmacao = (mensagem, onSim) => {
+      let confirmacaoOnNaoHandler = null; // Comentário: permite padronizar ações quando o usuário recusa a confirmação
+      const abrirConfirmacao = (mensagem, onSim, onNao) => {
         if (!faccaoConfirmarModal) return;
         faccaoConfirmarTexto.textContent = mensagem;
         confirmacaoOnSimHandler = typeof onSim === 'function' ? onSim : null;
+        confirmacaoOnNaoHandler = typeof onNao === 'function' ? onNao : null;
         faccaoConfirmarModal.setAttribute('aria-hidden', 'false');
         document.body.style.overflow = 'hidden';
       };
@@ -818,6 +820,7 @@
         faccaoConfirmarModal.setAttribute('aria-hidden', 'true');
         document.body.style.overflow = '';
         confirmacaoOnSimHandler = null;
+        confirmacaoOnNaoHandler = null;
       };
       faccaoConfirmarSim?.addEventListener('click', () => {
         const handler = confirmacaoOnSimHandler;
@@ -826,7 +829,11 @@
       });
       document.querySelector('#faccao-confirmar-modal [data-modal-close]')?.addEventListener('click', fecharConfirmacao);
       faccaoConfirmarClose?.addEventListener('click', fecharConfirmacao);
-      faccaoConfirmarNao?.addEventListener('click', fecharConfirmacao);
+      faccaoConfirmarNao?.addEventListener('click', () => {
+        const handler = confirmacaoOnNaoHandler;
+        fecharConfirmacao();
+        try { handler && handler(); } catch {}
+      });
 
       const abrirConfirmacaoIncluirFaccao = (termoAtual = '') => {
         abrirConfirmacao('Não encontrada. Incluir?', () => criarFaccao(termoAtual));
@@ -2453,6 +2460,11 @@
                 // Comentário: fallback quando o navegador bloqueia pop-ups
                 window.location.href = '/cadastro/pessoas';
               }
+            }, () => {
+              // Comentário: ao recusar o cadastro, limpamos buscas e mensagens para um estado neutro
+              if (vinculoPessoaBuscaInput) vinculoPessoaBuscaInput.value = '';
+              limparResultadosPessoasBusca(false);
+              exibirMensagemForm('');
             });
             exibirMensagemForm('Nenhuma pessoa encontrada com o filtro informado.', 'info');
             limparResultadosPessoasBusca(true);
