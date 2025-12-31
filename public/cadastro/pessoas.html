@@ -83,307 +83,493 @@
 
           <div id="pessoa-form-message" class="message" role="status" aria-live="polite"></div>
 
+          <!-- Navegação em abas para organizar as seções do formulário -->
+          <div class="tabs" role="tablist" aria-label="Navegação por seções do cadastro">
+            <!-- Aba de Identificação: foco inicial da tela -->
+            <button
+              class="tabs__button is-active"
+              type="button"
+              id="tab-identificacao-btn"
+              role="tab"
+              aria-selected="true"
+              aria-controls="tab-identificacao"
+              data-tab-target="identificacao"
+            >
+              Identificação
+            </button>
+            <!-- Aba de Contatos: emails e redes sociais -->
+            <button
+              class="tabs__button"
+              type="button"
+              id="tab-contatos-btn"
+              role="tab"
+              aria-selected="false"
+              aria-controls="tab-contatos"
+              data-tab-target="contatos"
+            >
+              Contatos
+            </button>
+            <!-- Aba de Telefones: números e tipos de contato telefônico -->
+            <button
+              class="tabs__button"
+              type="button"
+              id="tab-telefones-btn"
+              role="tab"
+              aria-selected="false"
+              aria-controls="tab-telefones"
+              data-tab-target="telefones"
+            >
+              Telefones
+            </button>
+            <!-- Aba de Endereços: cadastro de locais relacionados -->
+            <button
+              class="tabs__button"
+              type="button"
+              id="tab-enderecos-btn"
+              role="tab"
+              aria-selected="false"
+              aria-controls="tab-enderecos"
+              data-tab-target="enderecos"
+            >
+              Endereços
+            </button>
+            <!-- Aba de Veículos: gerenciamento de veículos associados -->
+            <button
+              class="tabs__button"
+              type="button"
+              id="tab-veiculos-btn"
+              role="tab"
+              aria-selected="false"
+              aria-controls="tab-veiculos"
+              data-tab-target="veiculos"
+            >
+              Veículos
+            </button>
+            <!-- Aba de Vínculos: relacionamentos com pessoas, empresas e entidades -->
+            <button
+              class="tabs__button"
+              type="button"
+              id="tab-vinculos-btn"
+              role="tab"
+              aria-selected="false"
+              aria-controls="tab-vinculos"
+              data-tab-target="vinculos"
+            >
+              Vínculos
+            </button>
+            <!-- Aba de Ocorrências: histórico de registros e processos -->
+            <button
+              class="tabs__button"
+              type="button"
+              id="tab-ocorrencias-btn"
+              role="tab"
+              aria-selected="false"
+              aria-controls="tab-ocorrencias"
+              data-tab-target="ocorrencias"
+            >
+              Ocorrências
+            </button>
+            <!-- Aba de Monitoramento: eventos de acompanhamento -->
+            <button
+              class="tabs__button"
+              type="button"
+              id="tab-monitoramento-btn"
+              role="tab"
+              aria-selected="false"
+              aria-controls="tab-monitoramento"
+              data-tab-target="monitoramento"
+            >
+              Monitoramento
+            </button>
+          </div>
+
           <!-- Ação direta garante envio mesmo sem o manipulador JS -->
           <form class="form" id="pessoa-form" action="/api/pessoas" method="post" enctype="multipart/form-data">
             <!-- Seção 1: Identificação -->
-            <div class="form__section" data-section="identificacao">
-              <div class="form__section-header">
-                <h3 class="form__section-title" style="text-align: center; width: 100%;">Identificação</h3>
-              </div>
-              <div class="form__subsection" style="margin-bottom: 1rem;">
-                <div class="form__field">
-                  <span class="form__label">Fotos do cadastro</span>
-                  <input
-                    class="form__input"
-                    type="file"
-                    id="pessoa-fotos"
-                    name="fotos"
-                    accept="image/*"
-                    multiple
-                  />
-                  
+            <div
+              class="tab-panel is-active"
+              data-tab="identificacao"
+              id="tab-identificacao"
+              role="tabpanel"
+              aria-labelledby="tab-identificacao-btn"
+              tabindex="-1"
+            >
+              <div class="form__section" data-section="identificacao">
+                <div class="form__section-header">
+                  <h3 class="form__section-title" style="text-align: center; width: 100%;">Identificação</h3>
                 </div>
-                <div id="lista-fotos" style="display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));"></div>
-              </div>
-              <div class="form__grid form__grid--1">
-                <label class="form__field">
-                  <span class="form__label">Nome Completo</span>
-                  <input class="form__input" type="text" name="nomeCompleto" required />
-                </label>
-                <label class="form__field">
-                  <span class="form__label">Apelido/Vulgo</span>
-                  <input class="form__input" type="text" name="apelido" />
-                </label>
-                <label class="form__field">
-                  <span class="form__label">CPF</span>
-                  <input class="form__input" type="text" name="cpf" inputmode="numeric" />
-                  <span id="erro-cpf" class="form__error" style="display: none;">CPF inválido!</span>
-                </label>
-                <label class="form__field">
-                  <span class="form__label">RG</span>
-                  <input class="form__input" type="text" name="rg" inputmode="numeric" />
-                </label>
-                <label class="form__field">
-                  <span class="form__label">CNH</span>
-                  <input class="form__input" type="text" name="cnh" inputmode="numeric" />
-                </label>
-                <label class="form__field">
-                  <div class="form__grid form__grid--2" style="grid-template-columns: 1fr 10rem; gap: 0.5rem;">
-                    <label class="form__field" style="margin:0;">
-                      <span class="form__label">Data de Nascimento</span>
-                      <input class="form__input" type="date" name="dataNascimento" />
-                    </label>
-                    <label class="form__field" style="margin:0;">
-                      <span class="form__label">Idade</span>
-                      <input class="form__input" id="idade" type="number" min="0" step="1" placeholder="—" readonly />
-                    </label>
-                  </div>
-                </label>
-                <label class="form__field">
-                  <span class="form__label">Nome da Mãe</span>
-                  <input class="form__input" type="text" name="nomeMae" />
-                </label>
-                <label class="form__field">
-                  <span class="form__label">Nome do Pai</span>
-                  <input class="form__input" type="text" name="nomePai" />
-                </label>
-                <label class="form__field">
-                  <span class="form__label">Sinais</span>
-                  <!-- Campo livre para anotar sinais, marcas ou características físicas -->
-                  <textarea class="form__input" name="sinais" rows="2" placeholder="Tatuagens, cicatrizes, marcas visíveis"></textarea>
-                </label>
-                <!-- Campo de facção permanece na seção de identificação logo abaixo de Sinais -->
-                <label class="form__field">
-                  <span class="form__label">Facção ou Organização Criminosa</span>
-                  <div class="form__grid form__grid--2" style="grid-template-columns: 1fr 10rem; gap: 0.5rem; align-items: end;">
+                <div class="form__subsection" style="margin-bottom: 1rem;">
+                  <div class="form__field">
+                    <span class="form__label">Fotos do cadastro</span>
                     <input
                       class="form__input"
-                      type="text"
-                      id="faccao-input"
-                      name="faccaoNome"
-                      placeholder="Digite sigla ou nome"
-                      autocomplete="off"
+                      type="file"
+                      id="pessoa-fotos"
+                      name="fotos"
+                      accept="image/*"
+                      multiple
                     />
-                    <div class="form__actions" style="margin:0;">
-                      <button class="button button--secondary" type="button" id="faccao-buscar" title="Procurar" aria-label="Buscar facção" style="min-width:8rem;">Procurar</button>
-                    </div>
+                    
                   </div>
-                  <input type="hidden" name="faccaoId" id="faccao-id" />
-                  <div id="faccao-sugestoes" style="display:none; padding:0.5rem; gap:0.35rem;"></div>
-                  <small id="faccao-feedback" style="color: var(--muted);">Deixe em branco se a pessoa não tiver vínculo.</small>
-                </label>
+                  <div id="lista-fotos" style="display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));"></div>
+                </div>
+                <div class="form__grid form__grid--1">
+                  <label class="form__field">
+                    <span class="form__label">Nome Completo</span>
+                    <input class="form__input" type="text" name="nomeCompleto" required />
+                  </label>
+                  <label class="form__field">
+                    <span class="form__label">Apelido/Vulgo</span>
+                    <input class="form__input" type="text" name="apelido" />
+                  </label>
+                  <label class="form__field">
+                    <span class="form__label">CPF</span>
+                    <input class="form__input" type="text" name="cpf" inputmode="numeric" />
+                    <span id="erro-cpf" class="form__error" style="display: none;">CPF inválido!</span>
+                  </label>
+                  <label class="form__field">
+                    <span class="form__label">RG</span>
+                    <input class="form__input" type="text" name="rg" inputmode="numeric" />
+                  </label>
+                  <label class="form__field">
+                    <span class="form__label">CNH</span>
+                    <input class="form__input" type="text" name="cnh" inputmode="numeric" />
+                  </label>
+                  <label class="form__field">
+                    <div class="form__grid form__grid--2" style="grid-template-columns: 1fr 10rem; gap: 0.5rem;">
+                      <label class="form__field" style="margin:0;">
+                        <span class="form__label">Data de Nascimento</span>
+                        <input class="form__input" type="date" name="dataNascimento" />
+                      </label>
+                      <label class="form__field" style="margin:0;">
+                        <span class="form__label">Idade</span>
+                        <input class="form__input" id="idade" type="number" min="0" step="1" placeholder="—" readonly />
+                      </label>
+                    </div>
+                  </label>
+                  <label class="form__field">
+                    <span class="form__label">Nome da Mãe</span>
+                    <input class="form__input" type="text" name="nomeMae" />
+                  </label>
+                  <label class="form__field">
+                    <span class="form__label">Nome do Pai</span>
+                    <input class="form__input" type="text" name="nomePai" />
+                  </label>
+                  <label class="form__field">
+                    <span class="form__label">Sinais</span>
+                    <!-- Campo livre para anotar sinais, marcas ou características físicas -->
+                    <textarea class="form__input" name="sinais" rows="2" placeholder="Tatuagens, cicatrizes, marcas visíveis"></textarea>
+                  </label>
+                  <!-- Campo de facção permanece na seção de identificação logo abaixo de Sinais -->
+                  <label class="form__field">
+                    <span class="form__label">Facção ou Organização Criminosa</span>
+                    <div class="form__grid form__grid--2" style="grid-template-columns: 1fr 10rem; gap: 0.5rem; align-items: end;">
+                      <input
+                        class="form__input"
+                        type="text"
+                        id="faccao-input"
+                        name="faccaoNome"
+                        placeholder="Digite sigla ou nome"
+                        autocomplete="off"
+                      />
+                      <div class="form__actions" style="margin:0;">
+                        <button class="button button--secondary" type="button" id="faccao-buscar" title="Procurar" aria-label="Buscar facção" style="min-width:8rem;">Procurar</button>
+                      </div>
+                    </div>
+                    <input type="hidden" name="faccaoId" id="faccao-id" />
+                    <div id="faccao-sugestoes" style="display:none; padding:0.5rem; gap:0.35rem;"></div>
+                    <small id="faccao-feedback" style="color: var(--muted);">Deixe em branco se a pessoa não tiver vínculo.</small>
+                  </label>
+                </div>
               </div>
             </div>
 
             <!-- Seção 2: Contatos -->
-            <div class="form__section">
-              <div class="form__section-header">
-                <h3 class="form__section-title" style="text-align: center; width: 100%;">Contatos</h3>
-              </div>
-
-              <!-- Sub-seção: Telefone -->
-              <div class="form__subsection">
-                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 0.5rem;">
-                  <h4 class="form__section-title" style="font-size: 1rem; margin: 0; text-align: left; width: 100%;">Telefone</h4>
-                  <button class="button button--secondary" id="adicionar-telefone" type="button" aria-label="Adicionar telefone" title="Adicionar">+</button>
+            <div
+              class="tab-panel"
+              data-tab="contatos"
+              id="tab-contatos"
+              role="tabpanel"
+              aria-labelledby="tab-contatos-btn"
+              tabindex="-1"
+              hidden
+            >
+              <div class="form__section">
+                <div class="form__section-header">
+                  <h3 class="form__section-title" style="text-align: center; width: 100%;">Contatos</h3>
                 </div>
-                <div id="lista-telefones" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
-              </div>
 
-              <!-- Sub-seção: Emails -->
-              <div class="form__subsection">
-                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin: 0.75rem 0;">
-                  <h4 class="form__section-title" style="font-size: 1rem; margin: 0; text-align: left; width: 100%;">Email</h4>
-                  <button class="button button--secondary" id="adicionar-email" type="button" aria-label="Adicionar email" title="Adicionar">+</button>
+                <!-- Sub-seção: Emails -->
+                <div class="form__subsection">
+                  <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin: 0.75rem 0;">
+                    <h4 class="form__section-title" style="font-size: 1rem; margin: 0; text-align: left; width: 100%;">Email</h4>
+                    <button class="button button--secondary" id="adicionar-email" type="button" aria-label="Adicionar email" title="Adicionar">+</button>
+                  </div>
+                  <div id="lista-emails" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
                 </div>
-                <div id="lista-emails" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
-              </div>
 
-              <!-- Sub-seção: Redes Sociais (linha abaixo) -->
-              <div class="form__subsection">
-                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin: 0.75rem 0;">
-                  <h4 class="form__section-title" style="font-size: 1rem; margin: 0; text-align: left; width: 100%;">Redes Sociais</h4>
-                  <button class="button button--secondary" id="adicionar-rede" type="button" aria-label="Adicionar rede social" title="Adicionar">+</button>
+                <!-- Sub-seção: Redes Sociais (linha abaixo) -->
+                <div class="form__subsection">
+                  <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin: 0.75rem 0;">
+                    <h4 class="form__section-title" style="font-size: 1rem; margin: 0; text-align: left; width: 100%;">Redes Sociais</h4>
+                    <button class="button button--secondary" id="adicionar-rede" type="button" aria-label="Adicionar rede social" title="Adicionar">+</button>
+                  </div>
+                  <div id="lista-redes" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
                 </div>
-                <div id="lista-redes" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
+              </div>
+            </div>
+
+            <!-- Seção 3: Telefones -->
+            <div
+              class="tab-panel"
+              data-tab="telefones"
+              id="tab-telefones"
+              role="tabpanel"
+              aria-labelledby="tab-telefones-btn"
+              tabindex="-1"
+              hidden
+            >
+              <div class="form__section">
+                <div class="form__section-header">
+                  <h3 class="form__section-title" style="text-align: center; width: 100%;">Telefones</h3>
+                </div>
+
+                <!-- Sub-seção: Telefone -->
+                <div class="form__subsection">
+                  <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 0.5rem;">
+                    <h4 class="form__section-title" style="font-size: 1rem; margin: 0; text-align: left; width: 100%;">Telefone</h4>
+                    <button class="button button--secondary" id="adicionar-telefone" type="button" aria-label="Adicionar telefone" title="Adicionar">+</button>
+                  </div>
+                  <div id="lista-telefones" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
+                </div>
               </div>
             </div>
 
             <!-- Seção 3: Endereços -->
-            <div class="form__section">
-              <div class="form__section-header">
-                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                  <h3 class="form__section-title" style="text-align: center; width: 100%;">Endereços</h3>
-                  <button class="button button--secondary" id="adicionar-endereco" type="button" aria-label="Adicionar endereço" title="Adicionar">+</button>
+            <div
+              class="tab-panel"
+              data-tab="enderecos"
+              id="tab-enderecos"
+              role="tabpanel"
+              aria-labelledby="tab-enderecos-btn"
+              tabindex="-1"
+              hidden
+            >
+              <div class="form__section">
+                <div class="form__section-header">
+                  <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                    <h3 class="form__section-title" style="text-align: center; width: 100%;">Endereços</h3>
+                    <button class="button button--secondary" id="adicionar-endereco" type="button" aria-label="Adicionar endereço" title="Adicionar">+</button>
+                  </div>
                 </div>
+                <div id="lista-enderecos" class="enderecos-lista"></div>
               </div>
-              <div id="lista-enderecos" class="enderecos-lista"></div>
             </div>
 
             <!-- Seção 4: Veículos (campos replicados do cadastro dedicado) -->
-            <div class="form__section">
-              <div class="form__section-header">
-                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                  <h3 class="form__section-title" style="text-align: center; width: 100%;">Veículos</h3>
-                  <button class="button button--secondary" id="adicionar-veiculo" type="button" aria-label="Adicionar veículo" title="Adicionar">+</button>
+            <div
+              class="tab-panel"
+              data-tab="veiculos"
+              id="tab-veiculos"
+              role="tabpanel"
+              aria-labelledby="tab-veiculos-btn"
+              tabindex="-1"
+              hidden
+            >
+              <div class="form__section">
+                <div class="form__section-header">
+                  <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                    <h3 class="form__section-title" style="text-align: center; width: 100%;">Veículos</h3>
+                    <button class="button button--secondary" id="adicionar-veiculo" type="button" aria-label="Adicionar veículo" title="Adicionar">+</button>
+                  </div>
                 </div>
-              </div>
 
-              <div id="lista-veiculos" class="enderecos-lista"></div>
+                <div id="lista-veiculos" class="enderecos-lista"></div>
+              </div>
             </div>
 
             
 
             <!-- Seção 5: Vínculos -->
-            <div class="form__section">
-              <div class="form__section-header">
-                <h3 class="form__section-title" style="text-align: center; width: 100%;">Vínculos</h3>
-              </div>
-
-              <!-- Sub-seção: Pessoas -->
-              <div class="form__subsection">
-                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin: 0.75rem 0;">
-                  <h4 class="form__section-title" style="font-size: 1rem; margin: 0;">Pessoas</h4>
+            <div
+              class="tab-panel"
+              data-tab="vinculos"
+              id="tab-vinculos"
+              role="tabpanel"
+              aria-labelledby="tab-vinculos-btn"
+              tabindex="-1"
+              hidden
+            >
+              <div class="form__section">
+                <div class="form__section-header">
+                  <h3 class="form__section-title" style="text-align: center; width: 100%;">Vínculos</h3>
                 </div>
-                <div class="form__grid form__grid--3" style="align-items:end;">
-                  <label class="form__field" style="margin:0;">
-                    <input class="form__input" type="text" id="vinculo-pessoa-busca" placeholder="Digite nome completo ou CPF" aria-label="Nome ou CPF" />
-                  </label>
-                  <div class="form__actions" style="margin:0;">
-                    <button class="button button--secondary" id="buscar-vinculo-pessoa" type="button" aria-label="Buscar pessoa para vínculo" title="Procurar" style="min-width:8rem;">Procurar</button>
-                  </div>
-                  <small style="color: var(--muted); visibility: hidden;">&nbsp;</small>
 
-                </div>
-                <!-- Bloco de resultados da busca para vínculos de pessoas -->
-                <div id="pessoas-busca-resultado" class="panel" style="margin-top: 0.75rem; padding: 0.75rem; display: none;"></div>
-                <div id="lista-vinculos-pessoas" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
-              </div>
-
-              <!-- Sub-seção: Empresa vinculada (seleção única de empresas já cadastradas) -->
-                <div class="form__subsection" aria-label="Empresas vinculadas">
-                  <div style="display:flex; justify-content:space-between; align-items:center; width:100%; margin:0.75rem 0;">
-                    <h4 class="form__section-title" style="font-size:1rem; margin:0;">Empresa</h4>
+                <!-- Sub-seção: Pessoas -->
+                <div class="form__subsection">
+                  <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin: 0.75rem 0;">
+                    <h4 class="form__section-title" style="font-size: 1rem; margin: 0;">Pessoas</h4>
                   </div>
                   <div class="form__grid form__grid--3" style="align-items:end;">
-                    <label class="form__field">
-                      <input class="form__input" type="text" id="empresa-cnpj-input" placeholder="Digite o CNPJ" aria-label="CNPJ da empresa" />
+                    <label class="form__field" style="margin:0;">
+                      <input class="form__input" type="text" id="vinculo-pessoa-busca" placeholder="Digite nome completo ou CPF" aria-label="Nome ou CPF" />
                     </label>
                     <div class="form__actions" style="margin:0;">
-                      <button class="button button--secondary" type="button" id="empresa-buscar-cnpj" title="Procurar" aria-label="Buscar empresa por CNPJ" style="min-width:8rem;">Procurar</button>
+                      <button class="button button--secondary" id="buscar-vinculo-pessoa" type="button" aria-label="Buscar pessoa para vínculo" title="Procurar" style="min-width:8rem;">Procurar</button>
                     </div>
-                    <small id="empresa-vinculada-status" style="color: var(--muted);"></small>
+                    <small style="color: var(--muted); visibility: hidden;">&nbsp;</small>
+
                   </div>
-                  <div id="empresa-busca-resultado" style="margin-top:0.75rem;"></div>
-                  <div id="empresas-vinculadas-lista" style="margin-top:0.75rem;"></div>
+                  <!-- Bloco de resultados da busca para vínculos de pessoas -->
+                  <div id="pessoas-busca-resultado" class="panel" style="margin-top: 0.75rem; padding: 0.75rem; display: none;"></div>
+                  <div id="lista-vinculos-pessoas" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
                 </div>
 
-              <!-- Sub-seção Empresa removida desta tela -->
-              <!--
-              <div class="form__subsection" hidden>
-                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin: 0.75rem 0;">
-                  <h4 class="form__section-title" style="font-size: 1rem; margin: 0;">Empresa</h4>
-                  <button class="button button--secondary" id="adicionar-vinculo-empresa" type="button" aria-label="Adicionar vínculo de empresa" title="Adicionar">+</button>
-                </div>
-                <div id="lista-vinculos-empresas" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
-              </div>
-              -->
-              <!-- Sub-seção: Veículos vinculados -->
-              <div class="form__subsection">
-                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin: 0.75rem 0;">
-                  <h4 class="form__section-title" style="font-size: 1rem; margin: 0;">Veículos</h4>
-                </div>
-                <div class="form__grid form__grid--3" style="align-items:end;">
-                  <label class="form__field" style="margin:0;">
-                    <input class="form__input" type="text" id="vinculo-veiculo-placa" placeholder="Digite a placa do veículo" aria-label="Placa do veículo" />
-                  </label>
-                  <div class="form__actions" style="margin:0;">
-                    <button class="button button--secondary" id="buscar-vinculo-veiculo" type="button" aria-label="Buscar veículo para vínculo" title="Procurar" style="min-width:8rem;">Procurar</button>
+                <!-- Sub-seção: Empresa vinculada (seleção única de empresas já cadastradas) -->
+                  <div class="form__subsection" aria-label="Empresas vinculadas">
+                    <div style="display:flex; justify-content:space-between; align-items:center; width:100%; margin:0.75rem 0;">
+                      <h4 class="form__section-title" style="font-size:1rem; margin:0;">Empresa</h4>
+                    </div>
+                    <div class="form__grid form__grid--3" style="align-items:end;">
+                      <label class="form__field">
+                        <input class="form__input" type="text" id="empresa-cnpj-input" placeholder="Digite o CNPJ" aria-label="CNPJ da empresa" />
+                      </label>
+                      <div class="form__actions" style="margin:0;">
+                        <button class="button button--secondary" type="button" id="empresa-buscar-cnpj" title="Procurar" aria-label="Buscar empresa por CNPJ" style="min-width:8rem;">Procurar</button>
+                      </div>
+                      <small id="empresa-vinculada-status" style="color: var(--muted);"></small>
+                    </div>
+                    <div id="empresa-busca-resultado" style="margin-top:0.75rem;"></div>
+                    <div id="empresas-vinculadas-lista" style="margin-top:0.75rem;"></div>
                   </div>
-                  <small id="vinculo-veiculo-status" style="color: var(--muted);"></small>
-                </div>
-                <div id="vinculo-veiculo-resultado" class="panel" style="margin-top: 0.75rem; padding: 0.75rem; display: none;"></div>
-                <div id="lista-vinculos-veiculos" style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.75rem;"></div>
-              </div>
-              <div class="form__subsection">
-                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin: 0.75rem 0;">
-                  <h4 class="form__section-title" style="font-size: 1rem; margin: 0;">Entidades</h4>
-                </div>
-                <div class="form__grid form__grid--3" style="align-items:end;">
-                  <label class="form__field" style="margin:0;">
-                    <input class="form__input" type="text" id="vinculo-entidade-busca" placeholder="Digite nome da entidade ou líder" aria-label="Nome da entidade ou líder" />
-                  </label>
-                  <div class="form__actions" style="margin:0;">
-                    <button class="button button--secondary" id="buscar-vinculo-entidade" type="button" aria-label="Buscar entidade para vínculo" title="Procurar" style="min-width:8rem;">Procurar</button>
+
+                <!-- Sub-seção Empresa removida desta tela -->
+                <!--
+                <div class="form__subsection" hidden>
+                  <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin: 0.75rem 0;">
+                    <h4 class="form__section-title" style="font-size: 1rem; margin: 0;">Empresa</h4>
+                    <button class="button button--secondary" id="adicionar-vinculo-empresa" type="button" aria-label="Adicionar vínculo de empresa" title="Adicionar">+</button>
                   </div>
-                  <small id="vinculo-entidade-status" style="color: var(--muted);"></small>
+                  <div id="lista-vinculos-empresas" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
                 </div>
-                <div id="vinculo-entidade-resultado" class="panel" style="margin-top: 0.75rem; padding: 0.75rem; display: none;"></div>
-                <div id="lista-vinculos-entidades" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
-              </div>
-              <div class="form__subsection">
-                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin: 0.75rem 0;">
-                  <h4 class="form__section-title" style="font-size: 1rem; margin: 0;">Empregatício</h4>
-                  <button class="button button--secondary" id="adicionar-vinculo-empregaticio" type="button" aria-label="Adicionar vínculo empregatício" title="Adicionar">+</button>
+                -->
+                <!-- Sub-seção: Veículos vinculados -->
+                <div class="form__subsection">
+                  <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin: 0.75rem 0;">
+                    <h4 class="form__section-title" style="font-size: 1rem; margin: 0;">Veículos</h4>
+                  </div>
+                  <div class="form__grid form__grid--3" style="align-items:end;">
+                    <label class="form__field" style="margin:0;">
+                      <input class="form__input" type="text" id="vinculo-veiculo-placa" placeholder="Digite a placa do veículo" aria-label="Placa do veículo" />
+                    </label>
+                    <div class="form__actions" style="margin:0;">
+                      <button class="button button--secondary" id="buscar-vinculo-veiculo" type="button" aria-label="Buscar veículo para vínculo" title="Procurar" style="min-width:8rem;">Procurar</button>
+                    </div>
+                    <small id="vinculo-veiculo-status" style="color: var(--muted);"></small>
+                  </div>
+                  <div id="vinculo-veiculo-resultado" class="panel" style="margin-top: 0.75rem; padding: 0.75rem; display: none;"></div>
+                  <div id="lista-vinculos-veiculos" style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.75rem;"></div>
                 </div>
-                <div id="lista-vinculos-empregaticio" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
+                <div class="form__subsection">
+                  <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin: 0.75rem 0;">
+                    <h4 class="form__section-title" style="font-size: 1rem; margin: 0;">Entidades</h4>
+                  </div>
+                  <div class="form__grid form__grid--3" style="align-items:end;">
+                    <label class="form__field" style="margin:0;">
+                      <input class="form__input" type="text" id="vinculo-entidade-busca" placeholder="Digite nome da entidade ou líder" aria-label="Nome da entidade ou líder" />
+                    </label>
+                    <div class="form__actions" style="margin:0;">
+                      <button class="button button--secondary" id="buscar-vinculo-entidade" type="button" aria-label="Buscar entidade para vínculo" title="Procurar" style="min-width:8rem;">Procurar</button>
+                    </div>
+                    <small id="vinculo-entidade-status" style="color: var(--muted);"></small>
+                  </div>
+                  <div id="vinculo-entidade-resultado" class="panel" style="margin-top: 0.75rem; padding: 0.75rem; display: none;"></div>
+                  <div id="lista-vinculos-entidades" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
+                </div>
+                <div class="form__subsection">
+                  <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin: 0.75rem 0;">
+                    <h4 class="form__section-title" style="font-size: 1rem; margin: 0;">Empregatício</h4>
+                    <button class="button button--secondary" id="adicionar-vinculo-empregaticio" type="button" aria-label="Adicionar vínculo empregatício" title="Adicionar">+</button>
+                  </div>
+                  <div id="lista-vinculos-empregaticio" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
+                </div>
               </div>
             </div>
 
             <!-- Seção 6: Ocorrências -->
-            <div class="form__section">
-              <div class="form__section-header">
-                <h3 class="form__section-title" style="text-align: center; width: 100%;">Ocorrências</h3>
-              </div>
-
-              <!-- Sub-seção: Ocorrências Policiais -->
-              <div class="form__subsection">
-                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin: 0.75rem 0;">
-                  <h4 class="form__section-title" style="font-size: 1rem; margin: 0;">Ocorrências Policiais</h4>
-                  <button class="button button--secondary" id="adicionar-ocorrencia-policial" type="button" aria-label="Adicionar ocorrência policial" title="Adicionar">+</button>
+            <div
+              class="tab-panel"
+              data-tab="ocorrencias"
+              id="tab-ocorrencias"
+              role="tabpanel"
+              aria-labelledby="tab-ocorrencias-btn"
+              tabindex="-1"
+              hidden
+            >
+              <div class="form__section">
+                <div class="form__section-header">
+                  <h3 class="form__section-title" style="text-align: center; width: 100%;">Ocorrências</h3>
                 </div>
-                <div id="lista-ocorrencias-policiais" style="display:flex; flex-direction:column; gap:0.5rem;"></div>
-              </div>
 
-              <!-- Sub-seção: Processos -->
-              <div class="form__subsection">
-                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin: 0.75rem 0;">
-                  <h4 class="form__section-title" style="font-size: 1rem; margin: 0;">Processos</h4>
-                  <button class="button button--secondary" id="adicionar-processo" type="button" aria-label="Adicionar processo" title="Adicionar">+</button>
+                <!-- Sub-seção: Ocorrências Policiais -->
+                <div class="form__subsection">
+                  <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin: 0.75rem 0;">
+                    <h4 class="form__section-title" style="font-size: 1rem; margin: 0;">Ocorrências Policiais</h4>
+                    <button class="button button--secondary" id="adicionar-ocorrencia-policial" type="button" aria-label="Adicionar ocorrência policial" title="Adicionar">+</button>
+                  </div>
+                  <div id="lista-ocorrencias-policiais" style="display:flex; flex-direction:column; gap:0.5rem;"></div>
                 </div>
-                <div id="lista-processos" style="display:flex; flex-direction:column; gap:0.5rem;"></div>
-              </div>
 
-              <!-- Sub-seção: Abordagens -->
-              <div class="form__subsection">
-                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin: 0.75rem 0;">
-                  <h4 class="form__section-title" style="font-size: 1rem; margin: 0;">Abordagens</h4>
-                  <button class="button button--secondary" id="adicionar-abordagem" type="button" aria-label="Adicionar abordagem" title="Adicionar">+</button>
+                <!-- Sub-seção: Processos -->
+                <div class="form__subsection">
+                  <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin: 0.75rem 0;">
+                    <h4 class="form__section-title" style="font-size: 1rem; margin: 0;">Processos</h4>
+                    <button class="button button--secondary" id="adicionar-processo" type="button" aria-label="Adicionar processo" title="Adicionar">+</button>
+                  </div>
+                  <div id="lista-processos" style="display:flex; flex-direction:column; gap:0.5rem;"></div>
                 </div>
-                <div id="lista-abordagens" style="display:flex; flex-direction:column; gap:0.5rem;"></div>
-              </div>
 
-              <!-- Sub-seção: Prisões -->
-              <div class="form__subsection">
-                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin: 0.75rem 0;">
-                  <h4 class="form__section-title" style="font-size: 1rem; margin: 0;">Prisões</h4>
-                  <button class="button button--secondary" id="adicionar-prisao" type="button" aria-label="Adicionar prisão" title="Adicionar">+</button>
+                <!-- Sub-seção: Abordagens -->
+                <div class="form__subsection">
+                  <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin: 0.75rem 0;">
+                    <h4 class="form__section-title" style="font-size: 1rem; margin: 0;">Abordagens</h4>
+                    <button class="button button--secondary" id="adicionar-abordagem" type="button" aria-label="Adicionar abordagem" title="Adicionar">+</button>
+                  </div>
+                  <div id="lista-abordagens" style="display:flex; flex-direction:column; gap:0.5rem;"></div>
                 </div>
-                <div id="lista-prisoes" style="display:flex; flex-direction:column; gap:0.5rem;"></div>
+
+                <!-- Sub-seção: Prisões -->
+                <div class="form__subsection">
+                  <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin: 0.75rem 0;">
+                    <h4 class="form__section-title" style="font-size: 1rem; margin: 0;">Prisões</h4>
+                    <button class="button button--secondary" id="adicionar-prisao" type="button" aria-label="Adicionar prisão" title="Adicionar">+</button>
+                  </div>
+                  <div id="lista-prisoes" style="display:flex; flex-direction:column; gap:0.5rem;"></div>
+                </div>
               </div>
             </div>
 
               <!-- Seção 7: Monitoramento -->
-              <div class="form__section">
-                <div class="form__section-header">
-                  <h3 class="form__section-title" style="text-align: center; width: 100%;">Monitoramento</h3>
-                </div>
-
-                <div class="form__subsection">
-                  <div style="display: flex; justify-content: flex-end; align-items: center; width: 100%; margin: 0.75rem 0;">
-                    <button class="button button--secondary" id="adicionar-monitoramento" type="button" aria-label="Adicionar evento de monitoramento" title="Adicionar">+</button>
+              <div
+                class="tab-panel"
+                data-tab="monitoramento"
+                id="tab-monitoramento"
+                role="tabpanel"
+                aria-labelledby="tab-monitoramento-btn"
+                tabindex="-1"
+                hidden
+              >
+                <div class="form__section">
+                  <div class="form__section-header">
+                    <h3 class="form__section-title" style="text-align: center; width: 100%;">Monitoramento</h3>
                   </div>
-                  <div id="lista-monitoramentos" style="display:flex; flex-direction:column; gap:0.5rem;"></div>
+
+                  <div class="form__subsection">
+                    <div style="display: flex; justify-content: flex-end; align-items: center; width: 100%; margin: 0.75rem 0;">
+                      <button class="button button--secondary" id="adicionar-monitoramento" type="button" aria-label="Adicionar evento de monitoramento" title="Adicionar">+</button>
+                    </div>
+                    <div id="lista-monitoramentos" style="display:flex; flex-direction:column; gap:0.5rem;"></div>
+                  </div>
                 </div>
               </div>
 
@@ -470,6 +656,8 @@
       const vinculoVeiculoStatusEl = document.getElementById('vinculo-veiculo-status');
       const vinculoVeiculoResultadoEl = document.getElementById('vinculo-veiculo-resultado');
       const listaVinculosVeiculosEl = document.getElementById('lista-vinculos-veiculos');
+      const tabButtons = Array.from(document.querySelectorAll('.tabs__button'));
+      const tabPanels = Array.from(document.querySelectorAll('.tab-panel'));
       let pessoaEmEdicao = null;
       let ultimaAcaoFoiEdicao = false;
       let fotosSelecionadas = [];
@@ -4036,7 +4224,39 @@
         carregarPessoaInicial();
       };
 
+      // Controla a alternância entre abas e seus respectivos painéis
+      const ativarAba = (alvo) => {
+        if (!alvo) return;
+        tabButtons.forEach((botao) => {
+          const isAtivo = botao.dataset.tabTarget === alvo;
+          botao.classList.toggle('is-active', isAtivo);
+          botao.setAttribute('aria-selected', isAtivo ? 'true' : 'false');
+          botao.tabIndex = isAtivo ? 0 : -1;
+        });
+        tabPanels.forEach((painel) => {
+          const isAtivo = painel.dataset.tab === alvo;
+          painel.classList.toggle('is-active', isAtivo);
+          painel.hidden = !isAtivo;
+          painel.setAttribute('aria-hidden', isAtivo ? 'false' : 'true');
+          if (isAtivo) {
+            // Move o foco para o painel ativo para melhorar acessibilidade
+            painel.focus();
+          }
+        });
+      };
+
+      // Registra eventos de clique nos botões de aba
+      const configurarAbas = () => {
+        if (!tabButtons.length || !tabPanels.length) return;
+        tabButtons.forEach((botao) => {
+          botao.addEventListener('click', () => ativarAba(botao.dataset.tabTarget));
+        });
+        // Garante que a aba inicial carregue corretamente
+        ativarAba('identificacao');
+      };
+
       document.addEventListener('DOMContentLoaded', inicializarCadastro);
+      document.addEventListener('DOMContentLoaded', configurarAbas);
 
       // Calcula idade atual com base em yyyy-mm-dd
       function calcularIdadeDe(dataStr) {
