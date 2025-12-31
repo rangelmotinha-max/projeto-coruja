@@ -147,8 +147,20 @@
         </section>
 
         <section class="panel" aria-label="Listagem de empresas">
-          <div class="panel__body panel__body--stacked">
-            <div id="empresas-message" class="message" role="status" aria-live="polite"></div>
+          <div class="panel__header panel__header--stacked">
+            <h3 class="panel__title">Empresas cadastradas</h3>
+            <div class="panel__actions page-actions">
+              <input
+                type="text"
+                id="campo-consulta"
+                class="search-input"
+                placeholder="Consultar em todos os campos da empresa e sócios..."
+                aria-label="Campo de busca de empresas"
+              />
+            </div>
+          </div>
+          <div id="empresas-message" class="message" role="status" aria-live="polite"></div>
+          <div class="panel__body">
             <div id="empresas-lista" class="list"></div>
           </div>
         </section>
@@ -164,7 +176,10 @@
       const listaEl = document.getElementById('empresas-lista');
       const submitBtn = document.getElementById('submit-empresa');
       const listarBtn = document.getElementById('listar-empresas');
+      const campoConsulta = document.getElementById('campo-consulta');
       let todasEmpresas = [];
+      let empresasFiltradas = [];
+      let termoBusca = '';
       let socios = [];
       let enderecosEmpresa = [];
       let empresaEmEdicao = null;
@@ -339,6 +354,53 @@
         listaEl.appendChild(table);
       };
 
+      const filtrarEmpresas = (termo) => {
+        const q = String(termo || '').toLowerCase().trim();
+        const onlyDigits = (s) => String(s || '').replace(/\D+/g, '');
+        const norm = (s) => String(s || '').toLowerCase();
+        if (!q) {
+          empresasFiltradas = [...todasEmpresas];
+        } else {
+          const qDigits = onlyDigits(q);
+          empresasFiltradas = todasEmpresas.filter((e) => {
+            const razao = norm(e.razaoSocial);
+            const fantasia = norm(e.nomeFantasia);
+            const situacao = norm(e.situacaoCadastral);
+            const natureza = norm(e.naturezaJuridica);
+            const endereco = norm(e.endereco);
+            const dataInicio = norm(e.dataInicioAtividade);
+            const cepDigits = onlyDigits(e.cep);
+            const telDigits = onlyDigits(e.telefone);
+            const cnpjDigits = onlyDigits(e.cnpj);
+
+            const textoMatch = (
+              razao.includes(q) ||
+              fantasia.includes(q) ||
+              situacao.includes(q) ||
+              natureza.includes(q) ||
+              endereco.includes(q) ||
+              dataInicio.includes(q)
+            );
+
+            const digitosMatch = (
+              (qDigits && cnpjDigits.includes(qDigits)) ||
+              (qDigits && cepDigits.includes(qDigits)) ||
+              (qDigits && telDigits.includes(qDigits))
+            );
+
+            const sociosArr = Array.isArray(e.socios) ? e.socios : [];
+            const sociosMatch = sociosArr.some((s) => {
+              const nome = norm(s.nome);
+              const cpfDigits = onlyDigits(s.cpf);
+              return nome.includes(q) || (qDigits && cpfDigits.includes(qDigits));
+            });
+
+            return textoMatch || digitosMatch || sociosMatch;
+          });
+        }
+        renderizarEmpresas(empresasFiltradas);
+      };
+
       const listarEmpresas = async () => {
         try {
           exibirMensagem('Carregando empresas...', 'info');
@@ -351,12 +413,13 @@
           todasEmpresas = Array.isArray(data) ? data : data?.data || [];
           if (!todasEmpresas.length) {
             exibirMensagem('Nenhuma empresa cadastrada.', 'info');
-            renderizarEmpresas([]);
+            empresasFiltradas = [];
+            renderizarEmpresas(empresasFiltradas);
             return;
           }
-          // Renderiza toda a lista sem filtragem para manter a experiência simples
           exibirMensagem(`Exibindo ${todasEmpresas.length} empresa(s).`, 'success');
-          renderizarEmpresas(todasEmpresas);
+          empresasFiltradas = [...todasEmpresas];
+          filtrarEmpresas(termoBusca);
         } catch (err) {
           exibirMensagem(err?.message || 'Erro ao listar empresas.', 'error');
         }
@@ -408,6 +471,7 @@
         document.getElementById('adicionar-endereco-empresa')?.addEventListener('click', adicionarEnderecoEmpresa);
         empresaForm.addEventListener('submit', salvarEmpresa);
         listarBtn?.addEventListener('click', listarEmpresas);
+        campoConsulta?.addEventListener('input', (e) => { termoBusca = e.target.value || ''; filtrarEmpresas(termoBusca); });
         renderizarSocios();
         renderizarEnderecosEmpresa();
         listarEmpresas();
