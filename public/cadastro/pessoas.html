@@ -145,7 +145,7 @@
             >
               Veículos
             </button>
-            <!-- Aba de Vínculos: relacionamentos com pessoas, empresas e entidades -->
+            <!-- Aba de Vínculos: relacionamentos com pessoas, empresas, veículos e vínculos empregatícios -->
             <button
               class="tabs__button"
               type="button"
@@ -472,23 +472,6 @@
                 </div>
                 <div class="form__subsection">
                   <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin: 0.75rem 0;">
-                    <h4 class="form__section-title" style="font-size: 1rem; margin: 0;">Entidades</h4>
-                    <button class="button button--secondary" id="adicionar-vinculo-entidade" type="button" aria-label="Adicionar entidade manualmente" title="Adicionar">+</button>
-                  </div>
-                  <div class="form__grid form__grid--3" style="align-items:end;">
-                    <label class="form__field" style="margin:0;">
-                      <input class="form__input" type="text" id="vinculo-entidade-busca" placeholder="Digite o nome da entidade ou líder" aria-label="Nome da entidade ou líder" />
-                    </label>
-                    <div class="form__actions" style="margin:0;">
-                      <button class="button button--secondary" id="buscar-vinculo-entidade" type="button" aria-label="Buscar entidade para vínculo" title="Procurar" style="min-width:8rem;">Procurar</button>
-                    </div>
-                    <small id="vinculo-entidade-status" style="color: var(--muted); min-height: 1.25rem; display: block;"></small>
-                  </div>
-                  <div id="vinculo-entidade-resultado" class="panel" style="margin-top: 0.75rem; padding: 0.75rem; display: none;"></div>
-                  <div id="lista-vinculos-entidades" style="margin-top: 0.75rem;"></div>
-                </div>
-                <div class="form__subsection">
-                  <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin: 0.75rem 0;">
                     <h4 class="form__section-title" style="font-size: 1rem; margin: 0;">Empregatício</h4>
                     <button class="button button--secondary" id="adicionar-vinculo-empregaticio" type="button" aria-label="Adicionar vínculo empregatício" title="Adicionar">+</button>
                   </div>
@@ -656,12 +639,6 @@
       const vinculoVeiculoStatusEl = document.getElementById('vinculo-veiculo-status');
       const vinculoVeiculoResultadoEl = document.getElementById('vinculo-veiculo-resultado');
       const listaVinculosVeiculosEl = document.getElementById('lista-vinculos-veiculos');
-      const vinculoEntidadeBuscaInput = document.getElementById('vinculo-entidade-busca');
-      const buscarVinculoEntidadeBtn = document.getElementById('buscar-vinculo-entidade');
-      const vinculoEntidadeStatusEl = document.getElementById('vinculo-entidade-status');
-      const vinculoEntidadeResultadoEl = document.getElementById('vinculo-entidade-resultado');
-      const listaVinculosEntidadesEl = document.getElementById('lista-vinculos-entidades');
-      const adicionarVinculoEntidadeBtn = document.getElementById('adicionar-vinculo-entidade');
       const tabButtons = Array.from(document.querySelectorAll('.tabs__button'));
       const tabPanels = Array.from(document.querySelectorAll('.tab-panel'));
       let pessoaEmEdicao = null;
@@ -941,20 +918,6 @@
               : null;
           })
           .filter(Boolean);
-        const entidadesVinc = [];
-        const entidadesVistas = new Set();
-        (vinculosEntidades || []).forEach((e) => {
-          const idLimpo = e?.id !== undefined && e?.id !== null && String(e.id).trim() !== '' ? e.id : (e?.entidadeId ?? undefined);
-          const nome = String(e?.nome || '').trim();
-          const observacoes = String(e?.observacoes || e?.lider || '').trim();
-          const lider = String(e?.lider || '').trim();
-          const chave = idLimpo !== undefined ? `id:${String(idLimpo).trim()}` : (nome ? `nome:${nome.toLowerCase()}` : null);
-          if (!chave || entidadesVistas.has(chave)) return;
-          entidadesVistas.add(chave);
-          if (idLimpo !== undefined || nome || observacoes || lider) {
-            entidadesVinc.push({ id: idLimpo, nome, observacoes, lider });
-          }
-        });
         const empregList = (vinculosEmpregaticio || [])
           .map(e => {
             const info = String(e?.info || '').trim();
@@ -966,7 +929,6 @@
         dados.vinculos = {
           pessoas: pessoasVinc,
           empresas: empresasVinc,
-          entidades: entidadesVinc,
           empregaticio: empregList,
           veiculos: veiculosVinc,
         };
@@ -1443,13 +1405,9 @@
       // Comentário: controlamos resultados de veículos para permitir que o usuário escolha qual vincular
       let resultadosBuscaVeiculos = [];
       let mostrarMensagemResultadosVeiculos = true;
-      // Comentário: controla resultados e mensagens da busca de entidades vinculáveis
-      let resultadosBuscaEntidades = [];
-      let mostrarMensagemResultadosEntidades = true;
       let mostrarMensagemResultadosPessoas = true;
       let vinculosPessoas = [];
       let vinculosEmpresas = [];
-      let vinculosEntidades = [];
       let vinculosVeiculos = [];
 
       // Renderiza as pré-visualizações das fotos selecionadas
@@ -2124,151 +2082,6 @@
         }
       };
 
-      // Comentário: limpa o estado e o painel de resultados de entidades
-      const limparResultadosEntidadesBusca = (mostrarMensagem = false) => {
-        resultadosBuscaEntidades = [];
-        if (!vinculoEntidadeResultadoEl) return;
-
-        vinculoEntidadeResultadoEl.className = 'panel';
-        vinculoEntidadeResultadoEl.innerHTML = mostrarMensagem
-          ? '<p style="color: var(--muted); margin: 0;">Nenhuma entidade encontrada.</p>'
-          : '';
-        vinculoEntidadeResultadoEl.style.display = mostrarMensagem ? 'block' : 'none';
-      };
-
-      // Comentário: status textual dedicado próximo ao campo de busca de entidades
-      const exibirStatusVinculoEntidade = (texto, tipo = 'info') => {
-        if (!vinculoEntidadeStatusEl) return;
-        vinculoEntidadeStatusEl.textContent = texto || '';
-        const cor = tipo === 'error' ? 'var(--danger)' : (tipo === 'success' ? 'var(--success)' : 'var(--muted)');
-        vinculoEntidadeStatusEl.style.color = texto ? cor : 'var(--muted)';
-      };
-
-      // Comentário: mensagens rápidas que reutilizam o painel de resultado de entidades
-      const exibirMensagemVinculoEntidade = (texto, tipo = 'info') => {
-        if (!vinculoEntidadeResultadoEl) return;
-        vinculoEntidadeResultadoEl.className = 'panel';
-        if (texto) {
-          vinculoEntidadeResultadoEl.innerHTML = `<div class="message message--${tipo}" style="margin:0;">${texto}</div>`;
-          vinculoEntidadeResultadoEl.style.display = 'block';
-        } else {
-          vinculoEntidadeResultadoEl.innerHTML = '';
-          vinculoEntidadeResultadoEl.style.display = resultadosBuscaEntidades.length ? 'block' : 'none';
-        }
-      };
-
-      const normalizarNomeEntidade = (valor) => String(valor || '').trim().toLowerCase();
-
-      // Comentário: apresenta resultados de entidades em grade/tabulação com ação de vínculo
-      const renderizarResultadosEntidadesBusca = () => {
-        if (!vinculoEntidadeResultadoEl) return;
-
-        vinculoEntidadeResultadoEl.innerHTML = '';
-        vinculoEntidadeResultadoEl.className = 'panel';
-
-        if (!resultadosBuscaEntidades.length) {
-          if (mostrarMensagemResultadosEntidades) {
-            vinculoEntidadeResultadoEl.innerHTML = `
-              <div class="message message--info" style="margin:0 0 0.5rem 0;">Nenhuma entidade encontrada. Deseja cadastrar uma nova?</div>
-              <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
-                <a class="button button--primary" href="/cadastro/entidades" target="_blank" rel="noreferrer">Cadastrar entidade</a>
-                <button class="button button--ghost" id="limpar-entidade-busca-btn" type="button">Limpar busca</button>
-              </div>
-            `;
-            vinculoEntidadeResultadoEl.style.display = 'block';
-            document.getElementById('limpar-entidade-busca-btn')?.addEventListener('click', () => {
-              limparResultadosEntidadesBusca();
-              exibirStatusVinculoEntidade('', 'info');
-              if (vinculoEntidadeBuscaInput) vinculoEntidadeBuscaInput.value = '';
-            });
-          } else {
-            vinculoEntidadeResultadoEl.style.display = 'none';
-          }
-          return;
-        }
-
-        const wrapperTabela = document.createElement('div');
-        wrapperTabela.style.overflowX = 'auto';
-        wrapperTabela.style.width = '100%';
-
-        const tabela = document.createElement('table');
-        tabela.style.width = '100%';
-        tabela.style.borderCollapse = 'collapse';
-        tabela.className = 'panel';
-        tabela.style.marginTop = '0.5rem';
-        tabela.innerHTML = `
-          <thead>
-            <tr style="background: var(--surface-muted);">
-              <th style="text-align:left; padding:0.35rem;">Nome</th>
-              <th style="text-align:left; padding:0.35rem;">Líder/Observações</th>
-              <th style="text-align:right; padding:0.35rem;">Ações</th>
-            </tr>
-          </thead>
-        `;
-
-        const corpo = document.createElement('tbody');
-
-        resultadosBuscaEntidades.forEach((entidade, indice) => {
-          const linha = document.createElement('tr');
-          const lider = entidade.lider || entidade.observacoes || '';
-          linha.innerHTML = `
-            <td style="padding:0.35rem;">${entidade.nome || 'Entidade encontrada'}</td>
-            <td style="padding:0.35rem;">${lider || '—'}</td>
-            <td style="padding:0.35rem; text-align:right;"></td>
-          `;
-
-          const acoesTd = linha.querySelector('td:last-child');
-          acoesTd.style.minWidth = '180px';
-
-          const perguntaDiv = document.createElement('div');
-          perguntaDiv.style.color = 'white';
-          perguntaDiv.style.marginBottom = '0.25rem';
-          perguntaDiv.textContent = 'Deseja vincular a entidade?';
-          perguntaDiv.style.textAlign = window.innerWidth < 480 ? 'left' : 'right';
-
-          const botoesDiv = document.createElement('div');
-          botoesDiv.style.display = 'flex';
-          botoesDiv.style.justifyContent = window.innerWidth < 480 ? 'flex-start' : 'flex-end';
-          botoesDiv.style.gap = '0.35rem';
-          botoesDiv.style.flexDirection = window.innerWidth < 480 ? 'column' : 'row';
-
-          const btnSim = document.createElement('button');
-          btnSim.type = 'button';
-          btnSim.className = 'button button--primary';
-          btnSim.textContent = 'Sim';
-          btnSim.addEventListener('click', () => confirmarVinculoEntidade(indice));
-
-          const btnNao = document.createElement('button');
-          btnNao.type = 'button';
-          btnNao.className = 'button button--ghost';
-          btnNao.textContent = 'Não';
-          btnNao.addEventListener('click', () => {
-            resultadosBuscaEntidades.splice(indice, 1);
-            mostrarMensagemResultadosEntidades = false; // Comentário: evita mostrar o convite após descartar um item
-            exibirMensagemVinculoEntidade('');
-            renderizarResultadosEntidadesBusca();
-            setTimeout(() => { mostrarMensagemResultadosEntidades = true; }, 0);
-          });
-
-          if (window.innerWidth < 480) {
-            btnSim.style.width = '100%';
-            btnNao.style.width = '100%';
-          }
-
-          botoesDiv.appendChild(btnSim);
-          botoesDiv.appendChild(btnNao);
-          acoesTd.appendChild(perguntaDiv);
-          acoesTd.appendChild(botoesDiv);
-
-          corpo.appendChild(linha);
-        });
-
-        tabela.appendChild(corpo);
-        wrapperTabela.appendChild(tabela);
-        vinculoEntidadeResultadoEl.appendChild(wrapperTabela);
-        vinculoEntidadeResultadoEl.style.display = 'block';
-      };
-
       // Comentário: exibe a lista retornada pela busca de veículos antes de confirmar o vínculo
       const renderizarResultadosVeiculosBusca = () => {
         if (!vinculoVeiculoResultadoEl) return;
@@ -2608,49 +2421,6 @@
         if (vinculoVeiculoPlacaInput) vinculoVeiculoPlacaInput.value = '';
       };
 
-      // Comentário: confirma o vínculo de entidade respeitando duplicidades por ID ou nome
-      const confirmarVinculoEntidade = (indice) => {
-        const entidadeSelecionada = resultadosBuscaEntidades[indice];
-
-        if (!entidadeSelecionada) {
-          exibirMensagemVinculoEntidade('Não foi possível identificar a entidade selecionada.', 'error');
-          return;
-        }
-
-        const idSelecionado = entidadeSelecionada?.id ?? entidadeSelecionada?.entidadeId;
-        const nomeEntidade = entidadeSelecionada?.nome || entidadeSelecionada?.nomeFantasia || entidadeSelecionada?.razaoSocial || 'Entidade encontrada';
-        const nomeNormalizado = normalizarNomeEntidade(nomeEntidade);
-
-        const jaVinculada = vinculosEntidades.some((item) => {
-          const idItem = item?.id ?? item?.entidadeId;
-          const nomeItem = normalizarNomeEntidade(item?.nome);
-          const mesmoId = idSelecionado !== undefined && idItem !== undefined && String(idItem) === String(idSelecionado);
-          const mesmoNome = nomeNormalizado && nomeItem && nomeItem === nomeNormalizado;
-          return mesmoId || mesmoNome;
-        });
-
-        if (jaVinculada) {
-          exibirMensagemVinculoEntidade('Esta entidade já está vinculada.', 'info');
-          exibirStatusVinculoEntidade('Entidade já vinculada ao cadastro.', 'info');
-          return;
-        }
-
-        vinculosEntidades.push({
-          id: idSelecionado !== undefined ? idSelecionado : undefined,
-          nome: nomeEntidade,
-          observacoes: entidadeSelecionada?.observacoes || entidadeSelecionada?.descricao || entidadeSelecionada?.lider || entidadeSelecionada?.lider_nome || '',
-          lider: entidadeSelecionada?.lider || entidadeSelecionada?.lider_nome || entidadeSelecionada?.liderNome || '',
-          descricao: entidadeSelecionada?.descricao || '',
-          liderancas: entidadeSelecionada?.liderancas || [],
-        });
-
-        renderizarVinculosEntidades();
-        limparResultadosEntidadesBusca();
-        exibirMensagemVinculoEntidade('Entidade vinculada com sucesso.', 'success');
-        exibirStatusVinculoEntidade('Entidade vinculada ao cadastro.', 'success');
-        if (vinculoEntidadeBuscaInput) vinculoEntidadeBuscaInput.value = '';
-      };
-
       const buscarPessoaParaVinculo = async () => {
         // Permitimos exibir a mensagem padrão de "Nenhum resultado..." para esta busca
         mostrarMensagemResultadosPessoas = true;
@@ -2762,102 +2532,6 @@
         }
       };
 
-      // Comentário: busca entidades existentes e apresenta painel de confirmação alinhado aos demais vínculos
-      const buscarEntidadeParaVinculo = async () => {
-        mostrarMensagemResultadosEntidades = true;
-        limparResultadosEntidadesBusca();
-        exibirMensagemVinculoEntidade('');
-
-        const termo = (vinculoEntidadeBuscaInput?.value || '').trim();
-        if (!termo) {
-          exibirStatusVinculoEntidade('Digite o nome da entidade ou líder.', 'error');
-          return;
-        }
-
-        try {
-          exibirStatusVinculoEntidade('Buscando entidades por nome ou liderança...', 'info');
-          exibirMensagemVinculoEntidade('Buscando a entidade informada...', 'info');
-
-          const params = new URLSearchParams({
-            nome: termo,
-            lider: termo, // Comentário: garante busca específica por liderança
-            q: termo, // Comentário: mantém compatibilidade com filtros globais
-          });
-
-          const resp = await fetchAutenticado(`/api/entidades?${params.toString()}`);
-          const data = await resp.json().catch(() => ({}));
-
-          if (!resp.ok) {
-            const erroApi = data?.mensagem || data?.message || 'Não foi possível buscar entidades.';
-            throw new Error(erroApi);
-          }
-
-          const lista = Array.isArray(data) ? data : data?.data || [];
-          resultadosBuscaEntidades = lista.map((entidade) => ({
-            id: entidade?.id ?? entidade?.entidadeId,
-            nome: entidade?.nome || entidade?.nomeFantasia || entidade?.razaoSocial || '',
-            lider: entidade?.lider || entidade?.lider_nome || entidade?.liderNome || entidade?.nomeLider || '',
-            observacoes: entidade?.observacoes || '',
-            descricao: entidade?.descricao || '',
-            liderancas: entidade?.liderancas || [],
-          }));
-
-          renderizarResultadosEntidadesBusca();
-          if (resultadosBuscaEntidades.length) {
-            exibirStatusVinculoEntidade('Selecione uma entidade encontrada pelo nome ou líder.', 'success');
-            exibirMensagemVinculoEntidade('');
-          } else {
-            exibirStatusVinculoEntidade('Nenhuma entidade encontrada. Você pode cadastrá-la ou ajustar o líder informado.', 'info');
-          }
-        } catch (error) {
-          limparResultadosEntidadesBusca();
-          exibirMensagemVinculoEntidade(error?.message || 'Erro ao buscar entidade.', 'error');
-          exibirStatusVinculoEntidade('Erro ao buscar entidade.', 'error');
-        }
-      };
-
-      // Comentário: enriquece entidades vinculadas usando o ID para buscar nome/liderança/descrição atualizados
-      const hidratarVinculosEntidadesPorId = async (lista = []) => {
-        const atualizada = [...lista];
-        const respostas = await Promise.all(atualizada.map(async (entidade, indice) => {
-          const id = entidade?.id ?? entidade?.entidadeId;
-          const precisaDetalhes = id && (!entidade?.nome || !entidade?.observacoes || !entidade?.lider);
-          if (!precisaDetalhes) return null;
-          try {
-            const resp = await fetchAutenticado(`/api/entidades/${id}`);
-            const dados = await resp.json().catch(() => ({}));
-            if (!resp.ok) {
-              const erro = dados?.mensagem || dados?.message || 'Erro ao detalhar entidade vinculada.';
-              throw new Error(erro);
-            }
-            return { indice, detalhes: dados?.data || dados };
-          } catch (error) {
-            console.error('Não foi possível hidratar a entidade vinculada', error);
-            return null;
-          }
-        }));
-
-        let alterou = false;
-        respostas.filter(Boolean).forEach(({ indice, detalhes }) => {
-          const alvo = atualizada[indice];
-          if (!alvo) return;
-          const nomeDetalhado = detalhes?.nome || detalhes?.nomeFantasia || detalhes?.razaoSocial;
-          const observacaoDetalhada = detalhes?.descricao || alvo.observacoes;
-          const liderDetalhado = Array.isArray(detalhes?.liderancas) ? detalhes.liderancas[0] : (detalhes?.lider || '');
-          const liderancasDetalhadas = Array.isArray(detalhes?.liderancas) ? detalhes.liderancas : [];
-          if (liderancasDetalhadas.length && !Array.isArray(alvo.liderancas)) { alvo.liderancas = []; }
-          if (nomeDetalhado && !alvo.nome) { alvo.nome = nomeDetalhado; alterou = true; }
-          if (observacaoDetalhada && !alvo.observacoes) { alvo.observacoes = observacaoDetalhada; alterou = true; }
-          if (liderDetalhado && !alvo.lider) { alvo.lider = liderDetalhado; alterou = true; }
-          if (observacaoDetalhada && !alvo.descricao) { alvo.descricao = observacaoDetalhada; }
-          if (liderancasDetalhadas.length && (!Array.isArray(alvo.liderancas) || alvo.liderancas.length === 0)) {
-            alvo.liderancas = liderancasDetalhadas;
-          }
-        });
-
-        return alterou ? atualizada : lista;
-      };
-
       // Seção de vínculos de Empresa removida: funções excluídas
 
       const renderizarVinculosEmpregaticio = () => {
@@ -2915,109 +2589,6 @@
         if (partes.length === 0) return '';
         const query = encodeURIComponent(partes.join(', '));
         return `https://www.google.com/maps?q=${query}`;
-      };
-
-      // Comentário: renderiza painel/tabulação das entidades vinculadas seguindo o padrão de veículos/empresas
-      const renderizarVinculosEntidades = () => {
-        if (!listaVinculosEntidadesEl) return;
-        listaVinculosEntidadesEl.innerHTML = '';
-        if (vinculosEntidades.length === 0) {
-          return;
-        }
-
-        const painel = document.createElement('div');
-        painel.className = 'panel';
-        painel.style.padding = '0.75rem';
-
-        const tabela = document.createElement('table');
-        tabela.style.width = '100%';
-        tabela.style.borderCollapse = 'collapse';
-        tabela.innerHTML = `
-          <thead>
-            <tr style="background: var(--surface-muted);">
-              <th style="text-align:left; padding: 0.35rem;">Nome</th>
-              <th style="text-align:left; padding: 0.35rem;">Observações</th>
-              <th style="text-align:left; padding: 0.35rem;">Líder/Referência</th>
-              <th style="text-align:center; padding: 0.35rem;">Ações</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        `;
-
-        const corpo = tabela.querySelector('tbody');
-
-        vinculosEntidades.forEach((entidade, indice) => {
-          const linha = document.createElement('tr');
-          linha.style.borderBottom = '1px solid var(--border)';
-
-          const tdNome = document.createElement('td');
-          tdNome.style.padding = '0.35rem';
-          const inputNome = document.createElement('input');
-          inputNome.className = 'form__input';
-          inputNome.type = 'text';
-          inputNome.placeholder = 'Nome da entidade';
-          inputNome.value = entidade?.nome || '';
-          inputNome.addEventListener('input', (event) => {
-            if (!vinculosEntidades[indice]) vinculosEntidades[indice] = { id: undefined, nome: '', observacoes: '', lider: '' };
-            vinculosEntidades[indice].nome = event.target.value;
-          });
-          tdNome.appendChild(inputNome);
-
-          const tdObs = document.createElement('td');
-          tdObs.style.padding = '0.35rem';
-          const textareaObs = document.createElement('textarea');
-          textareaObs.className = 'form__input';
-          textareaObs.placeholder = 'Observações ou liderança';
-          textareaObs.rows = 2;
-          textareaObs.style.resize = 'vertical';
-          textareaObs.value = entidade?.observacoes || entidade?.descricao || entidade?.lider || '';
-          textareaObs.addEventListener('input', (event) => {
-            if (!vinculosEntidades[indice]) vinculosEntidades[indice] = { id: undefined, nome: '', observacoes: '', lider: '' };
-            vinculosEntidades[indice].observacoes = event.target.value;
-          });
-          tdObs.appendChild(textareaObs);
-
-          const tdLider = document.createElement('td');
-          tdLider.style.padding = '0.35rem';
-          const inputLider = document.createElement('input');
-          inputLider.className = 'form__input';
-          inputLider.type = 'text';
-          inputLider.placeholder = 'Líder ou contato';
-          inputLider.value = entidade?.lider || (Array.isArray(entidade?.liderancas) ? entidade.liderancas[0] : '') || '';
-          inputLider.addEventListener('input', (event) => {
-            if (!vinculosEntidades[indice]) vinculosEntidades[indice] = { id: undefined, nome: '', observacoes: '', lider: '' };
-            vinculosEntidades[indice].lider = event.target.value;
-          });
-          tdLider.appendChild(inputLider);
-
-          const tdAcoes = document.createElement('td');
-          tdAcoes.style.padding = '0.35rem';
-          tdAcoes.style.textAlign = 'center';
-          const btnRemover = document.createElement('button');
-          btnRemover.type = 'button';
-          btnRemover.className = 'button button--danger';
-          btnRemover.textContent = 'Remover';
-          btnRemover.addEventListener('click', () => {
-            vinculosEntidades.splice(indice, 1);
-            renderizarVinculosEntidades();
-          });
-          tdAcoes.appendChild(btnRemover);
-
-          linha.appendChild(tdNome);
-          linha.appendChild(tdObs);
-          linha.appendChild(tdLider);
-          linha.appendChild(tdAcoes);
-          corpo.appendChild(linha);
-        });
-
-        painel.appendChild(tabela);
-        listaVinculosEntidadesEl.appendChild(painel);
-      };
-
-      // Comentário: adiciona uma linha em branco para preenchimento manual
-      const adicionarVinculoEntidade = () => {
-        vinculosEntidades.push({ id: undefined, nome: '', observacoes: '', lider: '' });
-        renderizarVinculosEntidades();
       };
 
       
@@ -3838,46 +3409,6 @@
         }
         renderizarVinculosVeiculos();
 
-        // Carrega vínculos de entidades se existirem, evitando duplicidades por ID/nome
-        if (pessoa.vinculos && Array.isArray(pessoa.vinculos.entidades)) {
-          const chavesEntidades = new Set();
-          const entidadesProcessadas = [];
-          pessoa.vinculos.entidades.forEach((e) => {
-            const idLimpo = e?.id ?? e?.entidadeId;
-            const nome = String(e?.nome || e?.nomeFantasia || e?.razaoSocial || '').trim();
-            const observacoes = String(e?.observacoes || e?.descricao || e?.lider || '').trim();
-            const lider = (() => {
-              if (e?.lider) return String(e.lider).trim();
-              if (Array.isArray(e?.liderancas) && e.liderancas.length) return String(e.liderancas[0]).trim();
-              return String(e?.lider_nome || e?.liderNome || '').trim();
-            })();
-            const chave = idLimpo !== undefined && idLimpo !== null && String(idLimpo).trim() !== ''
-              ? `id:${String(idLimpo).trim()}`
-              : (nome ? `nome:${nome.toLowerCase()}` : null);
-            if (!chave || chavesEntidades.has(chave)) return;
-            chavesEntidades.add(chave);
-            entidadesProcessadas.push({
-              id: idLimpo !== undefined && idLimpo !== null && String(idLimpo).trim() !== '' ? idLimpo : undefined,
-              nome,
-              observacoes,
-              lider,
-            });
-          });
-          vinculosEntidades = entidadesProcessadas;
-        } else {
-          vinculosEntidades = [];
-        }
-        renderizarVinculosEntidades();
-        // Comentário: em seguida, hidrata detalhes pelo ID para exibir vínculos já persistidos com seus metadados
-        if (vinculosEntidades.some((ent) => ent?.id && (!ent.nome || !ent.observacoes || !ent.lider))) {
-          hidratarVinculosEntidadesPorId(vinculosEntidades).then((lista) => {
-            vinculosEntidades = lista;
-            renderizarVinculosEntidades();
-          }).catch((erro) => {
-            console.error('Falha ao atualizar detalhes das entidades vinculadas', erro);
-          });
-        }
-
         
 
         // Empresas vinculadas (IDs) se existirem
@@ -4414,12 +3945,6 @@
           vinculosVeiculos = [];
           renderizarVinculosVeiculos();
           vinculosEmpresas = [];
-          vinculosEntidades = [];
-          resultadosBuscaEntidades = [];
-          mostrarMensagemResultadosEntidades = true;
-          limparResultadosEntidadesBusca();
-          exibirStatusVinculoEntidade('');
-          renderizarVinculosEntidades();
           vinculosEmpregaticio = [];
           renderizarVinculosEmpregaticio();
           ocorrenciasPoliciais = [];
@@ -4568,20 +4093,8 @@
           }
         });
 
-        // Event listeners para vínculos de entidades (busca e inclusão manual)
-        buscarVinculoEntidadeBtn?.addEventListener('click', buscarEntidadeParaVinculo);
-        vinculoEntidadeBuscaInput?.addEventListener('keydown', (event) => {
-          if (event.key === 'Enter') {
-            event.preventDefault();
-            buscarEntidadeParaVinculo();
-          }
-        });
-
         // Event listener para adicionar vínculo empresa
         // Removido: botão e ação de vínculo de empresa
-
-        // Event listener para adicionar vínculo entidade
-        adicionarVinculoEntidadeBtn?.addEventListener('click', adicionarVinculoEntidade);
 
         
 
@@ -4615,8 +4128,6 @@
         renderizarVinculosPessoas();
         renderizarVinculosVeiculos();
         // Vínculo de empresas removido: não renderizar
-        renderizarVinculosEntidades();
-
         renderizarVinculosEmpregaticio();
         renderizarOcorrenciasPoliciais();
         renderizarProcessos();
