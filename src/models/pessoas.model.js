@@ -4,6 +4,7 @@ const { randomUUID } = require('crypto');
 const { initDatabase } = require('../database/sqlite');
 const VeiculoPessoaModel = require('./veiculos-pessoas.model');
 const FaccaoModel = require('./faccoes.model');
+const EntidadeModel = require('./entidades.model');
 
 function calcularIdadeDe(dataStr) {
   if (!dataStr) return null;
@@ -304,7 +305,44 @@ class PessoaModel {
       }
     }
     const vinculosPessoas = await this.obterVinculosPessoas(pessoa.id);
-    pessoa.vinculos = { pessoas: vinculosPessoas, ...vinculosFromJson };
+    // Comentário: entidades vinculadas com ID são reidratadas para exibir metadados atualizados no formulário
+    let vinculosJsonComEntidades = vinculosFromJson;
+    if (Array.isArray(vinculosFromJson.entidades)) {
+      const entidadesHidratadas = await Promise.all(vinculosFromJson.entidades.map(async (entidade) => {
+        const base = entidade && typeof entidade === 'object' ? { ...entidade } : {};
+        const id = base.id ?? base.entidadeId;
+        let detalhes = null;
+        if (id) {
+          try {
+            detalhes = await EntidadeModel.findById(id);
+          } catch (_) {
+            detalhes = null;
+          }
+        }
+        const nomeDetalhado = detalhes?.nome || detalhes?.nomeFantasia || detalhes?.razaoSocial;
+        const descricaoDetalhada = detalhes?.descricao;
+        const liderDetalhado = Array.isArray(detalhes?.liderancas) && detalhes.liderancas.length
+          ? detalhes.liderancas[0]
+          : detalhes?.lider || null;
+        const liderNormalizado = (() => {
+          if (base.lider) return base.lider;
+          if (Array.isArray(base.liderancas) && base.liderancas.length) return base.liderancas[0];
+          return liderDetalhado;
+        })();
+        const observacaoNormalizada = base.observacoes || base.descricao || descricaoDetalhada || base.lider || null;
+        return {
+          ...base,
+          id: id || undefined,
+          nome: base.nome || nomeDetalhado || null,
+          observacoes: observacaoNormalizada,
+          lider: liderNormalizado,
+          liderancas: base.liderancas || detalhes?.liderancas || [],
+          descricao: base.descricao || descricaoDetalhada || null,
+        };
+      }));
+      vinculosJsonComEntidades = { ...vinculosFromJson, entidades: entidadesHidratadas };
+    }
+    pessoa.vinculos = { pessoas: vinculosPessoas, ...vinculosJsonComEntidades };
     // Ocorrencias via JSON
     if (pessoa.ocorrencias_json) {
       try {

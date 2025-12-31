@@ -343,10 +343,21 @@ function validarVinculos(vinculos) {
       return { id: idNormalizado, nome, observacoes };
     })
     .filter(Boolean) : [];
-  const entidades = Array.isArray(vinculos.entidades) ? vinculos.entidades.map(e => ({
-    nome: normalizarOpcional(e.nome),
-    observacoes: normalizarOpcional(e.observacoes),
-  })).filter(e => e.nome || e.observacoes) : [];
+  // Permite vínculos de entidades tanto por ID quanto por nome/observações, semelhante a empresas
+  const entidades = Array.isArray(vinculos.entidades) ? vinculos.entidades
+    .map((e) => {
+      const idBruto = (e && typeof e === 'object') ? (e.id ?? e.entidadeId) : e;
+      const idNormalizado = idBruto !== undefined && idBruto !== null && String(idBruto).trim() !== ''
+        ? (Number.isNaN(Number(idBruto)) ? String(idBruto) : Number(idBruto))
+        : undefined;
+      const nome = normalizarOpcional(e?.nome);
+      const observacoes = normalizarOpcional(e?.observacoes);
+      const lider = normalizarOpcional(e?.lider);
+      const possuiDados = idNormalizado !== undefined || nome || observacoes || lider;
+      if (!possuiDados) return null;
+      return { id: idNormalizado, nome, observacoes, lider };
+    })
+    .filter(Boolean) : [];
   const empregaticio = Array.isArray(vinculos.empregaticio) ? vinculos.empregaticio.map(e => ({
     info: normalizarOpcional(e.info),
   })).filter(e => e.info) : [];
