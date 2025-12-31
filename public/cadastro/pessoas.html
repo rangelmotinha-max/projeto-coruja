@@ -1239,6 +1239,9 @@
       let veiculos = [];
       // Comentário: armazenamos os resultados da busca de pessoas para renderizar múltiplas opções
       let resultadosBuscaPessoas = [];
+      // Comentário: controlamos resultados de veículos para permitir que o usuário escolha qual vincular
+      let resultadosBuscaVeiculos = [];
+      let mostrarMensagemResultadosVeiculos = true;
       let mostrarMensagemResultadosPessoas = true;
       let vinculosPessoas = [];
       let vinculosEmpresas = [];
@@ -1892,17 +1895,135 @@
         container.style.display = mostrarMensagem ? 'block' : 'none';
       };
 
+      // Comentário: limpa a busca de veículos e controla a visibilidade do container de resultados
+      const limparResultadosVeiculosBusca = (mostrarMensagem = false) => {
+        resultadosBuscaVeiculos = [];
+        if (!vinculoVeiculoResultadoEl) return;
+
+        vinculoVeiculoResultadoEl.className = 'panel';
+        vinculoVeiculoResultadoEl.innerHTML = mostrarMensagem
+          ? '<p style="color: var(--muted); margin: 0;">Nenhum veículo encontrado.</p>'
+          : '';
+        vinculoVeiculoResultadoEl.style.display = mostrarMensagem ? 'block' : 'none';
+      };
+
       // Comentário: mensagens específicas da busca de veículo vinculável
       const exibirMensagemVinculoVeiculo = (texto, tipo = 'info') => {
         if (!vinculoVeiculoResultadoEl) return;
-        vinculoVeiculoResultadoEl.textContent = texto || '';
         vinculoVeiculoResultadoEl.className = 'panel';
         if (texto) {
-          vinculoVeiculoResultadoEl.classList.add('message', `message--${tipo}`);
+          vinculoVeiculoResultadoEl.innerHTML = `<div class="message message--${tipo}" style="margin:0;">${texto}</div>`;
           vinculoVeiculoResultadoEl.style.display = 'block';
         } else {
-          vinculoVeiculoResultadoEl.style.display = 'none';
+          vinculoVeiculoResultadoEl.innerHTML = '';
+          vinculoVeiculoResultadoEl.style.display = resultadosBuscaVeiculos.length ? 'block' : 'none';
         }
+      };
+
+      // Comentário: exibe a lista retornada pela busca de veículos antes de confirmar o vínculo
+      const renderizarResultadosVeiculosBusca = () => {
+        if (!vinculoVeiculoResultadoEl) return;
+
+        vinculoVeiculoResultadoEl.innerHTML = '';
+        vinculoVeiculoResultadoEl.className = 'panel';
+
+        if (!resultadosBuscaVeiculos.length) {
+          if (mostrarMensagemResultadosVeiculos) {
+            vinculoVeiculoResultadoEl.innerHTML = '<p style="color: var(--muted); margin: 0;">Nenhum veículo encontrado.</p>';
+            vinculoVeiculoResultadoEl.style.display = 'block';
+          } else {
+            vinculoVeiculoResultadoEl.style.display = 'none';
+          }
+          return;
+        }
+
+        const wrapperTabela = document.createElement('div');
+        wrapperTabela.style.overflowX = 'auto';
+        wrapperTabela.style.width = '100%';
+
+        const tabela = document.createElement('table');
+        tabela.style.width = '100%';
+        tabela.style.borderCollapse = 'collapse';
+        tabela.className = 'panel';
+        tabela.style.marginTop = '0.5rem';
+        tabela.innerHTML = `
+          <thead>
+            <tr style="background: var(--surface-muted);">
+              <th style="text-align:left; padding:0.35rem;">Placa</th>
+              <th style="text-align:left; padding:0.35rem;">Marca/Modelo</th>
+              <th style="text-align:left; padding:0.35rem;">Proprietário</th>
+              <th style="text-align:left; padding:0.35rem;">CPF</th>
+              <th style="text-align:right; padding:0.35rem;">Ações</th>
+            </tr>
+          </thead>
+        `;
+
+        const corpo = document.createElement('tbody');
+
+        resultadosBuscaVeiculos.forEach((veiculo, indice) => {
+          const linha = document.createElement('tr');
+          const placaFormatada = aplicarMascaraPlaca(veiculo.placa || '');
+          const cpfFormatado = aplicarMascaraCpfInline(veiculo.cpf || '');
+          linha.innerHTML = `
+            <td style="padding:0.35rem;">${placaFormatada || ''}</td>
+            <td style="padding:0.35rem;">${veiculo.marcaModelo || ''}</td>
+            <td style="padding:0.35rem;">${veiculo.nome || ''}</td>
+            <td style="padding:0.35rem;">${cpfFormatado}</td>
+            <td style="padding:0.35rem; text-align:right;"></td>
+          `;
+
+          const acoesTd = linha.querySelector('td:last-child');
+          acoesTd.style.minWidth = '180px';
+
+          const perguntaDiv = document.createElement('div');
+          perguntaDiv.style.color = 'white';
+          perguntaDiv.style.marginBottom = '0.25rem';
+          perguntaDiv.textContent = 'Deseja vincular o veículo?';
+          perguntaDiv.style.textAlign = window.innerWidth < 480 ? 'left' : 'right';
+
+          const botoesDiv = document.createElement('div');
+          botoesDiv.style.display = 'flex';
+          botoesDiv.style.justifyContent = window.innerWidth < 480 ? 'flex-start' : 'flex-end';
+          botoesDiv.style.gap = '0.35rem';
+          botoesDiv.style.flexDirection = window.innerWidth < 480 ? 'column' : 'row';
+
+          const btnSim = document.createElement('button');
+          btnSim.type = 'button';
+          btnSim.className = 'button button--primary';
+          btnSim.textContent = 'Sim';
+          btnSim.addEventListener('click', () => confirmarVinculoVeiculo(indice));
+
+          const btnNao = document.createElement('button');
+          btnNao.type = 'button';
+          btnNao.className = 'button button--ghost';
+          btnNao.textContent = 'Não';
+          btnNao.addEventListener('click', () => {
+            resultadosBuscaVeiculos.splice(indice, 1);
+            if (vinculoVeiculoPlacaInput) vinculoVeiculoPlacaInput.value = '';
+            if (vinculoVeiculoStatusEl) vinculoVeiculoStatusEl.textContent = '';
+            mostrarMensagemResultadosVeiculos = false;
+            exibirMensagemVinculoVeiculo('');
+            renderizarResultadosVeiculosBusca();
+            setTimeout(() => { mostrarMensagemResultadosVeiculos = true; }, 0);
+          });
+
+          if (window.innerWidth < 480) {
+            btnSim.style.width = '100%';
+            btnNao.style.width = '100%';
+          }
+
+          botoesDiv.appendChild(btnSim);
+          botoesDiv.appendChild(btnNao);
+          acoesTd.appendChild(perguntaDiv);
+          acoesTd.appendChild(botoesDiv);
+
+          corpo.appendChild(linha);
+        });
+
+        tabela.appendChild(corpo);
+        wrapperTabela.appendChild(tabela);
+        vinculoVeiculoResultadoEl.appendChild(wrapperTabela);
+        vinculoVeiculoResultadoEl.style.display = 'block';
       };
 
       // Comentário: renderiza tabela com veículos vinculados ao cadastro atual
@@ -1934,8 +2055,9 @@
 
         vinculosVeiculos.forEach((veiculo, indice) => {
           const linha = document.createElement('tr');
+          const placaFormatada = aplicarMascaraPlaca(veiculo.placa || '');
           linha.innerHTML = `
-            <td style="padding: 0.35rem;">${veiculo.placa || ''}</td>
+            <td style="padding: 0.35rem;">${placaFormatada || ''}</td>
             <td style="padding: 0.35rem;">${veiculo.marcaModelo || ''}</td>
             <td style="padding: 0.35rem;">${veiculo.nome || ''}</td>
             <td style="padding: 0.35rem;">${aplicarMascaraCpfInline(veiculo.cpf || '')}</td>
@@ -2038,6 +2160,41 @@
         exibirMensagemForm('Pessoa vinculada com sucesso ao cadastro.', 'success');
       };
 
+      // Comentário: confirma e aplica o vínculo do veículo selecionado na tabela de resultados
+      const confirmarVinculoVeiculo = (indice) => {
+        const veiculoSelecionado = resultadosBuscaVeiculos[indice];
+
+        if (!veiculoSelecionado) {
+          exibirMensagemVinculoVeiculo('Não foi possível identificar o veículo selecionado.', 'error');
+          return;
+        }
+
+        const placaSelecionada = normalizarPlaca(veiculoSelecionado.placa || '');
+        if (!placaSelecionada) {
+          exibirMensagemVinculoVeiculo('Placa inválida para vínculo.', 'error');
+          return;
+        }
+
+        const jaVinculado = vinculosVeiculos.some((item) => normalizarPlaca(item.placa) === placaSelecionada);
+        if (jaVinculado) {
+          exibirMensagemVinculoVeiculo('Este veículo já está vinculado.', 'info');
+          return;
+        }
+
+        vinculosVeiculos.push({
+          placa: placaSelecionada,
+          marcaModelo: veiculoSelecionado.marcaModelo || '',
+          nome: (veiculoSelecionado.nomeProprietario || veiculoSelecionado.nome || '').trim(),
+          cpf: normalizarCpfSomenteDigitos(veiculoSelecionado.cpf || ''),
+        });
+
+        renderizarVinculosVeiculos();
+        limparResultadosVeiculosBusca();
+        exibirMensagemVinculoVeiculo('Veículo vinculado com sucesso.', 'success');
+        if (vinculoVeiculoStatusEl) vinculoVeiculoStatusEl.textContent = 'Veículo vinculado à pessoa.';
+        if (vinculoVeiculoPlacaInput) vinculoVeiculoPlacaInput.value = '';
+      };
+
       const buscarPessoaParaVinculo = async () => {
         // Permitimos exibir a mensagem padrão de "Nenhum resultado..." para esta busca
         mostrarMensagemResultadosPessoas = true;
@@ -2080,6 +2237,7 @@
       const buscarVeiculoParaVinculo = async () => {
         const placaNormalizada = normalizarPlaca(vinculoVeiculoPlacaInput?.value || '');
         if (!placaNormalizada || placaNormalizada.length < 7) {
+          limparResultadosVeiculosBusca();
           exibirMensagemVinculoVeiculo('Informe uma placa completa para procurar.', 'error');
           if (vinculoVeiculoStatusEl) vinculoVeiculoStatusEl.textContent = 'Digite os 7 caracteres da placa.';
           return;
@@ -2090,6 +2248,8 @@
         }
 
         try {
+          mostrarMensagemResultadosVeiculos = true;
+          limparResultadosVeiculosBusca();
           exibirMensagemVinculoVeiculo('Buscando veículo pela placa informada...', 'info');
           if (vinculoVeiculoStatusEl) vinculoVeiculoStatusEl.textContent = 'Buscando veículo...';
           const params = new URLSearchParams({ placa: placaNormalizada });
@@ -2114,42 +2274,27 @@
             abrirConfirmacao('Veículo não encontrado. Deseja cadastrar?', () => {
               window.location.href = '/cadastro/veiculos';
             });
+            limparResultadosVeiculosBusca(true);
             exibirMensagemVinculoVeiculo('Nenhum veículo localizado com a placa informada.', 'info');
             if (vinculoVeiculoStatusEl) vinculoVeiculoStatusEl.textContent = '';
             return;
           }
 
-          const veiculoSelecionado = veiculosEncontrados[0];
-          const placaSelecionada = normalizarPlaca(veiculoSelecionado.placa || placaNormalizada);
-          const placaFormatada = aplicarMascaraPlaca(placaSelecionada);
-          const resumoVeiculo = `${placaFormatada || placaNormalizada}${veiculoSelecionado.marcaModelo ? ` - ${veiculoSelecionado.marcaModelo}` : ''}`;
+          resultadosBuscaVeiculos = veiculosEncontrados.map((veiculo) => ({
+            placa: normalizarPlaca(veiculo.placa || placaNormalizada),
+            marcaModelo: veiculo.marcaModelo || '',
+            nome: (veiculo.nomeProprietario || veiculo.nome || '').trim(),
+            cpf: normalizarCpfSomenteDigitos(veiculo.cpf || ''),
+            nomeProprietario: veiculo.nomeProprietario || veiculo.nome || '',
+          }));
 
-          const confirmarPrimeiroDaLista =
-            veiculosEncontrados.length > 1
-              ? confirm(`Foram encontrados ${veiculosEncontrados.length} veículos. Deseja vincular o primeiro: ${resumoVeiculo}?`)
-              : confirm(`Veículo ${resumoVeiculo} localizado. Deseja vincular este veículo?`);
-          if (!confirmarPrimeiroDaLista) {
-            exibirMensagemVinculoVeiculo('Vínculo de veículo cancelado pelo usuário.', 'info');
-            return;
-          }
-
-          const jaVinculado = vinculosVeiculos.some((item) => normalizarPlaca(item.placa) === placaSelecionada);
-          if (jaVinculado) {
-            exibirMensagemVinculoVeiculo('Este veículo já está vinculado.', 'info');
-            return;
-          }
-
-          vinculosVeiculos.push({
-            placa: placaSelecionada,
-            marcaModelo: veiculoSelecionado.marcaModelo || '',
-            nome: (veiculoSelecionado.nomeProprietario || veiculoSelecionado.nome || '').trim(),
-            cpf: normalizarCpfSomenteDigitos(veiculoSelecionado.cpf || ''),
-          });
-
-          renderizarVinculosVeiculos();
-          exibirMensagemVinculoVeiculo('Veículo vinculado com sucesso.', 'success');
-          if (vinculoVeiculoStatusEl) vinculoVeiculoStatusEl.textContent = 'Veículo vinculado à pessoa.';
+          exibirMensagemVinculoVeiculo('');
+          renderizarResultadosVeiculosBusca();
+          if (vinculoVeiculoStatusEl) vinculoVeiculoStatusEl.textContent = 'Selecione um veículo para vincular.';
         } catch (error) {
+          resultadosBuscaVeiculos = [];
+          mostrarMensagemResultadosVeiculos = true;
+          limparResultadosVeiculosBusca();
           exibirMensagemVinculoVeiculo('Veículo não encontrado.', 'error');
           if (vinculoVeiculoStatusEl) vinculoVeiculoStatusEl.textContent = 'Veículo não encontrado.';
           abrirConfirmacao('Veículo não encontrado. Deseja cadastrar?', () => {
