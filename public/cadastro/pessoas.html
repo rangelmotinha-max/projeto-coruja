@@ -4484,14 +4484,20 @@
 
       function safeText(val) {
         const s = String(val ?? '').trim();
-        return s || '—';
+        return s;
       }
 
       function imgGrid(items) {
-        if (!items?.length) return '<div class="muted">—</div>';
+        if (!items?.length) return '';
         return `
-          <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(120px,1fr)); gap:8px;">
-            ${items.map((src) => `<div style="border:1px solid #ccc; padding:4px;"><img src="${src}" alt="" style="width:100%; height:100px; object-fit:cover;" /></div>`).join('')}
+          <div style="text-align:center;">
+            <div style="display:inline-grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:10px; justify-content:center; justify-items:center; max-width:960px;">
+              ${items.map((src) => `
+                <div style="border:1px solid #ccc; padding:6px; display:inline-block; page-break-inside: avoid; break-inside: avoid;">
+                  <img src="${src}" alt="" style="width:150px; height:150px; object-fit:cover; display:block;" />
+                </div>
+              `).join('')}
+            </div>
           </div>
         `;
       }
@@ -4528,21 +4534,29 @@
             <title>Relatório de Pessoa</title>
             <style>
               body { font-family: Arial, sans-serif; color: #111; }
-              h1 { font-size: 20px; margin: 0 0 12px; }
+              h1 { font-size: 22px; margin: 0 0 16px; text-align: center; }
               h2 { font-size: 16px; margin: 16px 0 8px; }
               table { width: 100%; border-collapse: collapse; margin: 8px 0; }
               th, td { border: 1px solid #ccc; padding: 6px 8px; text-align: left; vertical-align: top; }
               ul { margin: 6px 0 6px 18px; }
               .muted { color: #666; }
               .section { margin-bottom: 12px; }
+              @media print {
+                .section { page-break-inside: avoid; break-inside: avoid; }
+              }
             </style>
           </head>
           <body>
             <h1>Relatório de Pessoa</h1>
         `;
 
-        function sectionTitle(t) { html += `<h2>${t}</h2>`; }
+        function sectionTitle(t) { html += `<h2 style="text-align:center;">${t}</h2>`; }
         function addRow(label, value) { html += `<tr><th>${label}</th><td>${safeText(value)}</td></tr>`; }
+
+        // Fotos do cadastro devem ser a primeira informação da página (sem títulos)
+        if (selected?.imagens?.includes('fotosCadastro')) {
+          html += `<div class="section">${imgGrid(valores.fotosCadastro)}</div>`;
+        }
 
         if (selected.identificacao?.length) {
           sectionTitle('Identificação');
@@ -4557,16 +4571,16 @@
         if (selected.contatos?.length) {
           sectionTitle('Contatos');
           if (selected.contatos.includes('emails')) {
-            html += `<div class="section"><strong>Emails</strong><ul>${(valores.emails || []).map((e) => `<li>${safeText(e)}</li>`).join('') || '<li class="muted">—</li>'}</ul></div>`;
+            html += `<div class="section"><strong>Emails</strong><ul>${(valores.emails || []).map((e) => `<li>${safeText(e)}</li>`).join('')}</ul></div>`;
           }
           if (selected.contatos.includes('redesSociais')) {
-            html += `<div class="section"><strong>Redes Sociais</strong><ul>${(valores.redesSociais || []).map((r) => `<li>${safeText(r)}</li>`).join('') || '<li class="muted">—</li>'}</ul></div>`;
+            html += `<div class="section"><strong>Redes Sociais</strong><ul>${(valores.redesSociais || []).map((r) => `<li>${safeText(r)}</li>`).join('')}</ul></div>`;
           }
         }
 
         if (selected.telefones?.includes('telefones')) {
           sectionTitle('Telefones');
-          html += `<ul>${(valores.telefones || []).map((t) => `<li>${safeText(t)}</li>`).join('') || '<li class="muted">—</li>'}</ul>`;
+          html += `<ul>${(valores.telefones || []).map((t) => `<li>${safeText(t)}</li>`).join('')}</ul>`;
         }
 
         if (selected.enderecos?.length) {
@@ -4574,7 +4588,7 @@
           const attrs = selected.enderecos;
           const lista = valores.enderecos || [];
           if (!lista.length) {
-            html += `<div class="muted">—</div>`;
+            // sem dados: manter em branco
           } else {
             lista.forEach((end, idx) => {
               html += `<table><caption style="caption-side:top;text-align:left;"><strong>Endereço ${idx + 1}</strong></caption>`;
@@ -4592,7 +4606,7 @@
           const attrs = selected.veiculos;
           const lista = valores.veiculos || [];
           if (!lista.length) {
-            html += `<div class="muted">—</div>`;
+            // sem dados: manter em branco
           } else {
             lista.forEach((v, idx) => {
               html += `<table><caption style="caption-side:top;text-align:left;"><strong>Veículo ${idx + 1}</strong></caption>`;
@@ -4608,43 +4622,40 @@
         if (selected.vinculos?.length) {
           sectionTitle('Vínculos');
           if (selected.vinculos.includes('pessoas')) {
-            html += `<div class="section"><strong>Pessoas</strong><ul>${(valores.vinculos.pessoas || []).map((v) => `<li>${safeText(v?.nome)} | CPF: ${safeText(v?.cpf)} | Tipo: ${safeText(v?.tipo)}</li>`).join('') || '<li class="muted">—</li>'}</ul></div>`;
+            html += `<div class="section"><strong>Pessoas</strong><ul>${(valores.vinculos.pessoas || []).map((v) => `<li>${safeText(v?.nome)} | CPF: ${safeText(v?.cpf)} | Tipo: ${safeText(v?.tipo)}</li>`).join('')}</ul></div>`;
           }
           if (selected.vinculos.includes('empresas')) {
-            html += `<div class="section"><strong>Empresas</strong><ul>${(valores.vinculos.empresas || []).map((e) => `<li>${safeText(e?.nome)}${e?.id ? ' (ID ' + e.id + ')' : ''}${e?.observacoes ? ' — ' + safeText(e.observacoes) : ''}</li>`).join('') || '<li class="muted">—</li>'}</ul></div>`;
+            html += `<div class="section"><strong>Empresas</strong><ul>${(valores.vinculos.empresas || []).map((e) => `<li>${safeText(e?.nome)}${e?.id ? ' (ID ' + e.id + ')' : ''}${e?.observacoes ? ' — ' + safeText(e.observacoes) : ''}</li>`).join('')}</ul></div>`;
           }
           if (selected.vinculos.includes('veiculos')) {
-            html += `<div class="section"><strong>Veículos</strong><ul>${(valores.vinculos.veiculos || []).map((v) => `<li>Placa: ${safeText(v?.placa)} | ${safeText(v?.marcaModelo)} | Proprietário: ${safeText(v?.nome)} | CPF: ${safeText(v?.cpf)}</li>`).join('') || '<li class="muted">—</li>'}</ul></div>`;
+            html += `<div class="section"><strong>Veículos</strong><ul>${(valores.vinculos.veiculos || []).map((v) => `<li>Placa: ${safeText(v?.placa)} | ${safeText(v?.marcaModelo)} | Proprietário: ${safeText(v?.nome)} | CPF: ${safeText(v?.cpf)}</li>`).join('')}</ul></div>`;
           }
           if (selected.vinculos.includes('empregaticio')) {
-            html += `<div class="section"><strong>Empregatício</strong><ul>${(valores.vinculos.empregaticio || []).map((e) => `<li>${safeText(e?.info)}</li>`).join('') || '<li class="muted">—</li>'}</ul></div>`;
+            html += `<div class="section"><strong>Empregatício</strong><ul>${(valores.vinculos.empregaticio || []).map((e) => `<li>${safeText(e?.info)}</li>`).join('')}</ul></div>`;
           }
         }
 
         if (selected.ocorrencias?.length) {
           sectionTitle('Ocorrências');
           if (selected.ocorrencias.includes('policiais')) {
-            html += `<div class="section"><strong>Policiais</strong><ul>${(valores.ocorrencias.policiais || []).map((o) => `<li>${safeText(o?.data)} — ${safeText(o?.info)}</li>`).join('') || '<li class="muted">—</li>'}</ul></div>`;
+            html += `<div class="section"><strong>Policiais</strong><ul>${(valores.ocorrencias.policiais || []).map((o) => `<li>${safeText(o?.data)} — ${safeText(o?.info)}</li>`).join('')}</ul></div>`;
           }
           if (selected.ocorrencias.includes('processos')) {
-            html += `<div class="section"><strong>Processos</strong><ul>${(valores.ocorrencias.processos || []).map((p) => `<li>${safeText(p?.data)} — ${safeText(p?.info)}</li>`).join('') || '<li class="muted">—</li>'}</ul></div>`;
+            html += `<div class="section"><strong>Processos</strong><ul>${(valores.ocorrencias.processos || []).map((p) => `<li>${safeText(p?.data)} — ${safeText(p?.info)}</li>`).join('')}</ul></div>`;
           }
           if (selected.ocorrencias.includes('abordagens')) {
-            html += `<div class="section"><strong>Abordagens</strong><ul>${(valores.ocorrencias.abordagens || []).map((a) => `<li>${safeText(a?.data)} — ${safeText(a?.info)}</li>`).join('') || '<li class="muted">—</li>'}</ul></div>`;
+            html += `<div class="section"><strong>Abordagens</strong><ul>${(valores.ocorrencias.abordagens || []).map((a) => `<li>${safeText(a?.data)} — ${safeText(a?.info)}</li>`).join('')}</ul></div>`;
           }
           if (selected.ocorrencias.includes('prisoes')) {
-            html += `<div class="section"><strong>Prisões</strong><ul>${(valores.ocorrencias.prisoes || []).map((p) => `<li>${safeText(p?.data)} — ${safeText(p?.info)}</li>`).join('') || '<li class="muted">—</li>'}</ul></div>`;
+            html += `<div class="section"><strong>Prisões</strong><ul>${(valores.ocorrencias.prisoes || []).map((p) => `<li>${safeText(p?.data)} — ${safeText(p?.info)}</li>`).join('')}</ul></div>`;
           }
           if (selected.ocorrencias.includes('monitoramentos')) {
-            html += `<div class="section"><strong>Monitoramentos</strong><ul>${(valores.ocorrencias.monitoramentos || []).map((m) => `<li>${safeText(m?.data)} — ${safeText(m?.descricao)}</li>`).join('') || '<li class="muted">—</li>'}</ul></div>`;
+            html += `<div class="section"><strong>Monitoramentos</strong><ul>${(valores.ocorrencias.monitoramentos || []).map((m) => `<li>${safeText(m?.data)} — ${safeText(m?.descricao)}</li>`).join('')}</ul></div>`;
           }
         }
 
         if (selected.imagens?.length) {
-          sectionTitle('Imagens');
-          if (selected.imagens.includes('fotosCadastro')) {
-            html += `<div class="section"><strong>Fotos do cadastro</strong>${imgGrid(valores.fotosCadastro)}</div>`;
-          }
+          // Não exibir título "Imagens" e não repetir "Fotos do cadastro"
           if (selected.imagens.includes('imagensMonitoramento')) {
             html += `<div class="section"><strong>Imagens de monitoramento</strong>${imgGrid(valores.imagensMonitoramento)}</div>`;
           }
