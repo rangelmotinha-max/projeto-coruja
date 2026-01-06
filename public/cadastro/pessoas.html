@@ -4360,6 +4360,10 @@
 
       function buildRelatorioConfig() {
         return {
+          imagens: [
+            { key: 'fotosCadastro', label: 'Fotos do cadastro' },
+            { key: 'imagensMonitoramento', label: 'Imagens de monitoramento' },
+          ],
           identificacao: [
             { key: 'nomeCompleto', label: 'Nome Completo' },
             { key: 'apelido', label: 'Apelido/Vulgo' },
@@ -4409,10 +4413,6 @@
             { key: 'abordagens', label: 'Abordagens' },
             { key: 'prisoes', label: 'Prisões' },
             { key: 'monitoramentos', label: 'Monitoramentos (texto)' },
-          ],
-          imagens: [
-            { key: 'fotosCadastro', label: 'Fotos do cadastro' },
-            { key: 'imagensMonitoramento', label: 'Imagens de monitoramento' },
           ],
         };
       }
