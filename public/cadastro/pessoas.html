@@ -181,6 +181,18 @@
             >
               Monitoramento
             </button>
+            <!-- Aba de Relatório: seleção de campos e geração de PDF/Word -->
+            <button
+              class="tabs__button"
+              type="button"
+              id="tab-relatorio-btn"
+              role="tab"
+              aria-selected="false"
+              aria-controls="tab-relatorio"
+              data-tab-target="relatorio"
+            >
+              Relatório
+            </button>
           </div>
 
           <!-- Ação direta garante envio mesmo sem o manipulador JS -->
@@ -556,8 +568,39 @@
                   </div>
                 </div>
               </div>
+                <!-- Seção 8: Relatório -->
+                <div
+                  class="tab-panel"
+                  data-tab="relatorio"
+                  id="tab-relatorio"
+                  role="tabpanel"
+                  aria-labelledby="tab-relatorio-btn"
+                  tabindex="-1"
+                  hidden
+                >
+                  <div class="form__section" data-section="relatorio">
+                    <div class="form__section-header">
+                      <h3 class="form__section-title" style="text-align: center; width: 100%;">Relatório</h3>
+                    </div>
+                    <div class="form__grid form__grid--2">
+                      <label class="form__field">
+                        <span class="form__label">Formato</span>
+                        <div style="display:flex; gap:0.75rem;">
+                          <label><input type="radio" name="relatorioFormato" value="pdf" checked> PDF</label>
+                          <label><input type="radio" name="relatorioFormato" value="word"> Word (.doc)</label>
+                        </div>
+                      </label>
+                      <div class="form__actions">
+                        <button type="button" class="button button--ghost" id="relatorio-selecionar-tudo">Selecionar tudo</button>
+                        <button type="button" class="button button--ghost" id="relatorio-limpar">Limpar</button>
+                        <button type="button" class="button button--primary" id="relatorio-gerar">Gerar relatório</button>
+                      </div>
+                    </div>
+                    <div id="relatorio-selecoes" class="panel" style="margin-top:0.75rem; padding:0.75rem;"></div>
+                  </div>
+                </div>
 
-            <div class="form__actions">
+              <div class="form__actions">
               <button class="button button--primary" id="submit-pessoa" type="submit">Incluir</button>
               <button class="button button--ghost" id="listar-pessoas" type="button">Listar</button>
               <button class="button button--secondary" type="reset">Limpar</button>
@@ -4309,6 +4352,348 @@
         const idade = calcularIdadeDe(valor);
         idadeEl.value = idade == null ? '' : String(idade);
       }
+      // --- Relatório: seleção de seções/atributos e geração de PDF/Word ---
+      const relatorioSelecoesEl = document.getElementById('relatorio-selecoes');
+      const relatorioSelecionarTudoBtn = document.getElementById('relatorio-selecionar-tudo');
+      const relatorioLimparBtn = document.getElementById('relatorio-limpar');
+      const relatorioGerarBtn = document.getElementById('relatorio-gerar');
+
+      function buildRelatorioConfig() {
+        return {
+          identificacao: [
+            { key: 'nomeCompleto', label: 'Nome Completo' },
+            { key: 'apelido', label: 'Apelido/Vulgo' },
+            { key: 'cpf', label: 'CPF' },
+            { key: 'rg', label: 'RG' },
+            { key: 'cnh', label: 'CNH' },
+            { key: 'dataNascimento', label: 'Data de Nascimento' },
+            { key: 'idade', label: 'Idade' },
+            { key: 'nomeMae', label: 'Nome da Mãe' },
+            { key: 'nomePai', label: 'Nome do Pai' },
+            { key: 'sinais', label: 'Sinais' },
+            { key: 'faccao', label: 'Facção' },
+          ],
+          contatos: [
+            { key: 'emails', label: 'Emails' },
+            { key: 'redesSociais', label: 'Redes Sociais' },
+          ],
+          telefones: [
+            { key: 'telefones', label: 'Telefones' },
+          ],
+          enderecos: [
+            { key: 'uf', label: 'UF' },
+            { key: 'cidade', label: 'Cidade' },
+            { key: 'bairro', label: 'Bairro' },
+            { key: 'logradouro', label: 'Logradouro' },
+            { key: 'numero', label: 'Número' },
+            { key: 'complemento', label: 'Complemento' },
+            { key: 'cep', label: 'CEP' },
+          ],
+          veiculos: [
+            { key: 'placa', label: 'Placa' },
+            { key: 'marcaModelo', label: 'Marca/Modelo' },
+            { key: 'cor', label: 'Cor' },
+            { key: 'anoModelo', label: 'Ano Modelo' },
+            { key: 'nomeProprietario', label: 'Proprietário' },
+            { key: 'cpf', label: 'CPF Proprietário' },
+          ],
+          vinculos: [
+            { key: 'pessoas', label: 'Pessoas' },
+            { key: 'empresas', label: 'Empresas' },
+            { key: 'veiculos', label: 'Veículos' },
+            { key: 'empregaticio', label: 'Empregatício' },
+          ],
+          ocorrencias: [
+            { key: 'policiais', label: 'Ocorrências Policiais' },
+            { key: 'processos', label: 'Processos' },
+            { key: 'abordagens', label: 'Abordagens' },
+            { key: 'prisoes', label: 'Prisões' },
+            { key: 'monitoramentos', label: 'Monitoramentos (texto)' },
+          ],
+          imagens: [
+            { key: 'fotosCadastro', label: 'Fotos do cadastro' },
+            { key: 'imagensMonitoramento', label: 'Imagens de monitoramento' },
+          ],
+        };
+      }
+
+      function renderRelatorioSelecoes(config) {
+        if (!relatorioSelecoesEl) return;
+        relatorioSelecoesEl.innerHTML = '';
+        Object.keys(config).forEach((sec) => {
+          const box = document.createElement('div');
+          box.className = 'panel';
+          box.style.marginBottom = '0.75rem';
+
+          const header = document.createElement('div');
+          header.style.display = 'flex';
+          header.style.justifyContent = 'space-between';
+          header.style.alignItems = 'center';
+
+          const h = document.createElement('h4');
+          h.textContent = sec.charAt(0).toUpperCase() + sec.slice(1);
+          h.style.margin = '0';
+
+          const secChk = document.createElement('input');
+          secChk.type = 'checkbox';
+          secChk.className = 'rel-section';
+          secChk.dataset.section = sec;
+
+          header.appendChild(h);
+          header.appendChild(secChk);
+
+          const attrs = document.createElement('div');
+          attrs.style.display = 'grid';
+          attrs.style.gridTemplateColumns = 'repeat(auto-fill,minmax(200px,1fr))';
+          attrs.style.gap = '0.5rem';
+
+          config[sec].forEach((attr) => {
+            const label = document.createElement('label');
+            const chk = document.createElement('input');
+            chk.type = 'checkbox';
+            chk.className = 'rel-attr';
+            chk.dataset.section = sec;
+            chk.dataset.attr = attr.key;
+            label.appendChild(chk);
+            label.appendChild(document.createTextNode(' ' + attr.label));
+            attrs.appendChild(label);
+          });
+
+          box.appendChild(header);
+          box.appendChild(attrs);
+          relatorioSelecoesEl.appendChild(box);
+
+          secChk.addEventListener('change', () => {
+            attrs.querySelectorAll('.rel-attr').forEach((c) => {
+              c.checked = secChk.checked;
+            });
+          });
+        });
+      }
+
+      function collectSelected(config) {
+        const selected = {};
+        Object.keys(config).forEach((sec) => {
+          const secChecked = !!relatorioSelecoesEl.querySelector(`.rel-section[data-section="${sec}"]`)?.checked;
+          const attrsChecked = Array.from(relatorioSelecoesEl.querySelectorAll(`.rel-attr[data-section="${sec}"]:checked`))
+            .map((el) => el.dataset.attr);
+          selected[sec] = secChecked ? config[sec].map((a) => a.key) : attrsChecked;
+        });
+        return selected;
+      }
+
+      function safeText(val) {
+        const s = String(val ?? '').trim();
+        return s || '—';
+      }
+
+      function imgGrid(items) {
+        if (!items?.length) return '<div class="muted">—</div>';
+        return `
+          <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(120px,1fr)); gap:8px;">
+            ${items.map((src) => `<div style="border:1px solid #ccc; padding:4px;"><img src="${src}" alt="" style="width:100%; height:100px; object-fit:cover;" /></div>`).join('')}
+          </div>
+        `;
+      }
+
+      function generateReportHTML(selected) {
+        const f = pessoaForm;
+        const valores = {
+          nomeCompleto: f.elements['nomeCompleto']?.value,
+          apelido: f.elements['apelido']?.value,
+          cpf: f.elements['cpf']?.value,
+          rg: f.elements['rg']?.value,
+          cnh: f.elements['cnh']?.value,
+          dataNascimento: f.elements['dataNascimento']?.value,
+          idade: document.getElementById('idade')?.value,
+          nomeMae: f.elements['nomeMae']?.value,
+          nomePai: f.elements['nomePai']?.value,
+          sinais: f.elements['sinais']?.value,
+          faccao: faccaoSelecionada ? formatarNomeFaccao(faccaoSelecionada) : (document.getElementById('faccao-input')?.value || ''),
+          emails,
+          redesSociais: redes,
+          telefones,
+          enderecos,
+          veiculos,
+          vinculos: { pessoas: vinculosPessoas, empresas: empresasVinculadas, veiculos: vinculosVeiculos, empregaticio: vinculosEmpregaticio },
+          ocorrencias: { policiais: ocorrenciasPoliciais, processos, abordagens, prisoes, monitoramentos },
+          fotosCadastro: (fotosSelecionadas || []).map((f) => f?.previewUrl || f?.url || f?.referencia).filter(Boolean),
+          imagensMonitoramento: (monitoramentos || []).flatMap((m) => Array.isArray(m?.imagens) ? m.imagens.map((img) => img?.caminho).filter(Boolean) : []),
+        };
+
+        let html = `
+          <html>
+          <head>
+            <meta charset="utf-8" />
+            <title>Relatório de Pessoa</title>
+            <style>
+              body { font-family: Arial, sans-serif; color: #111; }
+              h1 { font-size: 20px; margin: 0 0 12px; }
+              h2 { font-size: 16px; margin: 16px 0 8px; }
+              table { width: 100%; border-collapse: collapse; margin: 8px 0; }
+              th, td { border: 1px solid #ccc; padding: 6px 8px; text-align: left; vertical-align: top; }
+              ul { margin: 6px 0 6px 18px; }
+              .muted { color: #666; }
+              .section { margin-bottom: 12px; }
+            </style>
+          </head>
+          <body>
+            <h1>Relatório de Pessoa</h1>
+        `;
+
+        function sectionTitle(t) { html += `<h2>${t}</h2>`; }
+        function addRow(label, value) { html += `<tr><th>${label}</th><td>${safeText(value)}</td></tr>`; }
+
+        if (selected.identificacao?.length) {
+          sectionTitle('Identificação');
+          html += `<table>`;
+          selected.identificacao.forEach((k) => {
+            const label = buildRelatorioConfig().identificacao.find((a) => a.key === k)?.label || k;
+            addRow(label, valores[k]);
+          });
+          html += `</table>`;
+        }
+
+        if (selected.contatos?.length) {
+          sectionTitle('Contatos');
+          if (selected.contatos.includes('emails')) {
+            html += `<div class="section"><strong>Emails</strong><ul>${(valores.emails || []).map((e) => `<li>${safeText(e)}</li>`).join('') || '<li class="muted">—</li>'}</ul></div>`;
+          }
+          if (selected.contatos.includes('redesSociais')) {
+            html += `<div class="section"><strong>Redes Sociais</strong><ul>${(valores.redesSociais || []).map((r) => `<li>${safeText(r)}</li>`).join('') || '<li class="muted">—</li>'}</ul></div>`;
+          }
+        }
+
+        if (selected.telefones?.includes('telefones')) {
+          sectionTitle('Telefones');
+          html += `<ul>${(valores.telefones || []).map((t) => `<li>${safeText(t)}</li>`).join('') || '<li class="muted">—</li>'}</ul>`;
+        }
+
+        if (selected.enderecos?.length) {
+          sectionTitle('Endereços');
+          const attrs = selected.enderecos;
+          const lista = valores.enderecos || [];
+          if (!lista.length) {
+            html += `<div class="muted">—</div>`;
+          } else {
+            lista.forEach((end, idx) => {
+              html += `<table><caption style="caption-side:top;text-align:left;"><strong>Endereço ${idx + 1}</strong></caption>`;
+              attrs.forEach((k) => {
+                const label = buildRelatorioConfig().enderecos.find((a) => a.key === k)?.label || k;
+                addRow(label, end?.[k]);
+              });
+              html += `</table>`;
+            });
+          }
+        }
+
+        if (selected.veiculos?.length) {
+          sectionTitle('Veículos');
+          const attrs = selected.veiculos;
+          const lista = valores.veiculos || [];
+          if (!lista.length) {
+            html += `<div class="muted">—</div>`;
+          } else {
+            lista.forEach((v, idx) => {
+              html += `<table><caption style="caption-side:top;text-align:left;"><strong>Veículo ${idx + 1}</strong></caption>`;
+              attrs.forEach((k) => {
+                const label = buildRelatorioConfig().veiculos.find((a) => a.key === k)?.label || k;
+                addRow(label, v?.[k]);
+              });
+              html += `</table>`;
+            });
+          }
+        }
+
+        if (selected.vinculos?.length) {
+          sectionTitle('Vínculos');
+          if (selected.vinculos.includes('pessoas')) {
+            html += `<div class="section"><strong>Pessoas</strong><ul>${(valores.vinculos.pessoas || []).map((v) => `<li>${safeText(v?.nome)} | CPF: ${safeText(v?.cpf)} | Tipo: ${safeText(v?.tipo)}</li>`).join('') || '<li class="muted">—</li>'}</ul></div>`;
+          }
+          if (selected.vinculos.includes('empresas')) {
+            html += `<div class="section"><strong>Empresas</strong><ul>${(valores.vinculos.empresas || []).map((e) => `<li>${safeText(e?.nome)}${e?.id ? ' (ID ' + e.id + ')' : ''}${e?.observacoes ? ' — ' + safeText(e.observacoes) : ''}</li>`).join('') || '<li class="muted">—</li>'}</ul></div>`;
+          }
+          if (selected.vinculos.includes('veiculos')) {
+            html += `<div class="section"><strong>Veículos</strong><ul>${(valores.vinculos.veiculos || []).map((v) => `<li>Placa: ${safeText(v?.placa)} | ${safeText(v?.marcaModelo)} | Proprietário: ${safeText(v?.nome)} | CPF: ${safeText(v?.cpf)}</li>`).join('') || '<li class="muted">—</li>'}</ul></div>`;
+          }
+          if (selected.vinculos.includes('empregaticio')) {
+            html += `<div class="section"><strong>Empregatício</strong><ul>${(valores.vinculos.empregaticio || []).map((e) => `<li>${safeText(e?.info)}</li>`).join('') || '<li class="muted">—</li>'}</ul></div>`;
+          }
+        }
+
+        if (selected.ocorrencias?.length) {
+          sectionTitle('Ocorrências');
+          if (selected.ocorrencias.includes('policiais')) {
+            html += `<div class="section"><strong>Policiais</strong><ul>${(valores.ocorrencias.policiais || []).map((o) => `<li>${safeText(o?.data)} — ${safeText(o?.info)}</li>`).join('') || '<li class="muted">—</li>'}</ul></div>`;
+          }
+          if (selected.ocorrencias.includes('processos')) {
+            html += `<div class="section"><strong>Processos</strong><ul>${(valores.ocorrencias.processos || []).map((p) => `<li>${safeText(p?.data)} — ${safeText(p?.info)}</li>`).join('') || '<li class="muted">—</li>'}</ul></div>`;
+          }
+          if (selected.ocorrencias.includes('abordagens')) {
+            html += `<div class="section"><strong>Abordagens</strong><ul>${(valores.ocorrencias.abordagens || []).map((a) => `<li>${safeText(a?.data)} — ${safeText(a?.info)}</li>`).join('') || '<li class="muted">—</li>'}</ul></div>`;
+          }
+          if (selected.ocorrencias.includes('prisoes')) {
+            html += `<div class="section"><strong>Prisões</strong><ul>${(valores.ocorrencias.prisoes || []).map((p) => `<li>${safeText(p?.data)} — ${safeText(p?.info)}</li>`).join('') || '<li class="muted">—</li>'}</ul></div>`;
+          }
+          if (selected.ocorrencias.includes('monitoramentos')) {
+            html += `<div class="section"><strong>Monitoramentos</strong><ul>${(valores.ocorrencias.monitoramentos || []).map((m) => `<li>${safeText(m?.data)} — ${safeText(m?.descricao)}</li>`).join('') || '<li class="muted">—</li>'}</ul></div>`;
+          }
+        }
+
+        if (selected.imagens?.length) {
+          sectionTitle('Imagens');
+          if (selected.imagens.includes('fotosCadastro')) {
+            html += `<div class="section"><strong>Fotos do cadastro</strong>${imgGrid(valores.fotosCadastro)}</div>`;
+          }
+          if (selected.imagens.includes('imagensMonitoramento')) {
+            html += `<div class="section"><strong>Imagens de monitoramento</strong>${imgGrid(valores.imagensMonitoramento)}</div>`;
+          }
+        }
+
+        html += `</body></html>`;
+        return html;
+      }
+
+      function downloadWord(html, filename = 'relatorio-pessoa.doc') {
+        const blob = new Blob([html], { type: 'application/msword' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+
+      function openPrintable(html) {
+        const w = window.open('', '_blank');
+        w.document.open();
+        w.document.write(html);
+        w.document.close();
+        w.focus();
+        setTimeout(() => { try { w.print(); w.close(); } catch {} }, 300);
+      }
+
+      // Inicializa UI do relatório
+      const relConfig = buildRelatorioConfig();
+      renderRelatorioSelecoes(relConfig);
+      relatorioSelecionarTudoBtn?.addEventListener('click', () => {
+        relatorioSelecoesEl.querySelectorAll('.rel-section, .rel-attr').forEach((el) => { el.checked = true; });
+      });
+      relatorioLimparBtn?.addEventListener('click', () => {
+        relatorioSelecoesEl.querySelectorAll('.rel-section, .rel-attr').forEach((el) => { el.checked = false; });
+      });
+      relatorioGerarBtn?.addEventListener('click', () => {
+        const selected = collectSelected(relConfig);
+        const html = generateReportHTML(selected);
+        const formato = (document.querySelector('input[name="relatorioFormato"]:checked')?.value || 'pdf');
+        if (formato === 'word') {
+          downloadWord(html);
+        } else {
+          openPrintable(html);
+        }
+      });
     </script>
   </body>
 </html>
