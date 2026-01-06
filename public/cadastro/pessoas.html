@@ -343,7 +343,7 @@
                         <input type="file" id="perfil-imagens-input" accept="image/*" multiple style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;" />
                         <button type="button" class="button button--secondary" id="perfil-imagens-select">Selecionar imagens</button>
                       </label>
-                      <div id="perfil-imagens-preview" style="margin-top:0.5rem; display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:0.5rem; justify-items:center; justify-content:center;"></div>
+                      <div id="perfil-imagens-preview" style="margin-top:0.5rem; display:grid; grid-template-columns:repeat(auto-fit,minmax(var(--perfilWidth, 120px),1fr)); gap:0.5rem; justify-items:center; justify-content:center;"></div>
                     </div>
                   </div>
                 </div>
@@ -1598,7 +1598,7 @@
         perfilImagensSelecionadas.forEach((item, idx) => {
           const wrap = document.createElement('div');
           wrap.style.padding = '0.25rem';
-          wrap.style.width = '120px';
+          wrap.style.width = 'var(--perfilWidth, 120px)';
           const img = document.createElement('img');
           img.src = item.previewUrl;
           img.alt = item.nome || 'Perfil';
@@ -1899,12 +1899,29 @@
 
       const perfilInput = document.getElementById('perfil-imagens-input');
       const perfilSelectBtn = document.getElementById('perfil-imagens-select');
+
+      // Responsivo: sincroniza a largura das prévias com o botão "Selecionar imagens"
+      const syncPerfilWidth = () => {
+        const btn = document.getElementById('perfil-imagens-select');
+        if (!btn) return;
+        const width = btn.offsetWidth; // inclui padding e border
+        if (width > 0) document.documentElement.style.setProperty('--perfilWidth', `${width}px`);
+      };
+      // Atualiza em load, resize e quando o botão mudar de tamanho
+      window.addEventListener('load', syncPerfilWidth);
+      window.addEventListener('resize', syncPerfilWidth);
+      if (window.ResizeObserver && perfilSelectBtn) {
+        const ro = new ResizeObserver(syncPerfilWidth);
+        ro.observe(perfilSelectBtn);
+      }
+
       perfilSelectBtn?.addEventListener('click', () => perfilInput?.click());
       perfilInput?.addEventListener('change', (e) => {
         const files = Array.from(e.target.files || []).filter(f => f.type?.startsWith('image/'));
         files.forEach((file) => {
           perfilImagensSelecionadas.push({ file, previewUrl: URL.createObjectURL(file), nome: file.name });
         });
+        syncPerfilWidth();
         renderizarPerfilImagens();
       });
 
@@ -3642,6 +3659,7 @@
           previewUrl: img.url || img.caminho,
         }));
         renderizarQrCode();
+        syncPerfilWidth();
         renderizarPerfilImagens();
 
         // Preenche lista de veículos ou inicia vazia para permitir múltiplos registros
