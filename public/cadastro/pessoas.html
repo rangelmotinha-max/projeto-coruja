@@ -1599,6 +1599,9 @@
           const wrap = document.createElement('div');
           wrap.style.padding = '0.25rem';
           wrap.style.width = 'var(--perfilWidth, 120px)';
+          wrap.style.display = 'flex';
+          wrap.style.flexDirection = 'column';
+          wrap.style.alignItems = 'center';
           const img = document.createElement('img');
           img.src = item.previewUrl;
           img.alt = item.nome || 'Perfil';
@@ -1609,6 +1612,7 @@
           btn.type = 'button';
           btn.className = 'button button--ghost';
           btn.style.marginTop = '0.25rem';
+          btn.style.alignSelf = 'center';
           btn.textContent = 'Remover';
           btn.addEventListener('click', () => {
             const [rem] = perfilImagensSelecionadas.splice(idx, 1);
