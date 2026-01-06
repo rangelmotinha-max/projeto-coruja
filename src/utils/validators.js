@@ -204,6 +204,9 @@ function validarCadastroPessoa(payload, arquivos = []) {
   const imgsMonitoramento = extrairArquivosCampo(arquivos, 'imagensMonitoramento');
   const ocorrenciasObj = validarOcorrencias(payload.ocorrencias, docsOcorrencias, imgsMonitoramento);
   const fotosUpload = validarFotosUpload(extrairArquivosCampo(arquivos, 'fotos'));
+  // Novos campos de imagens em Contatos: QR-CODE (único) e Perfil (múltiplas)
+  const qrCodeUpload = validarFotosUpload(extrairArquivosCampo(arquivos, 'qrCode')).slice(0, 1);
+  const imagensPerfilUpload = validarFotosUpload(extrairArquivosCampo(arquivos, 'imagensPerfil'));
   // Veículo associado ao cadastro de pessoa pode herdar dados do titular
   // Somente valida veículo se houver dados relevantes (ex.: placa ou proprietário)
   const veiculoTemDados = (() => {
@@ -263,6 +266,8 @@ function validarCadastroPessoa(payload, arquivos = []) {
     vinculos: vinculosObj,
     ocorrencias: ocorrenciasObj,
     fotos: fotosUpload,
+    qrCode: qrCodeUpload[0] || undefined,
+    imagensPerfil: imagensPerfilUpload,
     veiculo,
     veiculos: validarListaVeiculos(payload.veiculos, payload.nomeCompleto, payload.cpf),
   };
@@ -557,6 +562,17 @@ function validarAtualizacaoPessoa(payload, arquivos = []) {
   // Validar fotos novas e remoções solicitadas
   atualizacoes.fotos = validarFotosUpload(extrairArquivosCampo(arquivos, 'fotos'));
   atualizacoes.fotosParaRemover = normalizarListaIds(payload.fotosParaRemover);
+  // Validar novas imagens de redes sociais
+  const qrCodeUpload = validarFotosUpload(extrairArquivosCampo(arquivos, 'qrCode')).slice(0, 1);
+  const imagensPerfilUpload = validarFotosUpload(extrairArquivosCampo(arquivos, 'imagensPerfil'));
+  atualizacoes.qrCode = qrCodeUpload[0] || undefined;
+  atualizacoes.imagensPerfil = imagensPerfilUpload;
+  // Remoções
+  atualizacoes.redesPerfisParaRemover = normalizarListaIds(payload.redesPerfisParaRemover);
+  if (payload.removerQrCode !== undefined) {
+    const val = String(payload.removerQrCode).toLowerCase();
+    atualizacoes.removerQrCode = (val === 'true' || val === '1');
+  }
   // Empresa removida do cadastro de Pessoas; ignorar atualizações
   if (payload.vinculos !== undefined) {
     atualizacoes.vinculos = validarVinculos(payload.vinculos);

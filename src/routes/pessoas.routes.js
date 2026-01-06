@@ -20,6 +20,8 @@ const conditionalUploadPessoaArquivos = (req, res, next) => {
     { name: 'fotos', maxCount: 10 },
     { name: 'documentosOcorrenciasPoliciais', maxCount: 20 },
     { name: 'imagensMonitoramento', maxCount: 60 },
+    { name: 'qrCode', maxCount: 1 },
+    { name: 'imagensPerfil', maxCount: 30 },
   ]);
 
   return uploadFields(req, res, next);

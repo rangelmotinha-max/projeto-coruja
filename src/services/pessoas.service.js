@@ -108,6 +108,10 @@ async function atualizar(id, payload, arquivos = []) {
     telefones,
     emails,
     redesSociais,
+    qrCode,
+    imagensPerfil = [],
+    redesPerfisParaRemover = [],
+    removerQrCode = false,
     vinculos,
     ocorrencias,
     veiculo,
@@ -215,6 +219,24 @@ async function atualizar(id, payload, arquivos = []) {
 
   for (const foto of fotos) {
     await PessoaModel.adicionarFoto(id, foto);
+  }
+
+  // Atualizar imagens de redes sociais
+  // Remover perfis solicitados
+  for (const imgId of redesPerfisParaRemover) {
+    await PessoaModel.removerImagemRede(imgId);
+  }
+  // Substituir QR-CODE se enviado novo
+  if (qrCode) {
+    await PessoaModel.setQrCode(id, qrCode);
+  } else if (removerQrCode) {
+    // Remover QR atual se solicitado explicitamente
+    const atual = await PessoaModel.obterImagensRedesPorPessoa(id);
+    if (atual?.qrCode?.id) await PessoaModel.removerImagemRede(atual.qrCode.id);
+  }
+  // Adicionar novas imagens de perfil
+  for (const img of imagensPerfil) {
+    await PessoaModel.adicionarImagemRede(id, img, 'perfil');
   }
 
   // Atualizar dados da pessoa e índice do endereço atual validados.

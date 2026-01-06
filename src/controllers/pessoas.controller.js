@@ -13,6 +13,8 @@ function normalizarPayload(req) {
     'fotosParaRemover',
     'veiculos',
     'veiculo',
+    'redesPerfisParaRemover',
+    'removerQrCode',
   ];
 
   camposJson.forEach((campo) => {
