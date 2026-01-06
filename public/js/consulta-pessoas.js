@@ -94,7 +94,7 @@
 
     const header = document.createElement('thead');
     const headerRow = document.createElement('tr');
-    ['Nome', 'Documentos', 'Contatos', 'Nascimento', 'Filiação', 'Sinais', 'Facção'].forEach((heading) => {
+    ['Nome', 'Documentos', 'Contatos', 'Nascimento', 'Filiação', 'Sinais', 'Facção', 'Ações'].forEach((heading) => {
       const th = document.createElement('th');
       th.textContent = heading;
       headerRow.appendChild(th);
@@ -140,6 +140,24 @@
       row.appendChild(createCell(filiacao));
       row.appendChild(createCell(sinais));
       row.appendChild(createCell(faccao));
+
+      // Coluna de ações: abrir cadastro da pessoa em nova aba
+      const actionsCell = document.createElement('td');
+      actionsCell.className = 'table__actions';
+      const pessoaId = pessoa.id || pessoa._id || '';
+      if (pessoaId) {
+        const openLink = document.createElement('a');
+        openLink.textContent = 'Abrir';
+        openLink.href = `/cadastro/pessoas?pessoaId=${encodeURIComponent(pessoaId)}`;
+        openLink.target = '_blank';
+        openLink.rel = 'noopener noreferrer';
+        openLink.className = 'button button--secondary';
+        openLink.title = 'Abrir cadastro em nova aba';
+        actionsCell.appendChild(openLink);
+      } else {
+        actionsCell.textContent = '—';
+      }
+      row.appendChild(actionsCell);
 
       body.appendChild(row);
     });

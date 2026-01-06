@@ -92,7 +92,7 @@
 
     const header = document.createElement('thead');
     const headerRow = document.createElement('tr');
-    ['Placa', 'Marca/Modelo', 'Nome do Proprietário', 'CPF'].forEach((heading) => {
+    ['Placa', 'Marca/Modelo', 'Nome do Proprietário', 'CPF', 'Ações'].forEach((heading) => {
       const th = document.createElement('th');
       th.scope = 'col';
       th.textContent = heading;
@@ -109,6 +109,28 @@
       row.appendChild(createCell(veiculo.marcaModelo));
       row.appendChild(createCell(veiculo.nomeProprietario));
       row.appendChild(createCell(veiculo.cpf));
+
+      // Coluna de ações: abrir cadastro de veículo em nova aba
+      const actionsCell = document.createElement('td');
+      actionsCell.className = 'table__actions';
+      const placa = veiculo.placa || null;
+      const cpf = veiculo.cpf || null;
+      if (placa || cpf) {
+        const openLink = document.createElement('a');
+        openLink.textContent = 'Abrir';
+        const params = new URLSearchParams();
+        if (placa) params.set('placa', String(placa).toUpperCase());
+        else if (cpf) params.set('cpf', String(cpf));
+        openLink.href = `/cadastro/veiculos?${params.toString()}`;
+        openLink.target = '_blank';
+        openLink.rel = 'noopener noreferrer';
+        openLink.className = 'button button--secondary';
+        openLink.title = 'Abrir cadastro em nova aba';
+        actionsCell.appendChild(openLink);
+      } else {
+        actionsCell.textContent = '—';
+      }
+      row.appendChild(actionsCell);
       body.appendChild(row);
     });
 

@@ -100,7 +100,7 @@
 
     const header = document.createElement('thead');
     const headerRow = document.createElement('tr');
-    ['Razão Social', 'CNPJ', 'Telefone', 'Endereços', 'Sócios'].forEach((heading) => {
+    ['Razão Social', 'CNPJ', 'Telefone', 'Endereços', 'Sócios', 'Ações'].forEach((heading) => {
       const th = document.createElement('th');
       th.textContent = heading;
       headerRow.appendChild(th);
@@ -116,6 +116,24 @@
       row.appendChild(createCell(empresa.telefone));
       row.appendChild(createCell(formatEnderecos(empresa.enderecos)));
       row.appendChild(createCell(formatSocios(empresa.socios)));
+
+      // Coluna de ações: abrir cadastro da empresa em nova aba
+      const actionsCell = document.createElement('td');
+      actionsCell.className = 'table__actions';
+      const empresaId = empresa.id || empresa._id || '';
+      if (empresaId) {
+        const openLink = document.createElement('a');
+        openLink.textContent = 'Abrir';
+        openLink.href = `/cadastro/empresas?empresaId=${encodeURIComponent(empresaId)}`;
+        openLink.target = '_blank';
+        openLink.rel = 'noopener noreferrer';
+        openLink.className = 'button button--secondary';
+        openLink.title = 'Abrir cadastro em nova aba';
+        actionsCell.appendChild(openLink);
+      } else {
+        actionsCell.textContent = '—';
+      }
+      row.appendChild(actionsCell);
       body.appendChild(row);
     });
 
