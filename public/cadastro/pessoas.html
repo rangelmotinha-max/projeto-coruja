@@ -1613,6 +1613,8 @@
           btn.addEventListener('click', () => {
             const [rem] = perfilImagensSelecionadas.splice(idx, 1);
             if (rem?.existing && rem.referencia) perfilImagensParaRemover.push(rem.referencia);
+            // Persistir remoção imediatamente quando estiver editando um cadastro
+            if (rem?.existing && rem.referencia) persistirRemocaoImagemPerfil(rem.referencia);
             if (rem?.previewUrl && rem.file) URL.revokeObjectURL(rem.previewUrl);
             renderizarPerfilImagens();
           });
@@ -1864,6 +1866,25 @@
       };
 
       // Handlers dos inputs de QR-CODE e Perfil
+      // Persistência imediata: remove imagem de Perfil existente diretamente no backend
+      const persistirRemocaoImagemPerfil = async (imagemId) => {
+        if (!pessoaEmEdicao || !imagemId) return;
+        try {
+          const resp = await fetchAutenticado(`${API_PESSOAS_URL}/${pessoaEmEdicao}` , {
+            method: 'PUT',
+            body: JSON.stringify({ redesPerfisParaRemover: [imagemId] }),
+          });
+          if (!resp.ok) {
+            throw new Error('Falha ao remover imagem de Perfil');
+          }
+          // Evita reenvio duplicado no salvar
+          perfilImagensParaRemover = perfilImagensParaRemover.filter((id) => id !== imagemId);
+          exibirMensagemForm('Imagem de Perfil removida.', 'success');
+        } catch (err) {
+          exibirMensagemForm('Não foi possível remover a imagem de Perfil.', 'error');
+        }
+      };
+
       const qrCodeInput = document.getElementById('qr-code-input');
       const qrCodeSelectBtn = document.getElementById('qr-code-select');
       qrCodeSelectBtn?.addEventListener('click', () => qrCodeInput?.click());
@@ -3616,7 +3637,7 @@
         perfilImagensParaRemover = [];
         perfilImagensSelecionadas = perfis.map((img, index) => ({
           existing: true,
-          referencia: img.id || img.url || img.caminho,
+          referencia: img.id,
           nome: img.nomeArquivo || `Perfil ${index + 1}`,
           previewUrl: img.url || img.caminho,
         }));
