@@ -102,7 +102,7 @@ class VeiculoPessoaModel {
     const where = clausulas.length ? `WHERE ${clausulas.join(' AND ')}` : '';
 
     return db.all(
-      `SELECT placa, marcaModelo, nomeProprietario, cpf FROM veiculos_pessoas ${where} ORDER BY atualizadoEm DESC`,
+      `SELECT placa, marcaModelo, nomeProprietario, cpf, cor, anoModelo FROM veiculos_pessoas ${where} ORDER BY atualizadoEm DESC`,
       valores,
     );
   }

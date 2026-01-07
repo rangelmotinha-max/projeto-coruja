@@ -45,6 +45,8 @@ function normalizarRetornoVeiculo(veiculo) {
   return {
     placa: veiculo?.placa ? String(veiculo.placa).toUpperCase() : null,
     marcaModelo: veiculo?.marcaModelo || null,
+    cor: veiculo?.cor || null,
+    anoModelo: veiculo?.anoModelo ?? null,
     nomeProprietario: veiculo?.nomeProprietario || null,
     cpf: veiculo?.cpf ? String(veiculo.cpf).replace(/\D/g, '') : null,
   };

@@ -2395,6 +2395,8 @@
             <tr style="background: var(--surface-muted);">
               <th style="text-align:left; padding:0.35rem;">Placa</th>
               <th style="text-align:left; padding:0.35rem;">Marca/Modelo</th>
+              <th style="text-align:left; padding:0.35rem;">Cor</th>
+              <th style="text-align:left; padding:0.35rem;">Ano</th>
               <th style="text-align:left; padding:0.35rem;">Proprietário</th>
               <th style="text-align:left; padding:0.35rem;">CPF</th>
               <th style="text-align:right; padding:0.35rem;">Ações</th>
@@ -2411,6 +2413,8 @@
           linha.innerHTML = `
             <td style="padding:0.35rem;">${placaFormatada || ''}</td>
             <td style="padding:0.35rem;">${veiculo.marcaModelo || ''}</td>
+            <td style=\"padding:0.35rem;\">${veiculo.cor || ''}</td>
+            <td style=\"padding:0.35rem;\">${veiculo.anoModelo ?? ''}</td>
             <td style="padding:0.35rem;">${veiculo.nome || ''}</td>
             <td style="padding:0.35rem;">${cpfFormatado}</td>
             <td style="padding:0.35rem; text-align:right;"></td>
@@ -2492,6 +2496,8 @@
             <tr style="background: var(--surface-muted);">
               <th style="text-align:left; padding: 0.35rem;">Placa</th>
               <th style="text-align:left; padding: 0.35rem;">Marca/Modelo</th>
+              <th style="text-align:left; padding: 0.35rem;">Cor</th>
+              <th style="text-align:left; padding: 0.35rem;">Ano</th>
               <th style="text-align:left; padding: 0.35rem;">Proprietário</th>
               <th style="text-align:left; padding: 0.35rem;">CPF</th>
               <th style="text-align:center; padding: 0.35rem;">Ações</th>
@@ -2532,6 +2538,33 @@
             vinculosVeiculos[indice].marcaModelo = event.target.value;
           });
           tdMarcaModelo.appendChild(inputMarcaModelo);
+
+          const tdCor = document.createElement('td');
+          tdCor.style.padding = '0.35rem';
+          const inputCor = document.createElement('input');
+          inputCor.className = 'form__input';
+          inputCor.type = 'text';
+          inputCor.placeholder = 'Cor';
+          inputCor.value = veiculo.cor || '';
+          inputCor.addEventListener('input', (event) => {
+            vinculosVeiculos[indice].cor = event.target.value;
+          });
+          tdCor.appendChild(inputCor);
+
+          const tdAno = document.createElement('td');
+          tdAno.style.padding = '0.35rem';
+          const inputAno = document.createElement('input');
+          inputAno.className = 'form__input';
+          inputAno.type = 'number';
+          inputAno.min = '1900';
+          inputAno.max = String(new Date().getFullYear() + 1);
+          inputAno.placeholder = 'Ano';
+          inputAno.value = (veiculo.anoModelo ?? '') || '';
+          inputAno.addEventListener('input', (event) => {
+            const num = Number(event.target.value);
+            vinculosVeiculos[indice].anoModelo = Number.isNaN(num) ? undefined : num;
+          });
+          tdAno.appendChild(inputAno);
 
           const tdProprietario = document.createElement('td');
           tdProprietario.style.padding = '0.35rem';
@@ -2577,6 +2610,8 @@
 
           linha.appendChild(tdPlaca);
           linha.appendChild(tdMarcaModelo);
+          linha.appendChild(tdCor);
+          linha.appendChild(tdAno);
           linha.appendChild(tdProprietario);
           linha.appendChild(tdCpf);
           linha.appendChild(tdAcoes);
@@ -2692,6 +2727,8 @@
         vinculosVeiculos.push({
           placa: placaSelecionada,
           marcaModelo: veiculoSelecionado.marcaModelo || '',
+          cor: veiculoSelecionado.cor || '',
+          anoModelo: veiculoSelecionado.anoModelo ?? undefined,
           nome: (veiculoSelecionado.nomeProprietario || veiculoSelecionado.nome || '').trim(),
           cpf: normalizarCpfSomenteDigitos(veiculoSelecionado.cpf || ''),
         });
@@ -2818,6 +2855,8 @@
           resultadosBuscaVeiculos = veiculosEncontrados.map((veiculo) => ({
             placa: normalizarPlaca(veiculo.placa || placaNormalizada),
             marcaModelo: veiculo.marcaModelo || '',
+            cor: veiculo.cor || '',
+            anoModelo: veiculo.anoModelo ?? null,
             nome: (veiculo.nomeProprietario || veiculo.nome || '').trim(),
             cpf: normalizarCpfSomenteDigitos(veiculo.cpf || ''),
             nomeProprietario: veiculo.nomeProprietario || veiculo.nome || '',
