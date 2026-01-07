@@ -4653,9 +4653,9 @@
             { key: 'placa', label: 'Placa' },
             { key: 'marcaModelo', label: 'Marca/Modelo' },
             { key: 'cor', label: 'Cor' },
-            { key: 'anoModelo', label: 'Ano Modelo' },
+            { key: 'anoModelo', label: 'Ano' },
             { key: 'nomeProprietario', label: 'Proprietário' },
-            { key: 'cpf', label: 'CPF Proprietário' },
+            { key: 'cpf', label: 'CPF' },
           ],
           vinculos: [
             { key: 'pessoas', label: 'Pessoas' },
@@ -4881,13 +4881,26 @@
           if (!lista.length) {
             // sem dados: manter em branco
           } else {
+            const cfgV = buildRelatorioConfig().veiculos;
+            const labelOf = (key) => cfgV.find((a) => a.key === key)?.label || key;
             lista.forEach((v, idx) => {
-              html += `<table><caption style="caption-side:top;text-align:left;"><strong>Veículo ${idx + 1}</strong></caption>`;
-              attrs.forEach((k) => {
-                const label = buildRelatorioConfig().veiculos.find((a) => a.key === k)?.label || k;
-                addRow(label, v?.[k]);
-              });
-              html += `</table>`;
+              const linha1Parts = [];
+              if (attrs.includes('placa') && safeText(v?.placa)) linha1Parts.push(`${labelOf('placa')}: ${safeText(v?.placa)}`);
+              if (attrs.includes('marcaModelo') && safeText(v?.marcaModelo)) linha1Parts.push(`${labelOf('marcaModelo')}: ${safeText(v?.marcaModelo)}`);
+              if (attrs.includes('cor') && safeText(v?.cor)) linha1Parts.push(`${labelOf('cor')}: ${safeText(v?.cor)}`);
+              if (attrs.includes('anoModelo') && safeText(v?.anoModelo)) linha1Parts.push(`${labelOf('anoModelo')}: ${safeText(v?.anoModelo)}`);
+
+              const linha2Parts = [];
+              if (attrs.includes('nomeProprietario') && safeText(v?.nomeProprietario)) linha2Parts.push(`${labelOf('nomeProprietario')}: ${safeText(v?.nomeProprietario)}`);
+              if (attrs.includes('cpf') && safeText(v?.cpf)) linha2Parts.push(`${labelOf('cpf')}: ${safeText(v?.cpf)}`);
+
+              if (linha1Parts.length || linha2Parts.length) {
+                html += `<div class="section">`;
+                html += `<strong>Veículo ${idx + 1}</strong>`;
+                if (linha1Parts.length) html += `<div>${linha1Parts.join(', ')}</div>`;
+                if (linha2Parts.length) html += `<div>${linha2Parts.join(', ')}</div>`;
+                html += `</div>`;
+              }
             });
           }
         }
