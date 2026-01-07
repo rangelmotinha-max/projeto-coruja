@@ -4937,10 +4937,12 @@
               const linha1Parts = [];
               const pPlaca = safeText(v?.placa);
               const pMarca = safeText(v?.marcaModelo);
-              const pCor = safeText(base?.cor);
+              const pCorRaw = safeText(base?.cor);
+              const pAnoRaw = safeText(base?.anoModelo || base?.ano);
               if (pPlaca) linha1Parts.push(`Placa: ${pPlaca}`);
               if (pMarca) linha1Parts.push(`Marca/Modelo: ${pMarca}`);
-              if (pCor) linha1Parts.push(`Cor: ${pCor}`);
+              linha1Parts.push(`Cor: ${pCorRaw || '—'}`);
+              linha1Parts.push(`Ano: ${pAnoRaw || '—'}`);
               const linha2Parts = [];
               const pNome = safeText(v?.nome);
               const pCpf = safeText(v?.cpf);
