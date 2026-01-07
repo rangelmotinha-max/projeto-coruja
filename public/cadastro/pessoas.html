@@ -4910,7 +4910,7 @@
         if (selected.vinculos?.length) {
           sectionTitle('Vínculos');
           if (selected.vinculos.includes('pessoas')) {
-            html += `<div class="section"><strong>Pessoas</strong><ul>${(valores.vinculos.pessoas || []).map((v) => `<li>${safeText(v?.nome)} | CPF: ${safeText(v?.cpf)} | Tipo: ${safeText(v?.tipo)}</li>`).join('')}</ul></div>`;
+            html += `<div class="section"><strong>Pessoas</strong><ul>${(valores.vinculos.pessoas || []).map((v) => `<li>${safeText(v?.nome)}${v?.cpf ? ', CPF: ' + safeText(v?.cpf) : ''}${v?.tipo ? ', Tipo de vínculo: ' + safeText(v?.tipo) : ''}</li>`).join('')}</ul></div>`;
           }
           if (selected.vinculos.includes('empresas')) {
             html += `<div class="section"><strong>Empresas</strong><ul>${(valores.vinculos.empresas || []).map((e) => `<li>${safeText(e?.nome)}${e?.id ? ' (ID ' + e.id + ')' : ''}${e?.observacoes ? ' — ' + safeText(e.observacoes) : ''}</li>`).join('')}</ul></div>`;
