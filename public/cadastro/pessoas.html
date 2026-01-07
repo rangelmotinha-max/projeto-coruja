@@ -16,7 +16,7 @@
   </head>
   <body class="theme-dark">
     <div class="app">
-      <div class="user-menu" id="user-menu" aria-expanded="false">
+      <div class="user-menu" id="user-menu" aria-expemoanded="false">
         <button class="user-menu__button" type="button" id="user-menu-button" aria-haspopup="true" aria-expanded="false">
           <span class="user-menu__avatar" id="user-avatar" aria-hidden="true">U</span>
           <span id="user-button-name">Usuário</span>
@@ -4898,9 +4898,8 @@
               if (attrs.includes('cpf') && safeText(v?.cpf)) linha2Parts.push(`${labelOf('cpf')}: ${safeText(v?.cpf)}`);
 
               if (linha1Parts.length || linha2Parts.length) {
-                html += `<div class="section">`;
-                html += `<strong>Veículo ${idx + 1}</strong>`;
-                if (linha1Parts.length) html += `<div>${linha1Parts.join(', ')}</div>`;
+                html += `<div class=\"section\">`;
+                if (linha1Parts.length) html += `<div>&bull; ${linha1Parts.join(', ')}</div>`;
                 if (linha2Parts.length) html += `<div>${linha2Parts.join(', ')}</div>`;
                 html += `</div>`;
               }
