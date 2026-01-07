@@ -370,11 +370,14 @@ function validarVinculos(vinculos) {
     .map((veiculo) => {
       const placa = veiculo?.placa ? validarPlaca(veiculo.placa) : null;
       const marcaModelo = normalizarOpcional(veiculo?.marcaModelo);
+      const cor = normalizarOpcional(veiculo?.cor);
+      const anoEntrada = veiculo?.anoModelo !== undefined ? veiculo.anoModelo : veiculo?.ano;
+      const anoModelo = validarAnoModelo(anoEntrada);
       const nome = normalizarOpcional(veiculo?.nome || veiculo?.nomeProprietario);
       const cpf = normalizarOpcional((veiculo?.cpf || '').replace(/\D/g, ''));
-      const possuiDados = placa || marcaModelo || nome || cpf;
+      const possuiDados = placa || marcaModelo || cor || (anoModelo !== null) || nome || cpf;
       if (!possuiDados) return null;
-      return { placa, marcaModelo, nome, cpf };
+      return { placa, marcaModelo, cor, anoModelo, nome, cpf };
     })
     .filter(Boolean)
     : [];
