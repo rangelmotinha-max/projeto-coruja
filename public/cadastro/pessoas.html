@@ -4929,7 +4929,29 @@
             html += `</ul></div>`;
           }
           if (selected.vinculos.includes('veiculos')) {
-            html += `<div class="section"><strong>Veículos</strong><ul>${(valores.vinculos.veiculos || []).map((v) => `<li>Placa: ${safeText(v?.placa)} | ${safeText(v?.marcaModelo)} | Proprietário: ${safeText(v?.nome)} | CPF: ${safeText(v?.cpf)}</li>`).join('')}</ul></div>`;
+            const veiculosLookup = new Map((valores.veiculos || []).map((vv) => [normalizarPlaca(vv?.placa || ''), vv]));
+            html += `<div class="section"><strong>Veículos</strong><ul>`;
+            (valores.vinculos.veiculos || []).forEach((v) => {
+              const placaN = normalizarPlaca(v?.placa || '');
+              const base = veiculosLookup.get(placaN) || {};
+              const linha1Parts = [];
+              const pPlaca = safeText(v?.placa);
+              const pMarca = safeText(v?.marcaModelo);
+              const pCor = safeText(base?.cor);
+              if (pPlaca) linha1Parts.push(`Placa: ${pPlaca}`);
+              if (pMarca) linha1Parts.push(`Marca/Modelo: ${pMarca}`);
+              if (pCor) linha1Parts.push(`Cor: ${pCor}`);
+              const linha2Parts = [];
+              const pNome = safeText(v?.nome);
+              const pCpf = safeText(v?.cpf);
+              if (pNome) linha2Parts.push(`Proprietário: ${pNome}`);
+              if (pCpf) linha2Parts.push(`CPF: ${pCpf}`);
+              html += `<li>` +
+                (linha1Parts.length ? `<div>${linha1Parts.join(', ')}</div>` : '') +
+                (linha2Parts.length ? `<div>${linha2Parts.join(', ')}</div>` : '') +
+              `</li>`;
+            });
+            html += `</ul></div>`;
           }
           if (selected.vinculos.includes('empregaticio')) {
             html += `<div class="section"><strong>Empregatício</strong><ul>${(valores.vinculos.empregaticio || []).map((e) => `<li>${safeText(e?.info)}</li>`).join('')}</ul></div>`;
