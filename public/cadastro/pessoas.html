@@ -973,10 +973,14 @@
           .map((v) => {
             const placa = normalizarPlaca(v?.placa || '');
             const marcaModelo = String(v?.marcaModelo || '').trim();
+            const cor = String(v?.cor || '').trim();
+            const anoModelo = (v?.anoModelo ?? v?.ano) ?? undefined;
             const nome = String(v?.nome || '').trim();
             const cpf = String(v?.cpf || '').replace(/\D/g, '');
-            return (placa || marcaModelo || nome || cpf)
-              ? { placa, marcaModelo, nome, cpf }
+            const contemDados = [placa, marcaModelo, cor, (anoModelo ?? ''), nome, cpf]
+              .some((val) => String(val ?? '').trim().length > 0);
+            return contemDados
+              ? { placa, marcaModelo, cor, anoModelo, nome, cpf }
               : null;
           })
           .filter(Boolean);
@@ -3743,6 +3747,8 @@
           vinculosVeiculos = pessoa.vinculos.veiculos.map((v) => ({
             placa: normalizarPlaca(v?.placa || ''),
             marcaModelo: String(v?.marcaModelo || '').trim(),
+            cor: String(v?.cor || '').trim(),
+            anoModelo: (v?.anoModelo ?? v?.ano) ?? undefined,
             nome: String(v?.nome || v?.nomeProprietario || '').trim(),
             cpf: String(v?.cpf || '').trim(),
           }));
