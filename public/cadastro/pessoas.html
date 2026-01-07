@@ -4937,8 +4937,8 @@
               const linha1Parts = [];
               const pPlaca = safeText(v?.placa);
               const pMarca = safeText(v?.marcaModelo);
-              const pCorRaw = safeText(base?.cor);
-              const pAnoRaw = safeText(base?.anoModelo || base?.ano);
+              const pCorRaw = safeText((v?.cor ?? base?.cor));
+              const pAnoRaw = safeText(((v?.anoModelo ?? v?.ano) ?? (base?.anoModelo ?? base?.ano)));
               if (pPlaca) linha1Parts.push(`Placa: ${pPlaca}`);
               if (pMarca) linha1Parts.push(`Marca/Modelo: ${pMarca}`);
               linha1Parts.push(`Cor: ${pCorRaw || '—'}`);
