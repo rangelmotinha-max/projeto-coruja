@@ -340,8 +340,8 @@
                     <div>
                       <label class="form__field">
                         <span class="form__label" style="text-align:center; display:block;">Perfil</span>
-                        <input type="file" id="perfil-imagens-input" accept="image/*" multiple style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;" />
-                        <button type="button" class="button button--secondary" id="perfil-imagens-select">Selecionar imagens</button>
+                        <input type="file" id="perfil-imagens-input" accept="image/*" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;" />
+                        <button type="button" class="button button--secondary" id="perfil-imagens-select">Selecionar imagem</button>
                       </label>
                       <div id="perfil-imagens-preview" style="margin-top:0.5rem; display:grid; grid-template-columns:repeat(auto-fit,minmax(var(--perfilWidth, 120px),1fr)); gap:0.5rem; justify-items:center; justify-content:center;"></div>
                     </div>
@@ -1573,11 +1573,17 @@
         img.style.objectFit = 'cover';
         img.style.border = '1px solid var(--border)';
         img.style.borderRadius = '0.35rem';
+        const actions = document.createElement('div');
+        actions.style.marginTop = '0.35rem';
+        actions.style.display = 'flex';
+        actions.style.gap = '0.25rem';
+        actions.style.alignItems = 'center';
+        actions.style.justifyContent = 'center';
+
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'button button--ghost';
         btn.textContent = 'Remover';
-        btn.style.marginTop = '0.35rem';
         btn.addEventListener('click', () => {
           if (qrCodeSelecionado?.existing && qrCodeSelecionado.referencia) {
             removerQrCode = true; // marca para exclusão no backend
@@ -1586,8 +1592,19 @@
           qrCodeSelecionado = null;
           renderizarQrCode();
         });
+        const abrirBtn = document.createElement('button');
+        abrirBtn.type = 'button';
+        abrirBtn.className = 'button button--secondary';
+        abrirBtn.textContent = 'Abrir';
+        abrirBtn.addEventListener('click', () => {
+          const url = qrCodeSelecionado?.previewUrl;
+          if (url) window.open(url, '_blank');
+        });
+
+        actions.appendChild(btn);
+        actions.appendChild(abrirBtn);
         cont.appendChild(img);
-        cont.appendChild(btn);
+        cont.appendChild(actions);
       };
 
       const renderizarPerfilImagens = () => {
@@ -1602,17 +1619,29 @@
           wrap.style.display = 'flex';
           wrap.style.flexDirection = 'column';
           wrap.style.alignItems = 'center';
+          // Frame proporcional para a imagem (4:3) baseado na largura
+          const frame = document.createElement('div');
+          frame.style.width = '100%';
+          frame.style.aspectRatio = '4 / 3';
+          frame.style.overflow = 'hidden';
+
           const img = document.createElement('img');
           img.src = item.previewUrl;
           img.alt = item.nome || 'Perfil';
           img.style.width = '100%';
-          img.style.height = '90px';
+          img.style.height = '100%';
           img.style.objectFit = 'cover';
+          frame.appendChild(img);
+          const actions = document.createElement('div');
+          actions.style.marginTop = '0.25rem';
+          actions.style.display = 'flex';
+          actions.style.gap = '0.25rem';
+          actions.style.alignItems = 'center';
+          actions.style.justifyContent = 'center';
+
           const btn = document.createElement('button');
           btn.type = 'button';
           btn.className = 'button button--ghost';
-          btn.style.marginTop = '0.25rem';
-          btn.style.alignSelf = 'center';
           btn.textContent = 'Remover';
           btn.addEventListener('click', () => {
             const [rem] = perfilImagensSelecionadas.splice(idx, 1);
@@ -1622,8 +1651,19 @@
             if (rem?.previewUrl && rem.file) URL.revokeObjectURL(rem.previewUrl);
             renderizarPerfilImagens();
           });
-          wrap.appendChild(img);
-          wrap.appendChild(btn);
+          const abrirBtn = document.createElement('button');
+          abrirBtn.type = 'button';
+          abrirBtn.className = 'button button--secondary';
+          abrirBtn.textContent = 'Abrir';
+          abrirBtn.addEventListener('click', () => {
+            const url = item?.previewUrl;
+            if (url) window.open(url, '_blank');
+          });
+
+          actions.appendChild(btn);
+          actions.appendChild(abrirBtn);
+          wrap.appendChild(frame);
+          wrap.appendChild(actions);
           cont.appendChild(wrap);
         });
       };
@@ -1922,9 +1962,20 @@
       perfilSelectBtn?.addEventListener('click', () => perfilInput?.click());
       perfilInput?.addEventListener('change', (e) => {
         const files = Array.from(e.target.files || []).filter(f => f.type?.startsWith('image/'));
-        files.forEach((file) => {
-          perfilImagensSelecionadas.push({ file, previewUrl: URL.createObjectURL(file), nome: file.name });
-        });
+        const file = files[0];
+        if (!file) return;
+        // Se já existir uma imagem (nova ou persistida), substitui por esta
+        if (perfilImagensSelecionadas.length) {
+          const atual = perfilImagensSelecionadas[0];
+          if (atual?.existing && atual.referencia) {
+            // Agenda remoção da antiga no salvar
+            perfilImagensParaRemover.push(atual.referencia);
+          }
+          if (atual?.previewUrl && atual.file) {
+            URL.revokeObjectURL(atual.previewUrl);
+          }
+        }
+        perfilImagensSelecionadas = [{ file, previewUrl: URL.createObjectURL(file), nome: file.name }];
         syncPerfilWidth();
         renderizarPerfilImagens();
       });
@@ -3654,7 +3705,7 @@
         } else {
           qrCodeSelecionado = null;
         }
-        const perfis = Array.isArray(pessoa?.redesImagens?.perfis) ? pessoa.redesImagens.perfis : [];
+        const perfis = Array.isArray(pessoa?.redesImagens?.perfis) ? pessoa.redesImagens.perfis.slice(0,1) : [];
         perfilImagensParaRemover = [];
         perfilImagensSelecionadas = perfis.map((img, index) => ({
           existing: true,
