@@ -4985,16 +4985,64 @@
             html += `</ul></div>`;
           }
           if (selected.ocorrencias.includes('processos')) {
-            html += `<div class="section"><strong>Processos</strong><ul>${(valores.ocorrencias.processos || []).map((p) => `<li>${safeText(p?.data)} — ${safeText(p?.info)}</li>`).join('')}</ul></div>`;
+            const processosList = valores.ocorrencias.processos || [];
+            html += `<div class="section"><strong>Processos</strong><ul>`;
+            processosList.forEach((p) => {
+              const data = safeText(p?.data);
+              const info = safeText(p?.info);
+              html += `<li>` +
+                (data ? `<div><strong>Data:</strong> ${data}</div>` : '') +
+                (info ? `<div><strong>Informação:</strong> ${info}</div>` : '') +
+              `</li>`;
+            });
+            html += `</ul></div>`;
           }
           if (selected.ocorrencias.includes('abordagens')) {
-            html += `<div class="section"><strong>Abordagens</strong><ul>${(valores.ocorrencias.abordagens || []).map((a) => `<li>${safeText(a?.data)} — ${safeText(a?.info)}</li>`).join('')}</ul></div>`;
+            const abordagensList = valores.ocorrencias.abordagens || [];
+            html += `<div class="section"><strong>Abordagens</strong><ul>`;
+            abordagensList.forEach((a) => {
+              const data = safeText(a?.data);
+              const info = safeText(a?.info);
+              html += `<li>` +
+                (data ? `<div><strong>Data:</strong> ${data}</div>` : '') +
+                (info ? `<div><strong>Informação:</strong> ${info}</div>` : '') +
+              `</li>`;
+            });
+            html += `</ul></div>`;
           }
           if (selected.ocorrencias.includes('prisoes')) {
-            html += `<div class="section"><strong>Prisões</strong><ul>${(valores.ocorrencias.prisoes || []).map((p) => `<li>${safeText(p?.data)} — ${safeText(p?.info)}</li>`).join('')}</ul></div>`;
+            const prisoesList = valores.ocorrencias.prisoes || [];
+            html += `<div class="section"><strong>Prisões</strong><ul>`;
+            prisoesList.forEach((p) => {
+              const data = safeText(p?.data);
+              const info = safeText(p?.info);
+              html += `<li>` +
+                (data ? `<div><strong>Data:</strong> ${data}</div>` : '') +
+                (info ? `<div><strong>Informação:</strong> ${info}</div>` : '') +
+              `</li>`;
+            });
+            html += `</ul></div>`;
           }
           if (selected.ocorrencias.includes('monitoramentos')) {
-            html += `<div class="section"><strong>Monitoramentos</strong><ul>${(valores.ocorrencias.monitoramentos || []).map((m) => `<li>${safeText(m?.data)} — ${safeText(m?.descricao)}</li>`).join('')}</ul></div>`;
+            const monitList = valores.ocorrencias.monitoramentos || [];
+            html += `<div class="section"><strong>Monitoramentos</strong><ul>`;
+            monitList.forEach((m) => {
+              const data = safeText(m?.data);
+              // Usa a mesma legenda "Informação" conforme solicitado
+              const info = safeText(m?.descricao);
+              // Coleta imagens existentes e novas (se houver)
+              const existentes = Array.isArray(m?.imagens) ? m.imagens.map((img) => String(img?.caminho || '').trim()).filter(Boolean) : [];
+              const selecionadas = Array.isArray(m?.imagensSelecionadas)
+                ? m.imagensSelecionadas.map((it) => it?.previewUrl || (it?.file ? (()=>{ try { return URL.createObjectURL(it.file); } catch { return ''; } })() : '')).filter(Boolean)
+                : [];
+              const imgs = [...existentes, ...selecionadas];
+              html += `<li>` +
+                (data ? `<div><strong>Data:</strong> ${data}</div>` : '') +
+                (info ? `<div><strong>Informação:</strong> ${info}</div>` : '') +
+                (imgs.length ? `<div style="margin-top:4px;">${imgGrid(imgs)}</div>` : '') +
+              `</li>`;
+            });
+            html += `</ul></div>`;
           }
         }
 
