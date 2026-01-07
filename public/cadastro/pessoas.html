@@ -4730,10 +4730,10 @@
       function collectSelected(config) {
         const selected = {};
         Object.keys(config).forEach((sec) => {
-          const secChecked = !!relatorioSelecoesEl.querySelector(`.rel-section[data-section="${sec}"]`)?.checked;
+          // Sempre coleta apenas os atributos marcados; o checkbox da seção é apenas um atalho visual
           const attrsChecked = Array.from(relatorioSelecoesEl.querySelectorAll(`.rel-attr[data-section="${sec}"]:checked`))
             .map((el) => el.dataset.attr);
-          selected[sec] = secChecked ? config[sec].map((a) => a.key) : attrsChecked;
+          selected[sec] = attrsChecked;
         });
         return selected;
       }
