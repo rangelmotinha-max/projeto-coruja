@@ -1622,7 +1622,8 @@
           // Frame proporcional para a imagem (4:3) baseado na largura
           const frame = document.createElement('div');
           frame.style.width = '100%';
-          frame.style.aspectRatio = '4 / 3';
+          frame.style.aspectRatio = '4 / 1';
+          frame.style.maxHeight = '120px';
           frame.style.overflow = 'hidden';
 
           const img = document.createElement('img');
