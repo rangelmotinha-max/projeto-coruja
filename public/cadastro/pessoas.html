@@ -4808,7 +4808,10 @@
             <h1>Relatório de Pessoa</h1>
         `;
 
-        function sectionTitle(t) { html += `<h2 style="text-align:center;">${t}</h2>`; }
+        function sectionTitle(t) {
+          const titulo = (t ?? '').toString().toLocaleUpperCase('pt-BR');
+          html += `<h2 style="text-align:center;">${titulo}</h2>`;
+        }
         function addRow(label, value) { html += `<tr><th>${label}</th><td>${safeText(value)}</td></tr>`; }
 
         // Fotos do cadastro devem ser a primeira informação da página (sem títulos)
