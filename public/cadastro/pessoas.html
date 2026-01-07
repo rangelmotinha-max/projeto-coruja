@@ -4619,7 +4619,6 @@
             { key: 'fotosCadastro', label: 'Fotos do cadastro' },
             { key: 'qrCode', label: 'QR-CODE de redes' },
             { key: 'perfilRedes', label: 'Foto de Perfil (redes)' },
-            { key: 'imagensMonitoramento', label: 'Imagens de monitoramento' },
           ],
           identificacao: [
             { key: 'nomeCompleto', label: 'Nome Completo' },
@@ -4669,6 +4668,7 @@
             { key: 'abordagens', label: 'Abordagens' },
             { key: 'prisoes', label: 'Prisões' },
             { key: 'monitoramentos', label: 'Monitoramentos (texto)' },
+            { key: 'monitoramentosImagens', label: 'Imagens de monitoramento' },
           ],
         };
       }
@@ -5025,33 +5025,34 @@
           }
           if (selected.ocorrencias.includes('monitoramentos')) {
             const monitList = valores.ocorrencias.monitoramentos || [];
-            html += `<div class="section"><strong>Monitoramentos</strong><ul>`;
+            const mostrarImgsMonitor = Array.isArray(selected.ocorrencias) && selected.ocorrencias.includes('monitoramentosImagens');
+            html += `<div class=\"section\"><strong>Monitoramentos</strong><ul>`;
             monitList.forEach((m) => {
               const data = safeText(m?.data);
-              // Usa a mesma legenda "Informação" conforme solicitado
-              const info = safeText(m?.descricao);
-              // Coleta imagens existentes e novas (se houver)
-              const existentes = Array.isArray(m?.imagens) ? m.imagens.map((img) => String(img?.caminho || '').trim()).filter(Boolean) : [];
-              const selecionadas = Array.isArray(m?.imagensSelecionadas)
-                ? m.imagensSelecionadas.map((it) => it?.previewUrl || (it?.file ? (()=>{ try { return URL.createObjectURL(it.file); } catch { return ''; } })() : '')).filter(Boolean)
-                : [];
-              const imgs = [...existentes, ...selecionadas];
+              const info = safeText(m?.descricao); // legenda "Informação"
+              let imgs = [];
+              if (mostrarImgsMonitor) {
+                const existentes = Array.isArray(m?.imagens) ? m.imagens.map((img) => String(img?.caminho || '').trim()).filter(Boolean) : [];
+                const selecionadas = Array.isArray(m?.imagensSelecionadas)
+                  ? m.imagensSelecionadas.map((it) => it?.previewUrl || (it?.file ? (()=>{ try { return URL.createObjectURL(it.file); } catch { return ''; } })() : '')).filter(Boolean)
+                  : [];
+                imgs = Array.from(new Set([...existentes, ...selecionadas]));
+              }
               html += `<li>` +
                 (data ? `<div><strong>Data:</strong> ${data}</div>` : '') +
                 (info ? `<div><strong>Informação:</strong> ${info}</div>` : '') +
-                (imgs.length ? `<div style="margin-top:4px;">${imgGrid(imgs)}</div>` : '') +
+                (mostrarImgsMonitor && imgs.length ? `<div style=\"margin-top:4px;\">${imgGrid(imgs)}</div>` : '') +
               `</li>`;
             });
             html += `</ul></div>`;
           }
         }
 
-        if (selected.imagens?.length) {
-          // Não exibir título "Imagens" e não repetir "Fotos do cadastro";
-          // QR-CODE e Perfil já foram renderizados acima de Telefones.
-          if (selected.imagens.includes('imagensMonitoramento')) {
-            html += `<div class="section"><strong>Imagens de monitoramento</strong>${imgGrid(valores.imagensMonitoramento)}</div>`;
-          }
+        // Seção global de Imagens de monitoramento (controlada via Ocorrências)
+        const mostrarImgsMonitoramentoGlobal = Array.isArray(selected.ocorrencias) && selected.ocorrencias.includes('monitoramentosImagens');
+        const inlineMonitoramentosSelecionado = Array.isArray(selected.ocorrencias) && selected.ocorrencias.includes('monitoramentos');
+        if (mostrarImgsMonitoramentoGlobal && !inlineMonitoramentosSelecionado) {
+          html += `<div class="section"><strong>Imagens de monitoramento</strong>${imgGrid(valores.imagensMonitoramento)}</div>`;
         }
 
         html += `</body></html>`;
