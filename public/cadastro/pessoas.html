@@ -2172,52 +2172,66 @@
           lista.innerHTML = '';
           return;
         }
+
+        const painel = document.createElement('div');
+        painel.className = 'panel';
+        painel.style.padding = '0.75rem';
+
+        const tabela = document.createElement('table');
+        tabela.style.width = '100%';
+        tabela.style.borderCollapse = 'collapse';
+        tabela.innerHTML = `
+          <thead>
+            <tr style="background: var(--surface-muted);">
+              <th style="text-align:left; padding: 0.35rem;">Nome</th>
+              <th style="text-align:left; padding: 0.35rem;">CPF</th>
+              <th style="text-align:left; padding: 0.35rem;">Tipo</th>
+              <th style="text-align:center; padding: 0.35rem;">Ações</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        `;
+
+        const corpo = tabela.querySelector('tbody');
+
         vinculosPessoas.forEach((v, i) => {
-          const linha = document.createElement('div');
-          linha.style.cssText = 'display:grid; grid-template-columns: 1fr 16rem 16rem auto; gap:0.5rem; align-items:end;';
-          linha.innerHTML = `
-            <label class="form__field">
-              <span class="form__label">Nome</span>
-              <input class="form__input vpc-nome" type="text" data-index="${i}" />
-            </label>
-            <label class="form__field">
-              <span class="form__label">CPF</span>
-              <input class="form__input vpc-cpf" type="text" data-index="${i}" placeholder="000.000.000-00" />
-            </label>
-            <label class="form__field">
-              <span class="form__label">Tipo</span>
-              <select class="form__input vpc-tipo" data-index="${i}">
-                <option value="">Selecione</option>
-                <option>Esposa(o)</option>
-                <option>Filho(a)</option>
-                <option>Irmão(a)</option>
-                <option>Sócio(a)</option>
-                <option>Namorado(a)</option>
-                <option>Primo(a)</option>
-                <option>Tio(a)</option>
-                <option>Avô(ó)</option>
-                <option>Amigo(a)</option>
-                <option>Comparsa</option>
-                <option>Advogado(a)</option>
-                <option>Contador</option>
-                <option>Outro</option>
-              </select>
-            </label>
-            <button class="button button--danger" type="button" title="Excluir" aria-label="Remover vínculo">−</button>
-          `;
-          const nomeEl = linha.querySelector('.vpc-nome');
-          const cpfEl = linha.querySelector('.vpc-cpf');
-          const tipoEl = linha.querySelector('.vpc-tipo');
-          const btn = linha.querySelector('button');
-          nomeEl.value = v.nome || '';
-          cpfEl.value = aplicarMascaraCpfInline(v.cpf || '');
-          tipoEl.value = v.tipo || '';
-          nomeEl.addEventListener('input', (e) => { vinculosPessoas[i].nome = e.target.value; });
-          cpfEl.addEventListener('input', (e) => { vinculosPessoas[i].cpf = aplicarMascaraCpfInline(e.target.value); e.target.value = vinculosPessoas[i].cpf; });
-          tipoEl.addEventListener('change', (e) => { vinculosPessoas[i].tipo = e.target.value; });
-          btn.addEventListener('click', () => { vinculosPessoas.splice(i,1); renderizarVinculosPessoas(); });
-          lista.appendChild(linha);
+          const linha = document.createElement('tr');
+          linha.style.borderBottom = '1px solid var(--border)';
+
+          const tdNome = document.createElement('td');
+          tdNome.style.padding = '0.35rem';
+          tdNome.textContent = v.nome || '';
+
+          const tdCpf = document.createElement('td');
+          tdCpf.style.padding = '0.35rem';
+          tdCpf.textContent = aplicarMascaraCpfInline(v.cpf || '') || '';
+
+          const tdTipo = document.createElement('td');
+          tdTipo.style.padding = '0.35rem';
+          tdTipo.textContent = v.tipo || '—';
+
+          const tdAcoes = document.createElement('td');
+          tdAcoes.style.padding = '0.35rem';
+          tdAcoes.style.textAlign = 'center';
+          const btnRem = document.createElement('button');
+          btnRem.className = 'button button--danger';
+          btnRem.type = 'button';
+          btnRem.textContent = 'Remover';
+          btnRem.addEventListener('click', () => {
+            vinculosPessoas.splice(i, 1);
+            renderizarVinculosPessoas();
+          });
+          tdAcoes.appendChild(btnRem);
+
+          linha.appendChild(tdNome);
+          linha.appendChild(tdCpf);
+          linha.appendChild(tdTipo);
+          linha.appendChild(tdAcoes);
+          corpo.appendChild(linha);
         });
+
+        painel.appendChild(tabela);
+        lista.appendChild(painel);
       };
 
       // Comentário: controla a renderização dos resultados retornados pela API de busca de pessoas
@@ -2474,7 +2488,7 @@
         vinculoVeiculoResultadoEl.style.display = 'block';
       };
 
-      // Comentário: renderiza tabela editável com veículos vinculados ao cadastro
+      // Comentário: renderiza tabela somente leitura com veículos vinculados ao cadastro
       const renderizarVinculosVeiculos = () => {
         if (!listaVinculosVeiculosEl) return;
         listaVinculosVeiculosEl.innerHTML = '';
@@ -2514,86 +2528,27 @@
 
           const tdPlaca = document.createElement('td');
           tdPlaca.style.padding = '0.35rem';
-          const inputPlaca = document.createElement('input');
-          inputPlaca.className = 'form__input';
-          inputPlaca.type = 'text';
-          inputPlaca.placeholder = 'AAA-0A00';
-          inputPlaca.value = aplicarMascaraPlaca(veiculo.placa || '');
-          inputPlaca.addEventListener('input', (event) => {
-            // Comentário: mantém o valor normalizado no array e mascarado no campo
-            const valorNormalizado = normalizarPlaca(event.target.value);
-            vinculosVeiculos[indice].placa = valorNormalizado;
-            event.target.value = aplicarMascaraPlaca(valorNormalizado);
-          });
-          tdPlaca.appendChild(inputPlaca);
+          tdPlaca.textContent = aplicarMascaraPlaca(veiculo.placa || '') || '';
 
           const tdMarcaModelo = document.createElement('td');
           tdMarcaModelo.style.padding = '0.35rem';
-          const inputMarcaModelo = document.createElement('input');
-          inputMarcaModelo.className = 'form__input';
-          inputMarcaModelo.type = 'text';
-          inputMarcaModelo.placeholder = 'Marca e modelo';
-          inputMarcaModelo.value = veiculo.marcaModelo || '';
-          inputMarcaModelo.addEventListener('input', (event) => {
-            vinculosVeiculos[indice].marcaModelo = event.target.value;
-          });
-          tdMarcaModelo.appendChild(inputMarcaModelo);
+          tdMarcaModelo.textContent = veiculo.marcaModelo || '';
 
           const tdCor = document.createElement('td');
           tdCor.style.padding = '0.35rem';
-          const inputCor = document.createElement('input');
-          inputCor.className = 'form__input';
-          inputCor.type = 'text';
-          inputCor.placeholder = 'Cor';
-          inputCor.value = veiculo.cor || '';
-          inputCor.addEventListener('input', (event) => {
-            vinculosVeiculos[indice].cor = event.target.value;
-          });
-          tdCor.appendChild(inputCor);
+          tdCor.textContent = veiculo.cor || '';
 
           const tdAno = document.createElement('td');
           tdAno.style.padding = '0.35rem';
-          const inputAno = document.createElement('input');
-          inputAno.className = 'form__input';
-          inputAno.type = 'number';
-          inputAno.min = '1900';
-          inputAno.max = String(new Date().getFullYear() + 1);
-          inputAno.placeholder = 'Ano';
-          inputAno.value = (veiculo.anoModelo ?? '') || '';
-          inputAno.addEventListener('input', (event) => {
-            const num = Number(event.target.value);
-            vinculosVeiculos[indice].anoModelo = Number.isNaN(num) ? undefined : num;
-          });
-          tdAno.appendChild(inputAno);
+          tdAno.textContent = (veiculo.anoModelo ?? '') || '';
 
           const tdProprietario = document.createElement('td');
           tdProprietario.style.padding = '0.35rem';
-          const inputProprietario = document.createElement('input');
-          inputProprietario.className = 'form__input';
-          inputProprietario.type = 'text';
-          inputProprietario.placeholder = 'Proprietário';
-          inputProprietario.value = veiculo.nome || '';
-          inputProprietario.addEventListener('input', (event) => {
-            // Comentário: guarda o nome informado para compor o payload
-            vinculosVeiculos[indice].nome = event.target.value;
-          });
-          tdProprietario.appendChild(inputProprietario);
+          tdProprietario.textContent = veiculo.nome || '';
 
           const tdCpf = document.createElement('td');
           tdCpf.style.padding = '0.35rem';
-          const inputCpf = document.createElement('input');
-          inputCpf.className = 'form__input';
-          inputCpf.type = 'text';
-          inputCpf.inputMode = 'numeric';
-          inputCpf.placeholder = '000.000.000-00';
-          inputCpf.value = aplicarMascaraCpfInline(veiculo.cpf || '');
-          inputCpf.addEventListener('input', (event) => {
-            // Comentário: aplica máscara inline e atualiza o array sincronizando o payload
-            const cpfMascarado = aplicarMascaraCpfInline(event.target.value);
-            vinculosVeiculos[indice].cpf = cpfMascarado;
-            event.target.value = cpfMascarado;
-          });
-          tdCpf.appendChild(inputCpf);
+          tdCpf.textContent = aplicarMascaraCpfInline(veiculo.cpf || '') || '';
 
           const tdAcoes = document.createElement('td');
           tdAcoes.style.padding = '0.35rem';
