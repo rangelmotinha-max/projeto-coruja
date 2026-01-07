@@ -4963,7 +4963,26 @@
         if (selected.ocorrencias?.length) {
           sectionTitle('Ocorrências');
           if (selected.ocorrencias.includes('policiais')) {
-            html += `<div class="section"><strong>Policiais</strong><ul>${(valores.ocorrencias.policiais || []).map((o) => `<li>${safeText(o?.data)} — ${safeText(o?.info)}</li>`).join('')}</ul></div>`;
+            const policias = valores.ocorrencias.policiais || [];
+            const isImgExt = (u) => /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(String(u||''));
+            html += `<div class="section"><strong>Policiais</strong><ul>`;
+            policias.forEach((o) => {
+              const data = safeText(o?.data);
+              const info = safeText(o?.info);
+              let imgSrc = '';
+              const docPath = o?.documento?.caminho || o?.documento;
+              if (docPath && isImgExt(docPath)) {
+                imgSrc = String(docPath);
+              } else if (o?.arquivo && typeof o.arquivo === 'object' && typeof o.arquivo.type === 'string' && o.arquivo.type.startsWith('image/')) {
+                try { imgSrc = URL.createObjectURL(o.arquivo); } catch {}
+              }
+              html += `<li>` +
+                (data ? `<div><strong>Data:</strong> ${data}</div>` : '') +
+                (info ? `<div><strong>Informação:</strong> ${info}</div>` : '') +
+                (imgSrc ? `<div style="margin-top:4px;"><img src="${imgSrc}" alt="Documento da ocorrência" style="max-width:240px; max-height:240px; object-fit:contain; border:1px solid #ccc; padding:4px;" /></div>` : '') +
+              `</li>`;
+            });
+            html += `</ul></div>`;
           }
           if (selected.ocorrencias.includes('processos')) {
             html += `<div class="section"><strong>Processos</strong><ul>${(valores.ocorrencias.processos || []).map((p) => `<li>${safeText(p?.data)} — ${safeText(p?.info)}</li>`).join('')}</ul></div>`;
