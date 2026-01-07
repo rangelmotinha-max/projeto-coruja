@@ -4617,6 +4617,8 @@
         return {
           imagens: [
             { key: 'fotosCadastro', label: 'Fotos do cadastro' },
+            { key: 'qrCode', label: 'QR-CODE de redes' },
+            { key: 'perfilRedes', label: 'Foto de Perfil (redes)' },
             { key: 'imagensMonitoramento', label: 'Imagens de monitoramento' },
           ],
           identificacao: [
@@ -4641,12 +4643,11 @@
           ],
           enderecos: [
             { key: 'uf', label: 'UF' },
-            { key: 'cidade', label: 'Cidade' },
-            { key: 'bairro', label: 'Bairro' },
-            { key: 'logradouro', label: 'Logradouro' },
-            { key: 'numero', label: 'Número' },
+            { key: 'logradouro', label: 'Logradouro/Nome' },
+            { key: 'bairro', label: 'Bairro/Cidade' },
             { key: 'complemento', label: 'Complemento' },
             { key: 'cep', label: 'CEP' },
+            { key: 'latLong', label: 'Lat/Long' },
           ],
           veiculos: [
             { key: 'placa', label: 'Placa' },
@@ -4780,6 +4781,8 @@
           ocorrencias: { policiais: ocorrenciasPoliciais, processos, abordagens, prisoes, monitoramentos },
           fotosCadastro: (fotosSelecionadas || []).map((f) => f?.previewUrl || f?.url || f?.referencia).filter(Boolean),
           imagensMonitoramento: (monitoramentos || []).flatMap((m) => Array.isArray(m?.imagens) ? m.imagens.map((img) => img?.caminho).filter(Boolean) : []),
+          qrCode: (!removerQrCode && qrCodeSelecionado && (qrCodeSelecionado.previewUrl || qrCodeSelecionado.url || qrCodeSelecionado.caminho || qrCodeSelecionado.referencia)) || null,
+          perfilRedes: (perfilImagensSelecionadas || []).map((i) => i?.previewUrl || i?.url || i?.caminho || i?.referencia).filter(Boolean),
         };
 
         let html = `
@@ -4830,6 +4833,21 @@
           }
           if (selected.contatos.includes('redesSociais')) {
             html += `<div class="section"><strong>Redes Sociais</strong><ul>${(valores.redesSociais || []).map((r) => `<li>${safeText(r)}</li>`).join('')}</ul></div>`;
+          }
+          // Imagens de redes (QR-CODE e Perfil) devem aparecer lado a lado acima de Telefones
+          const showQR = selected.imagens?.includes('qrCode') && valores.qrCode;
+          const showPerfil = selected.imagens?.includes('perfilRedes') && (valores.perfilRedes?.length);
+          if (showQR || showPerfil) {
+            html += `<div class=\"section\">`;
+            html += `<div style=\"display:grid; grid-template-columns: repeat(${(showQR && showPerfil) ? 2 : 1}, minmax(220px, 1fr)); gap:10px; align-items:start;\">`;
+            if (showQR) {
+              html += `<div><strong>QR-CODE</strong>${imgGrid([valores.qrCode])}</div>`;
+            }
+            if (showPerfil) {
+              html += `<div><strong>Foto de Perfil (redes)</strong>${imgGrid(valores.perfilRedes)}</div>`;
+            }
+            html += `</div>`;
+            html += `</div>`;
           }
         }
 
@@ -4910,7 +4928,8 @@
         }
 
         if (selected.imagens?.length) {
-          // Não exibir título "Imagens" e não repetir "Fotos do cadastro"
+          // Não exibir título "Imagens" e não repetir "Fotos do cadastro";
+          // QR-CODE e Perfil já foram renderizados acima de Telefones.
           if (selected.imagens.includes('imagensMonitoramento')) {
             html += `<div class="section"><strong>Imagens de monitoramento</strong>${imgGrid(valores.imagensMonitoramento)}</div>`;
           }
