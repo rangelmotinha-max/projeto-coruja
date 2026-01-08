@@ -10,6 +10,16 @@ function sanitizeEmpresa(payload) {
         cpf: String(s?.cpf || '').replace(/\D/g, ''),
       })).filter((s) => s.nome || s.cpf)
     : [];
+  const veiculos = Array.isArray(payload.veiculos)
+    ? payload.veiculos.map((v) => ({
+        placa: String(v?.placa || '').trim(),
+        marcaModelo: String(v?.marcaModelo || '').trim(),
+        cor: String(v?.cor || '').trim(),
+        anoModelo: typeof v?.anoModelo === 'number' ? v.anoModelo : (v?.anoModelo ? Number(String(v.anoModelo).replace(/\D/g, '')) || null : null),
+        nomeProprietario: String(v?.nomeProprietario || '').trim(),
+        cnpj: String(v?.cnpj || '').replace(/\D/g, ''),
+      })).filter((v) => Object.values(v).some((x) => x))
+    : [];
 
   return {
     cnpj: cnpjDigits || null,
@@ -21,6 +31,7 @@ function sanitizeEmpresa(payload) {
     telefone: telefone || null,
     enderecos: require('../utils/validators').validarEnderecos(payload.enderecos || []),
     socios,
+    veiculos,
   };
 }
 

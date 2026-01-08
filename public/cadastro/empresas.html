@@ -130,12 +130,22 @@
               <div id="lista-enderecos-empresa" class="form__section-body" style="display:flex; flex-direction:column; gap:0.75rem;"></div>
             </div>
 
+
             <div class="form__subsection">
               <div class="form__section-header" style="display:flex; justify-content: space-between; align-items: center;">
                 <h3 class="form__section-title">Sócios</h3>
                 <button class="button" type="button" id="adicionar-socio">Adicionar sócio</button>
               </div>
               <div id="lista-socios" class="form__section-body"></div>
+            </div>
+
+            <!-- Veículos da empresa (movido para baixo de Sócios) -->
+            <div class="form__subsection" aria-label="Veículos da empresa">
+              <div class="form__section-header" style="display:flex; justify-content: space-between; align-items: center;">
+                <h3 class="form__section-title">Veículos</h3>
+                <button class="button button--secondary" id="adicionar-veiculo-empresa" type="button">+</button>
+              </div>
+              <div id="lista-veiculos-empresa" class="form__section-body" style="display:flex; flex-direction:column; gap:0.75rem;"></div>
             </div>
 
             <div class="form__actions">
@@ -182,6 +192,7 @@
       let termoBusca = '';
       let socios = [];
       let enderecosEmpresa = [];
+      let veiculosEmpresa = [];
       let empresaEmEdicao = null;
 
       // Helpers de autenticação (locais desta página)
@@ -234,7 +245,36 @@
         });
       };
       const adicionarSocio = () => { socios.push({ nome:'', cpf:'' }); renderizarSocios(); };
-      const obterDadosFormulario = () => { const fd=new FormData(empresaForm); const dados=Object.fromEntries(fd.entries()); dados.cnpj=aplicarMascaraCnpj(dados.cnpj).replace(/\D/g,''); dados.telefone=aplicarMascaraTelefone(dados.telefone); dados.socios=socios.map(s=>({ nome:String(s.nome||'').trim(), cpf:String(s.cpf||'').replace(/\D/g,'') })).filter(s=>s.nome||s.cpf); dados.enderecos=enderecosEmpresa.map(e=>({ uf:String(e.uf||'').trim()||null, logradouro:String(e.logradouro||'').trim()||null, bairro:String(e.bairro||'').trim()||null, complemento:String(e.complemento||'').trim()||null, cep:String(e.cep||'').replace(/\D/g,'').slice(0,8)||null, latLong:String(e.latLong||'').trim()||null })).filter(e=>Object.values(e).some(v=>v)); return dados; };
+      const obterDadosFormulario = () => {
+        const fd = new FormData(empresaForm);
+        const dados = Object.fromEntries(fd.entries());
+        dados.cnpj = aplicarMascaraCnpj(dados.cnpj).replace(/\D/g, '');
+        dados.telefone = aplicarMascaraTelefone(dados.telefone);
+        dados.socios = socios
+          .map(s => ({ nome: String(s.nome||'').trim(), cpf: String(s.cpf||'').replace(/\D/g, '') }))
+          .filter(s => s.nome || s.cpf);
+        dados.enderecos = enderecosEmpresa
+          .map(e => ({
+            uf: String(e.uf||'').trim() || null,
+            logradouro: String(e.logradouro||'').trim() || null,
+            bairro: String(e.bairro||'').trim() || null,
+            complemento: String(e.complemento||'').trim() || null,
+            cep: String(e.cep||'').replace(/\D/g, '').slice(0,8) || null,
+            latLong: String(e.latLong||'').trim() || null,
+          }))
+          .filter(e => Object.values(e).some(v => v));
+        dados.veiculos = veiculosEmpresa
+          .map(v => ({
+            placa: String(v.placa||'').trim(),
+            marcaModelo: String(v.marcaModelo||'').trim(),
+            cor: String(v.cor||'').trim(),
+            anoModelo: (v.anoModelo ?? null),
+            nomeProprietario: String(v.nomeProprietario||'').trim() || null,
+            cnpj: String(v.cnpj||'').replace(/\D/g, '') || null,
+          }))
+          .filter(v => Object.values(v).some(x => x));
+        return dados;
+      };
       const atualizarRotuloSubmit = () => { submitBtn.textContent = empresaEmEdicao ? 'Salvar' : 'Incluir'; };
       const salvarEmpresa = async (e) => {
         e.preventDefault();
@@ -263,6 +303,8 @@
           empresaForm.reset();
           socios = [];
           renderizarSocios();
+          veiculosEmpresa = [];
+          renderizarVeiculosEmpresa();
           empresaEmEdicao = null;
           atualizarRotuloSubmit();
           listarEmpresas();
@@ -292,7 +334,7 @@
 
         const thead = document.createElement('thead');
         const headRow = document.createElement('tr');
-        const ths = ['CNPJ', 'Razão Social', 'Nome Fantasia', 'Situação Cadastral', 'Ações'];
+        const ths = ['CNPJ', 'Razão Social', 'Nome Fantasia', 'Situação Cadastral', 'Veículos', 'Ações'];
         ths.forEach(t => {
           const th = document.createElement('th');
           th.textContent = t;
@@ -323,6 +365,11 @@
           tdSituacao.textContent = e.situacaoCadastral || '—';
           tdSituacao.style.padding = '0.5rem';
 
+          const tdVeiculos = document.createElement('td');
+          tdVeiculos.style.padding = '0.5rem';
+          const placas = Array.isArray(e.veiculos) ? e.veiculos.map(v => v.placa).filter(Boolean) : [];
+          tdVeiculos.textContent = placas.length ? placas.join(' | ') : '—';
+
           const tdAcoes = document.createElement('td');
           tdAcoes.style.padding = '0.5rem';
           const actions = document.createElement('div');
@@ -346,6 +393,7 @@
           tr.appendChild(tdRazao);
           tr.appendChild(tdFantasia);
           tr.appendChild(tdSituacao);
+          tr.appendChild(tdVeiculos);
           tr.appendChild(tdAcoes);
 
           tbody.appendChild(tr);
@@ -435,8 +483,10 @@
         empresaForm.telefone.value = aplicarMascaraTelefone(e.telefone || '');
         socios = Array.isArray(e.socios) ? e.socios.map(s=>({ nome: s.nome||'', cpf: s.cpf||'' })) : [];
         enderecosEmpresa = Array.isArray(e.enderecos) ? e.enderecos.map(x=>({ uf:x.uf||'', logradouro:x.logradouro||'', bairro:x.bairro||'', complemento:x.complemento||'', cep: x.cep||'', latLong: x.latLong||'' })) : [];
+        veiculosEmpresa = Array.isArray(e.veiculos) ? e.veiculos.map(v=>({ placa:v.placa||'', marcaModelo:v.marcaModelo||'', cor:v.cor||'', anoModelo:v.anoModelo??'', nomeProprietario:v.nomeProprietario||'', cnpj:v.cnpj||'' })) : [];
         renderizarSocios();
         renderizarEnderecosEmpresa();
+        renderizarVeiculosEmpresa();
       };
 
       const editarEmpresa = (e) => {
@@ -457,7 +507,7 @@
             throw new Error(msg);
           }
           alert('Empresa excluída com sucesso!');
-          if (empresaEmEdicao === e.id) { empresaEmEdicao = null; atualizarRotuloSubmit(); empresaForm.reset(); socios = []; renderizarSocios(); }
+          if (empresaEmEdicao === e.id) { empresaEmEdicao = null; atualizarRotuloSubmit(); empresaForm.reset(); socios = []; renderizarSocios(); veiculosEmpresa = []; renderizarVeiculosEmpresa(); }
           listarEmpresas();
         } catch (err) {
           exibirMensagem(err?.message || 'Erro ao excluir empresa.', 'error');
@@ -469,11 +519,13 @@
         document.getElementById('empresa-telefone')?.addEventListener('input', e=>{ e.target.value=aplicarMascaraTelefone(e.target.value); });
         document.getElementById('adicionar-socio')?.addEventListener('click', adicionarSocio);
         document.getElementById('adicionar-endereco-empresa')?.addEventListener('click', adicionarEnderecoEmpresa);
+        document.getElementById('adicionar-veiculo-empresa')?.addEventListener('click', adicionarVeiculoEmpresa);
         empresaForm.addEventListener('submit', salvarEmpresa);
         listarBtn?.addEventListener('click', listarEmpresas);
         campoConsulta?.addEventListener('input', (e) => { termoBusca = e.target.value || ''; filtrarEmpresas(termoBusca); });
         renderizarSocios();
         renderizarEnderecosEmpresa();
+        renderizarVeiculosEmpresa();
         listarEmpresas();
       };
       document.addEventListener('DOMContentLoaded', inicializar);
@@ -632,6 +684,133 @@
         el.innerHTML = `<div style="display:flex; align-items:center; gap:0.5rem; color:${cores[tipo]||'var(--text)'};"><span>${tipo==='success'?'✓':'✕'}</span><span>${mensagem}</span></div>`;
         el.style.display = 'block';
         setTimeout(() => { if (el.style.display !== 'none') el.style.display = 'none'; }, 3000);
+      };
+
+      // ---------- Veículos da empresa (espelhado do cadastro de pessoas) ----------
+      const normalizarPlaca = (valor) => String(valor || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 7);
+      const aplicarMascaraPlaca = (valor) => {
+        const placa = normalizarPlaca(valor);
+        if (placa.length <= 3) return placa;
+        return `${placa.slice(0, 3)}-${placa.slice(3)}`;
+      };
+
+      const renderizarVeiculosEmpresa = () => {
+        const listaEl = document.getElementById('lista-veiculos-empresa');
+        if (!listaEl) return;
+        listaEl.innerHTML = '';
+        if (!veiculosEmpresa.length) {
+          return;
+        }
+        veiculosEmpresa.forEach((veiculo, indice) => {
+          const wrapper = document.createElement('div');
+          wrapper.className = 'panel';
+          wrapper.style.padding = '0.75rem';
+          wrapper.style.display = 'flex';
+          wrapper.style.flexDirection = 'column';
+          wrapper.style.gap = '0.5rem';
+
+          const titulo = document.createElement('div');
+          titulo.style.display = 'flex';
+          titulo.style.justifyContent = 'space-between';
+          titulo.style.alignItems = 'center';
+          titulo.innerHTML = `<strong style="font-size: 0.95rem;">Veículo ${indice + 1}</strong>`;
+          const btnRemover = document.createElement('button');
+          btnRemover.type = 'button';
+          btnRemover.className = 'button button--danger';
+          btnRemover.textContent = 'Remover';
+          btnRemover.style.minWidth = 'fit-content';
+          btnRemover.addEventListener('click', () => {
+            veiculosEmpresa.splice(indice, 1);
+            renderizarVeiculosEmpresa();
+          });
+          titulo.appendChild(btnRemover);
+          wrapper.appendChild(titulo);
+
+          const gridPrincipal = document.createElement('div');
+          gridPrincipal.className = 'form__grid form__grid--3';
+
+          const campoPlaca = document.createElement('label');
+          campoPlaca.className = 'form__field';
+          campoPlaca.innerHTML = `<span class="form__label">Placa</span>`;
+          const inputPlaca = document.createElement('input');
+          inputPlaca.className = 'form__input';
+          inputPlaca.type = 'text';
+          inputPlaca.maxLength = 8;
+          inputPlaca.placeholder = 'ABC1D23';
+          inputPlaca.value = veiculo.placa || '';
+          inputPlaca.addEventListener('input', (e) => {
+            veiculosEmpresa[indice].placa = e.target.value;
+          });
+          campoPlaca.appendChild(inputPlaca);
+          gridPrincipal.appendChild(campoPlaca);
+
+          const campoMarca = document.createElement('label');
+          campoMarca.className = 'form__field';
+          campoMarca.innerHTML = `<span class="form__label">Marca/Modelo</span>`;
+          const inputMarca = document.createElement('input');
+          inputMarca.className = 'form__input';
+          inputMarca.type = 'text';
+          inputMarca.value = veiculo.marcaModelo || '';
+          inputMarca.addEventListener('input', (e) => {
+            veiculosEmpresa[indice].marcaModelo = e.target.value;
+          });
+          campoMarca.appendChild(inputMarca);
+          gridPrincipal.appendChild(campoMarca);
+
+          const campoCor = document.createElement('label');
+          campoCor.className = 'form__field';
+          campoCor.innerHTML = `<span class="form__label">Cor</span>`;
+          const inputCor = document.createElement('input');
+          inputCor.className = 'form__input';
+          inputCor.type = 'text';
+          inputCor.value = veiculo.cor || '';
+          inputCor.addEventListener('input', (e) => {
+            veiculosEmpresa[indice].cor = e.target.value;
+          });
+          campoCor.appendChild(inputCor);
+          gridPrincipal.appendChild(campoCor);
+          wrapper.appendChild(gridPrincipal);
+
+          const gridSecundario = document.createElement('div');
+          gridSecundario.className = 'form__grid form__grid--3';
+          const campoAno = document.createElement('label');
+          campoAno.className = 'form__field';
+          campoAno.innerHTML = `<span class="form__label">Ano/Modelo</span>`;
+          const inputAno = document.createElement('input');
+          inputAno.className = 'form__input';
+          inputAno.type = 'number';
+          inputAno.min = 1900;
+          inputAno.max = 2100;
+          inputAno.placeholder = '2024';
+          inputAno.value = veiculo.anoModelo ?? '';
+          inputAno.addEventListener('input', (e) => {
+            const valor = e.target.value ? Number(e.target.value) : '';
+            veiculosEmpresa[indice].anoModelo = (valor === '' || Number.isNaN(valor)) ? undefined : valor;
+          });
+          campoAno.appendChild(inputAno);
+          gridSecundario.appendChild(campoAno);
+
+          // Campos ocultos para sincronizar proprietário e CNPJ automaticamente
+          const inputNomeProprietario = document.createElement('input');
+          inputNomeProprietario.type = 'hidden';
+          inputNomeProprietario.dataset.veiculoNomeProprietario = 'true';
+          inputNomeProprietario.value = veiculo.nomeProprietario || empresaForm?.razaoSocial?.value || empresaForm?.nomeFantasia?.value || '';
+          const inputCnpjProprietario = document.createElement('input');
+          inputCnpjProprietario.type = 'hidden';
+          inputCnpjProprietario.dataset.veiculoCnpj = 'true';
+          inputCnpjProprietario.value = veiculo.cnpj || (document.getElementById('empresa-cnpj')?.value || '');
+
+          gridSecundario.appendChild(inputNomeProprietario);
+          gridSecundario.appendChild(inputCnpjProprietario);
+
+          wrapper.appendChild(gridSecundario);
+          listaEl.appendChild(wrapper);
+        });
+      };
+
+      const adicionarVeiculoEmpresa = () => {
+        veiculosEmpresa.push({});
+        renderizarVeiculosEmpresa();
       };
     </script>
     <div id="alterar-senha-modal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="alterar-senha-title">

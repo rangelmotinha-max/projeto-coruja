@@ -2,6 +2,40 @@ const { randomUUID } = require('crypto');
 const { initDatabase } = require('../database/sqlite');
 
 class EmpresaCatalogoModel {
+  static async _listarVeiculos(db, empresaId) {
+    return db.all(
+      'SELECT id, nomeProprietario, cnpj, placa, marcaModelo, cor, anoModelo, criadoEm, atualizadoEm FROM veiculos_empresas WHERE empresa_id = ? ORDER BY atualizadoEm DESC',
+      [empresaId]
+    );
+  }
+
+  static async _salvarVeiculos(db, empresaId, veiculos) {
+    if (!Array.isArray(veiculos) || veiculos.length === 0) return;
+    const agora = new Date().toISOString();
+    for (const v of veiculos) {
+      const id = v.id || randomUUID();
+      await db.run(
+        `INSERT INTO veiculos_empresas (id, empresa_id, nomeProprietario, cnpj, placa, marcaModelo, cor, anoModelo, criadoEm, atualizadoEm)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          id,
+          empresaId,
+          v.nomeProprietario || null,
+          v.cnpj || null,
+          v.placa || null,
+          v.marcaModelo || null,
+          v.cor || null,
+          typeof v.anoModelo === 'number' ? v.anoModelo : null,
+          agora,
+          agora,
+        ]
+      );
+    }
+  }
+
+  static async _removerVeiculos(db, empresaId) {
+    await db.run('DELETE FROM veiculos_empresas WHERE empresa_id = ?', [empresaId]);
+  }
   static async _listarEnderecos(db, empresaId) {
     return db.all(
       'SELECT id, uf, logradouro, bairro, cep, complemento, lat_long as latLong, criadoEm, atualizadoEm FROM empresas_enderecos WHERE empresa_id = ? ORDER BY atualizadoEm DESC',
@@ -91,6 +125,10 @@ class EmpresaCatalogoModel {
       await this._salvarEnderecos(db, empresa.id, dados.enderecos);
     }
 
+    if (Array.isArray(dados.veiculos) && dados.veiculos.length) {
+      await this._salvarVeiculos(db, empresa.id, dados.veiculos);
+    }
+
     return this.findById(id);
   }
 
@@ -100,6 +138,7 @@ class EmpresaCatalogoModel {
     for (const e of empresas) {
       e.socios = await db.all('SELECT id, nome, cpf FROM socios_cadastro WHERE empresa_id = ? ORDER BY criadoEm ASC', [e.id]);
       e.enderecos = await this._listarEnderecos(db, e.id);
+      e.veiculos = await this._listarVeiculos(db, e.id);
     }
     return empresas;
   }
@@ -110,6 +149,7 @@ class EmpresaCatalogoModel {
     if (!e) return null;
     e.socios = await db.all('SELECT id, nome, cpf FROM socios_cadastro WHERE empresa_id = ? ORDER BY criadoEm ASC', [id]);
     e.enderecos = await this._listarEnderecos(db, id);
+    e.veiculos = await this._listarVeiculos(db, id);
     return e;
   }
 
@@ -149,11 +189,17 @@ class EmpresaCatalogoModel {
       await this._salvarEnderecos(db, id, updates.enderecos);
     }
 
+    if (Array.isArray(updates.veiculos)) {
+      await this._removerVeiculos(db, id);
+      await this._salvarVeiculos(db, id, updates.veiculos);
+    }
+
     return this.findById(id);
   }
 
   static async delete(id) {
     const db = await initDatabase();
+    await this._removerVeiculos(db, id);
     await this._removerEnderecos(db, id);
     const r = await db.run('DELETE FROM empresas_cadastro WHERE id = ?', [id]);
     return r.changes > 0;

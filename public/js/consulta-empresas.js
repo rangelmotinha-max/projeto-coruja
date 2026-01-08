@@ -86,6 +86,12 @@
     }).join(' | ');
   };
 
+  const formatVeiculos = (veiculos) => {
+    if (!Array.isArray(veiculos) || veiculos.length === 0) return '—';
+    const placas = veiculos.map(v => v.placa).filter(Boolean);
+    return placas.length ? placas.join(' | ') : '—';
+  };
+
   const renderResults = (empresas) => {
     if (!resultsContainer) return;
     resultsContainer.innerHTML = '';
@@ -100,7 +106,7 @@
 
     const header = document.createElement('thead');
     const headerRow = document.createElement('tr');
-    ['Razão Social', 'CNPJ', 'Telefone', 'Endereços', 'Sócios', 'Ações'].forEach((heading) => {
+    ['Razão Social', 'CNPJ', 'Telefone', 'Endereços', 'Sócios', 'Veículos', 'Ações'].forEach((heading) => {
       const th = document.createElement('th');
       th.textContent = heading;
       headerRow.appendChild(th);
@@ -116,6 +122,7 @@
       row.appendChild(createCell(empresa.telefone));
       row.appendChild(createCell(formatEnderecos(empresa.enderecos)));
       row.appendChild(createCell(formatSocios(empresa.socios)));
+      row.appendChild(createCell(formatVeiculos(empresa.veiculos)));
 
       // Coluna de ações: abrir cadastro da empresa em nova aba
       const actionsCell = document.createElement('td');
