@@ -27,7 +27,9 @@ function sanitizeEmpresa(payload, options = {}) {
           const anoModelo = typeof v?.anoModelo === 'number' ? v.anoModelo : (v?.anoModelo ? Number(String(v.anoModelo).replace(/\D/g, '')) || null : null);
           const nomeProprietario = String(v?.nomeProprietario || razaoSocial || nomeFantasia || '').trim();
           const cnpj = String(v?.cnpj || cnpjDigits || '').replace(/\D/g, '');
-          return { placa, marcaModelo, cor, anoModelo, nomeProprietario, cnpj };
+          // Comentário: inclui CPF derivado do CNPJ para compatibilidade com a API de veículos.
+          const cpf = cnpj || null;
+          return { placa, marcaModelo, cor, anoModelo, nomeProprietario, cnpj, cpf };
         })
         .filter((v) => (v.placa && v.nomeProprietario))
     : [];

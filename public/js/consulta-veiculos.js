@@ -56,7 +56,11 @@
 
     Object.entries(rawFields).forEach(([key, value]) => {
       const normalized = (value || '').trim();
-      if (normalized) {
+      if (!normalized) return;
+      if (key === 'cpf') {
+        // Comentário: aceita CPF ou CNPJ, enviando apenas dígitos para a API.
+        params.append(key, normalized.replace(/\D/g, ''));
+      } else {
         params.append(key, normalized);
       }
     });
@@ -92,7 +96,7 @@
 
     const header = document.createElement('thead');
     const headerRow = document.createElement('tr');
-    ['Placa', 'Marca/Modelo', 'Nome do Proprietário', 'CPF', 'Ações'].forEach((heading) => {
+    ['Placa', 'Marca/Modelo', 'Nome do Proprietário', 'CPF/CNPJ', 'Ações'].forEach((heading) => {
       const th = document.createElement('th');
       th.scope = 'col';
       th.textContent = heading;
@@ -108,13 +112,20 @@
       row.appendChild(createCell(veiculo.placa ? veiculo.placa.toUpperCase() : null));
       row.appendChild(createCell(veiculo.marcaModelo));
       row.appendChild(createCell(veiculo.nomeProprietario));
-      row.appendChild(createCell(veiculo.cpf));
+      // Comentário: formata CPF/CNPJ conforme o tamanho do documento.
+      const documento = veiculo.cpf ? String(veiculo.cpf).replace(/\D/g, '') : '';
+      const documentoFormatado = documento.length === 14
+        ? documento.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5')
+        : (documento.length === 11
+          ? documento.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4')
+          : (documento || null));
+      row.appendChild(createCell(documentoFormatado));
 
       // Coluna de ações: abrir cadastro de veículo em nova aba
       const actionsCell = document.createElement('td');
       actionsCell.className = 'table__actions';
       const placa = veiculo.placa || null;
-      const cpf = veiculo.cpf || null;
+      const cpf = veiculo.cpf ? String(veiculo.cpf).replace(/\D/g, '') : null;
       if (placa || cpf) {
         const openLink = document.createElement('a');
         openLink.textContent = 'Abrir';
