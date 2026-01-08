@@ -195,6 +195,7 @@
       let veiculosEmpresa = [];
       let veiculosEditados = false;
       let empresaEmEdicao = null;
+      let listenersVeiculosEmpresaConfigurados = false;
 
       // Helpers de autenticação (locais desta página)
       const getCookie = (name) => document.cookie.split(';').map(c=>c.trim()).find(c=>c.startsWith(`${name}=`))?.split('=')[1];
@@ -255,6 +256,7 @@
         const fantasia = String(dados.nomeFantasia||'').trim();
         const nomeProprietarioDefault = razao || fantasia || null;
         const cnpjEmpresa = dados.cnpj || null;
+        sincronizarVeiculosEmpresa();
         dados.socios = socios
           .map(s => ({ nome: String(s.nome||'').trim(), cpf: String(s.cpf||'').replace(/\D/g, '') }))
           .filter(s => s.nome || s.cpf);
@@ -713,8 +715,34 @@
         if (placa.length <= 3) return placa;
         return `${placa.slice(0, 3)}-${placa.slice(3)}`;
       };
+      const obterNomeProprietarioEmpresa = () => {
+        const razao = String(empresaForm?.razaoSocial?.value || '').trim();
+        const fantasia = String(empresaForm?.nomeFantasia?.value || '').trim();
+        return razao || fantasia || '';
+      };
+      const obterCnpjEmpresa = () => String(empresaForm?.cnpj?.value || '').replace(/\D/g, '');
+      const sincronizarVeiculosEmpresa = () => {
+        if (!veiculosEmpresa.length) return;
+        const nomeAtual = obterNomeProprietarioEmpresa();
+        const cnpjAtual = obterCnpjEmpresa();
+        veiculosEmpresa = veiculosEmpresa.map((v) => ({
+          ...v,
+          nomeProprietario: nomeAtual || v.nomeProprietario || '',
+          cnpj: cnpjAtual || v.cnpj || '',
+        }));
+      };
+      const configurarListenersVeiculosEmpresa = () => {
+        if (listenersVeiculosEmpresaConfigurados) return;
+        const atualizarDados = () => sincronizarVeiculosEmpresa();
+        empresaForm?.razaoSocial?.addEventListener('input', atualizarDados);
+        empresaForm?.nomeFantasia?.addEventListener('input', atualizarDados);
+        empresaForm?.cnpj?.addEventListener('input', atualizarDados);
+        listenersVeiculosEmpresaConfigurados = true;
+      };
 
       const renderizarVeiculosEmpresa = () => {
+        configurarListenersVeiculosEmpresa();
+        sincronizarVeiculosEmpresa();
         const listaEl = document.getElementById('lista-veiculos-empresa');
         if (!listaEl) return;
         listaEl.innerHTML = '';
