@@ -4,6 +4,8 @@ const { criarErro } = require('../utils/helpers');
 function sanitizeEmpresa(payload) {
   const cnpjDigits = String(payload.cnpj || '').replace(/\D/g, '');
   const telefone = String(payload.telefone || '').trim();
+  const razaoSocial = payload.razaoSocial ? String(payload.razaoSocial).trim() : '';
+  const nomeFantasia = payload.nomeFantasia ? String(payload.nomeFantasia).trim() : '';
   const socios = Array.isArray(payload.socios)
     ? payload.socios.map((s) => ({
         nome: String(s?.nome || '').trim(),
@@ -11,20 +13,23 @@ function sanitizeEmpresa(payload) {
       })).filter((s) => s.nome || s.cpf)
     : [];
   const veiculos = Array.isArray(payload.veiculos)
-    ? payload.veiculos.map((v) => ({
-        placa: String(v?.placa || '').trim(),
-        marcaModelo: String(v?.marcaModelo || '').trim(),
-        cor: String(v?.cor || '').trim(),
-        anoModelo: typeof v?.anoModelo === 'number' ? v.anoModelo : (v?.anoModelo ? Number(String(v.anoModelo).replace(/\D/g, '')) || null : null),
-        nomeProprietario: String(v?.nomeProprietario || '').trim(),
-        cnpj: String(v?.cnpj || '').replace(/\D/g, ''),
-      })).filter((v) => Object.values(v).some((x) => x))
+    ? payload.veiculos
+        .map((v) => {
+          const placa = String(v?.placa || '').trim();
+          const marcaModelo = String(v?.marcaModelo || '').trim();
+          const cor = String(v?.cor || '').trim();
+          const anoModelo = typeof v?.anoModelo === 'number' ? v.anoModelo : (v?.anoModelo ? Number(String(v.anoModelo).replace(/\D/g, '')) || null : null);
+          const nomeProprietario = String(v?.nomeProprietario || razaoSocial || nomeFantasia || '').trim();
+          const cnpj = String(v?.cnpj || cnpjDigits || '').replace(/\D/g, '');
+          return { placa, marcaModelo, cor, anoModelo, nomeProprietario, cnpj };
+        })
+        .filter((v) => (v.placa || v.marcaModelo || v.cor || v.anoModelo))
     : [];
 
   return {
     cnpj: cnpjDigits || null,
-    razaoSocial: payload.razaoSocial ? String(payload.razaoSocial).trim() : null,
-    nomeFantasia: payload.nomeFantasia ? String(payload.nomeFantasia).trim() : null,
+    razaoSocial: razaoSocial || null,
+    nomeFantasia: nomeFantasia || null,
     naturezaJuridica: payload.naturezaJuridica ? String(payload.naturezaJuridica).trim() : null,
     dataInicioAtividade: payload.dataInicioAtividade || null,
     situacaoCadastral: payload.situacaoCadastral || null,
