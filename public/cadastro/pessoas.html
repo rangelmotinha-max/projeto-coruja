@@ -5330,7 +5330,23 @@
           return html;
         }
 
+        // Busca detalhes de todas as pessoas vinculadas (por CPF/id/nome)
         const detalhes = await Promise.all(vinculosPessoas.map(v => buscarPessoaCompletaPorVinculo(v)));
+
+        // Define seleção padrão mínima caso nada tenha sido marcado pelo usuário
+        const nenhumaSelecaoMarcada = Object.values(selected || {}).every((arr) => !Array.isArray(arr) || arr.length === 0);
+        const selecaoPadrao = nenhumaSelecaoMarcada
+          ? {
+              imagens: [],
+              identificacao: ['nomeCompleto', 'apelido', 'cpf', 'rg', 'cnh', 'dataNascimento', 'idade', 'nomeMae', 'nomePai', 'sinais', 'faccao'],
+              contatos: ['emails', 'redesSociais'],
+              telefones: ['telefones'],
+              enderecos: [],
+              veiculos: ['placa', 'marcaModelo', 'cor', 'anoModelo', 'nomeProprietario', 'cpf'],
+              vinculos: [], // evita recursão infinita/anexos muito longos
+              ocorrencias: [],
+            }
+          : selected;
 
         let anexos = '';
         anexos += `<div style="page-break-before: always;"></div>`;
@@ -5339,16 +5355,25 @@
         detalhes.forEach((p, idx) => {
           anexos += `<hr />`;
           if (!p) {
-            anexos += `<div class="section"><em>Vínculo ${idx + 1}: não foi possível localizar detalhes.</em></div>`;
+            const base = vinculosPessoas[idx] || {};
+            const resumo = [safeText(base?.nome), safeText(base?.cpf), safeText(base?.tipo)].filter(Boolean).join(' • ');
+            anexos += `<div class="section"><em>Vínculo ${idx + 1}: ${resumo || 'não foi possível localizar detalhes.'}</em></div>`;
             return;
           }
           const valoresV = montarValoresDaPessoaApi(p);
           const subtitle = `${safeText(p.nomeCompleto || 'Pessoa vinculada')}${p?.cpf ? ' — CPF: ' + safeText(p.cpf) : ''}`;
           anexos += `<h2 style="margin-top:8px;">${subtitle}</h2>`;
-          anexos += construirSecoesHTML(selected, valoresV);
+          anexos += construirSecoesHTML(selecaoPadrao, valoresV);
         });
 
-        html = html.replace('</body></html>', anexos + '</body></html>');
+        // Insere os anexos imediatamente antes do fechamento do body, de forma resiliente
+        const marcador = '</body>';
+        const idxFechamento = html.lastIndexOf(marcador);
+        if (idxFechamento !== -1) {
+          html = html.slice(0, idxFechamento) + anexos + html.slice(idxFechamento);
+        } else {
+          html += anexos;
+        }
         return html;
       }
 
