@@ -139,13 +139,15 @@
               <div id="lista-socios" class="form__section-body"></div>
             </div>
 
-            <!-- Veículos da empresa (movido para baixo de Sócios) -->
-            <div class="form__subsection" aria-label="Veículos da empresa">
-              <div class="form__section-header" style="display:flex; justify-content: space-between; align-items: center;">
-                <h3 class="form__section-title">Veículos</h3>
-                <button class="button button--secondary" id="adicionar-veiculo-empresa" type="button">+</button>
+            <!-- Veículos da empresa (alinhado ao layout do cadastro de pessoas) -->
+            <div class="form__section" aria-label="Veículos da empresa">
+              <div class="form__section-header">
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                  <h3 class="form__section-title" style="text-align: center; width: 100%;">Veículos</h3>
+                  <button class="button button--secondary" id="adicionar-veiculo-empresa" type="button" aria-label="Adicionar veículo" title="Adicionar">+</button>
+                </div>
               </div>
-              <div id="lista-veiculos-empresa" class="form__section-body" style="display:flex; flex-direction:column; gap:0.75rem;"></div>
+              <div id="lista-veiculos-empresa" class="enderecos-lista"></div>
             </div>
 
             <div class="form__actions">
@@ -269,19 +271,27 @@
             latLong: String(e.latLong||'').trim() || null,
           }))
           .filter(e => Object.values(e).some(v => v));
+        const veiculosNormalizados = (veiculosEmpresa || [])
+          .map((veiculo) => {
+            const anoModeloNumero = veiculo.anoModelo ? Number(veiculo.anoModelo) : undefined;
+            const anoModeloAjustado = Number.isNaN(anoModeloNumero) ? undefined : anoModeloNumero;
+            return {
+              placa: String(veiculo.placa || '').trim(),
+              marcaModelo: String(veiculo.marcaModelo || '').trim(),
+              cor: String(veiculo.cor || '').trim(),
+              anoModelo: anoModeloAjustado,
+              nomeProprietario: String(veiculo.nomeProprietario || nomeProprietarioDefault || '').trim(),
+              cnpj: String(veiculo.cnpj || cnpjEmpresa || '').trim(),
+            };
+          })
+          .filter((veiculo) => Object.values({ ...veiculo, anoModelo: veiculo.anoModelo ?? '' })
+            .some((valor) => String(valor ?? '').trim() !== ''));
+
         if (!empresaEmEdicao || veiculosEditados) {
-          // Comentário: só envia veículos na edição quando o usuário alterou essa seção.
-          dados.veiculos = veiculosEmpresa
-            .map(v => {
-              const placa = normalizarPlaca(String(v.placa||''));
-              const marcaModelo = String(v.marcaModelo||'').trim();
-              const cor = String(v.cor||'').trim();
-              const anoModelo = (v.anoModelo ?? null);
-              const nomeProprietario = String(v.nomeProprietario || nomeProprietarioDefault || '').trim() || null;
-              const cnpj = String(v.cnpj || cnpjEmpresa || '').replace(/\D/g, '') || null;
-              return { placa, marcaModelo, cor, anoModelo, nomeProprietario, cnpj };
-            })
-            .filter(v => (v.placa || v.marcaModelo || v.cor || v.anoModelo));
+          // Comentário: envia veículos apenas quando houver itens válidos ou quando a lista foi editada na edição.
+          if (veiculosNormalizados.length || (empresaEmEdicao && veiculosEditados)) {
+            dados.veiculos = veiculosNormalizados;
+          }
         }
         return dados;
       };
@@ -296,8 +306,12 @@
           empresaForm.razaoSocial.focus();
           return;
         }
-        if (Array.isArray(payload.veiculos) && payload.veiculos.length) {
-          const semPlaca = payload.veiculos.find(v => !String(v.placa||'').trim());
+        const veiculosComDados = (veiculosEmpresa || [])
+          .filter((veiculo) => [veiculo.placa, veiculo.marcaModelo, veiculo.cor, veiculo.anoModelo]
+            .some((valor) => String(valor ?? '').trim() !== ''));
+        if (veiculosComDados.length) {
+          // Comentário: bloqueia envio quando há veículo com dados sem placa preenchida.
+          const semPlaca = veiculosComDados.find((veiculo) => !String(veiculo.placa || '').trim());
           if (semPlaca) {
             exibirMensagemForm('Informe a placa de todos os veículos adicionados.', 'error');
             return;
@@ -506,6 +520,7 @@
         veiculosEditados = false;
         renderizarSocios();
         renderizarEnderecosEmpresa();
+        sincronizarVeiculosEmpresa();
         renderizarVeiculosEmpresa();
       };
 
@@ -707,12 +722,6 @@
       };
 
       // ---------- Veículos da empresa (espelhado do cadastro de pessoas) ----------
-      const normalizarPlaca = (valor) => String(valor || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 7);
-      const aplicarMascaraPlaca = (valor) => {
-        const placa = normalizarPlaca(valor);
-        if (placa.length <= 3) return placa;
-        return `${placa.slice(0, 3)}-${placa.slice(3)}`;
-      };
       const obterNomeProprietarioEmpresa = () => {
         const razao = String(empresaForm?.razaoSocial?.value || '').trim();
         return razao || '';
@@ -722,11 +731,26 @@
         if (!veiculosEmpresa.length) return;
         const nomeAtual = obterNomeProprietarioEmpresa();
         const cnpjAtual = obterCnpjEmpresa();
-        veiculosEmpresa = veiculosEmpresa.map((v) => ({
-          ...v,
-          nomeProprietario: nomeAtual || v.nomeProprietario || '',
-          cnpj: cnpjAtual || v.cnpj || '',
-        }));
+        // Comentário: sincroniza proprietário/CNPJ apenas quando o veículo possui outros dados.
+        veiculosEmpresa = veiculosEmpresa.map((veiculo) => {
+          const temDadosVeiculo = [veiculo.placa, veiculo.marcaModelo, veiculo.cor, veiculo.anoModelo]
+            .some((valor) => String(valor ?? '').trim().length > 0);
+          return {
+            ...veiculo,
+            nomeProprietario: temDadosVeiculo ? (veiculo.nomeProprietario || nomeAtual || '') : (veiculo.nomeProprietario || ''),
+            cnpj: temDadosVeiculo ? (veiculo.cnpj || cnpjAtual || '') : (veiculo.cnpj || ''),
+          };
+        });
+
+        // Comentário: mantém os campos ocultos atualizados para refletir a sincronização.
+        const nomesOcultos = document.querySelectorAll('#lista-veiculos-empresa [data-veiculo-nome-proprietario]');
+        nomesOcultos.forEach((input, index) => {
+          input.value = veiculosEmpresa[index]?.nomeProprietario || nomeAtual || '';
+        });
+        const cnpjsOcultos = document.querySelectorAll('#lista-veiculos-empresa [data-veiculo-cnpj]');
+        cnpjsOcultos.forEach((input, index) => {
+          input.value = veiculosEmpresa[index]?.cnpj || cnpjAtual || '';
+        });
       };
       const configurarListenersVeiculosEmpresa = () => {
         if (listenersVeiculosEmpresaConfigurados) return;
@@ -744,7 +768,6 @@
 
       const renderizarVeiculosEmpresa = () => {
         configurarListenersVeiculosEmpresa();
-        sincronizarVeiculosEmpresa();
         const listaEl = document.getElementById('lista-veiculos-empresa');
         if (!listaEl) return;
         listaEl.innerHTML = '';
@@ -864,6 +887,7 @@
       };
 
       const adicionarVeiculoEmpresa = () => {
+        // Comentário: cria veículo vazio e marca a seção como editada.
         veiculosEmpresa.push({});
         veiculosEditados = true;
         renderizarVeiculosEmpresa();
