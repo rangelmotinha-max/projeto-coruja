@@ -139,7 +139,14 @@
               <div id="lista-socios" class="form__section-body"></div>
             </div>
 
-            <!-- Seção de veículos removida conforme solicitado -->
+            <!-- Veículos da empresa (movido para baixo de Sócios) -->
+            <div class="form__subsection" aria-label="Veículos da empresa">
+              <div class="form__section-header" style="display:flex; justify-content: space-between; align-items: center;">
+                <h3 class="form__section-title">Veículos</h3>
+                <button class="button button--secondary" id="adicionar-veiculo-empresa" type="button">+</button>
+              </div>
+              <div id="lista-veiculos-empresa" class="form__section-body" style="display:flex; flex-direction:column; gap:0.75rem;"></div>
+            </div>
 
             <div class="form__actions">
               <button class="button button--primary" id="submit-empresa" type="submit">Incluir</button>
@@ -260,7 +267,20 @@
             latLong: String(e.latLong||'').trim() || null,
           }))
           .filter(e => Object.values(e).some(v => v));
-        // Seção de veículos removida
+        if (!empresaEmEdicao || veiculosEditados) {
+          // Comentário: só envia veículos na edição quando o usuário alterou essa seção.
+          dados.veiculos = veiculosEmpresa
+            .map(v => {
+              const placa = normalizarPlaca(String(v.placa||''));
+              const marcaModelo = String(v.marcaModelo||'').trim();
+              const cor = String(v.cor||'').trim();
+              const anoModelo = (v.anoModelo ?? null);
+              const nomeProprietario = String(v.nomeProprietario || nomeProprietarioDefault || '').trim() || null;
+              const cnpj = String(v.cnpj || cnpjEmpresa || '').replace(/\D/g, '') || null;
+              return { placa, marcaModelo, cor, anoModelo, nomeProprietario, cnpj };
+            })
+            .filter(v => (v.placa || v.marcaModelo || v.cor || v.anoModelo));
+        }
         return dados;
       };
       const atualizarRotuloSubmit = () => { submitBtn.textContent = empresaEmEdicao ? 'Salvar' : 'Incluir'; };
@@ -274,7 +294,13 @@
           empresaForm.razaoSocial.focus();
           return;
         }
-        // Seção de veículos removida
+        if (Array.isArray(payload.veiculos) && payload.veiculos.length) {
+          const semPlaca = payload.veiculos.find(v => !String(v.placa||'').trim());
+          if (semPlaca) {
+            exibirMensagemForm('Informe a placa de todos os veículos adicionados.', 'error');
+            return;
+          }
+        }
         if (!validarCnpj14(payload.cnpj)) {
           exibirMensagemForm('CNPJ inválido: deve conter exatamente 14 números.', 'error');
           empresaForm.cnpj.focus();
@@ -474,7 +500,7 @@
         // Seção de veículos removida
         renderizarSocios();
         renderizarEnderecosEmpresa();
-        // Seção de veículos removida
+        renderizarVeiculosEmpresa();
       };
 
       const editarEmpresa = (e) => {
@@ -681,7 +707,161 @@
         if (placa.length <= 3) return placa;
         return `${placa.slice(0, 3)}-${placa.slice(3)}`;
       };
-      // Seção de veículos removida
+      const obterNomeProprietarioEmpresa = () => {
+        const razao = String(empresaForm?.razaoSocial?.value || '').trim();
+        return razao || '';
+      };
+      const obterCnpjEmpresa = () => String(empresaForm?.cnpj?.value || '').replace(/\D/g, '');
+      const sincronizarVeiculosEmpresa = () => {
+        if (!veiculosEmpresa.length) return;
+        const nomeAtual = obterNomeProprietarioEmpresa();
+        const cnpjAtual = obterCnpjEmpresa();
+        veiculosEmpresa = veiculosEmpresa.map((v) => ({
+          ...v,
+          nomeProprietario: nomeAtual || v.nomeProprietario || '',
+          cnpj: cnpjAtual || v.cnpj || '',
+        }));
+      };
+      const configurarListenersVeiculosEmpresa = () => {
+        if (listenersVeiculosEmpresaConfigurados) return;
+        const atualizarDados = () => {
+          sincronizarVeiculosEmpresa();
+          if (veiculosEmpresa.length) {
+            // Comentário: marca edição para garantir envio quando Razão Social/CNPJ mudarem com veículos carregados.
+            veiculosEditados = true;
+          }
+        };
+        empresaForm?.razaoSocial?.addEventListener('input', atualizarDados);
+        empresaForm?.cnpj?.addEventListener('input', atualizarDados);
+        listenersVeiculosEmpresaConfigurados = true;
+      };
+
+      const renderizarVeiculosEmpresa = () => {
+        configurarListenersVeiculosEmpresa();
+        sincronizarVeiculosEmpresa();
+        const listaEl = document.getElementById('lista-veiculos-empresa');
+        if (!listaEl) return;
+        listaEl.innerHTML = '';
+        if (!veiculosEmpresa.length) {
+          return;
+        }
+        veiculosEmpresa.forEach((veiculo, indice) => {
+          const wrapper = document.createElement('div');
+          wrapper.className = 'panel';
+          wrapper.style.padding = '0.75rem';
+          wrapper.style.display = 'flex';
+          wrapper.style.flexDirection = 'column';
+          wrapper.style.gap = '0.5rem';
+
+          const titulo = document.createElement('div');
+          titulo.style.display = 'flex';
+          titulo.style.justifyContent = 'space-between';
+          titulo.style.alignItems = 'center';
+          titulo.innerHTML = `<strong style="font-size: 0.95rem;">Veículo ${indice + 1}</strong>`;
+          const btnRemover = document.createElement('button');
+          btnRemover.type = 'button';
+          btnRemover.className = 'button button--danger';
+          btnRemover.textContent = 'Remover';
+          btnRemover.style.minWidth = 'fit-content';
+          btnRemover.addEventListener('click', () => {
+            veiculosEmpresa.splice(indice, 1);
+            veiculosEditados = true;
+            renderizarVeiculosEmpresa();
+          });
+          titulo.appendChild(btnRemover);
+          wrapper.appendChild(titulo);
+
+          const gridPrincipal = document.createElement('div');
+          gridPrincipal.className = 'form__grid form__grid--3';
+
+          const campoPlaca = document.createElement('label');
+          campoPlaca.className = 'form__field';
+          campoPlaca.innerHTML = `<span class="form__label">Placa</span>`;
+          const inputPlaca = document.createElement('input');
+          inputPlaca.className = 'form__input';
+          inputPlaca.type = 'text';
+          inputPlaca.maxLength = 8;
+          inputPlaca.placeholder = 'ABC1D23';
+          inputPlaca.value = veiculo.placa || '';
+          inputPlaca.addEventListener('input', (e) => {
+            veiculosEmpresa[indice].placa = e.target.value;
+            veiculosEditados = true;
+          });
+          campoPlaca.appendChild(inputPlaca);
+          gridPrincipal.appendChild(campoPlaca);
+
+          const campoMarca = document.createElement('label');
+          campoMarca.className = 'form__field';
+          campoMarca.innerHTML = `<span class="form__label">Marca/Modelo</span>`;
+          const inputMarca = document.createElement('input');
+          inputMarca.className = 'form__input';
+          inputMarca.type = 'text';
+          inputMarca.value = veiculo.marcaModelo || '';
+          inputMarca.addEventListener('input', (e) => {
+            veiculosEmpresa[indice].marcaModelo = e.target.value;
+            veiculosEditados = true;
+          });
+          campoMarca.appendChild(inputMarca);
+          gridPrincipal.appendChild(campoMarca);
+
+          const campoCor = document.createElement('label');
+          campoCor.className = 'form__field';
+          campoCor.innerHTML = `<span class="form__label">Cor</span>`;
+          const inputCor = document.createElement('input');
+          inputCor.className = 'form__input';
+          inputCor.type = 'text';
+          inputCor.value = veiculo.cor || '';
+          inputCor.addEventListener('input', (e) => {
+            veiculosEmpresa[indice].cor = e.target.value;
+            veiculosEditados = true;
+          });
+          campoCor.appendChild(inputCor);
+          gridPrincipal.appendChild(campoCor);
+          wrapper.appendChild(gridPrincipal);
+
+          const gridSecundario = document.createElement('div');
+          gridSecundario.className = 'form__grid form__grid--3';
+          const campoAno = document.createElement('label');
+          campoAno.className = 'form__field';
+          campoAno.innerHTML = `<span class="form__label">Ano/Modelo</span>`;
+          const inputAno = document.createElement('input');
+          inputAno.className = 'form__input';
+          inputAno.type = 'number';
+          inputAno.min = 1900;
+          inputAno.max = 2100;
+          inputAno.placeholder = '2024';
+          inputAno.value = veiculo.anoModelo ?? '';
+          inputAno.addEventListener('input', (e) => {
+            const valor = e.target.value ? Number(e.target.value) : '';
+            veiculosEmpresa[indice].anoModelo = (valor === '' || Number.isNaN(valor)) ? undefined : valor;
+            veiculosEditados = true;
+          });
+          campoAno.appendChild(inputAno);
+          gridSecundario.appendChild(campoAno);
+
+          // Campos ocultos para sincronizar proprietário e CNPJ automaticamente
+          const inputNomeProprietario = document.createElement('input');
+          inputNomeProprietario.type = 'hidden';
+          inputNomeProprietario.dataset.veiculoNomeProprietario = 'true';
+          inputNomeProprietario.value = veiculo.nomeProprietario || empresaForm?.razaoSocial?.value || '';
+          const inputCnpjProprietario = document.createElement('input');
+          inputCnpjProprietario.type = 'hidden';
+          inputCnpjProprietario.dataset.veiculoCnpj = 'true';
+          inputCnpjProprietario.value = veiculo.cnpj || (document.getElementById('empresa-cnpj')?.value || '');
+
+          gridSecundario.appendChild(inputNomeProprietario);
+          gridSecundario.appendChild(inputCnpjProprietario);
+
+          wrapper.appendChild(gridSecundario);
+          listaEl.appendChild(wrapper);
+        });
+      };
+
+      const adicionarVeiculoEmpresa = () => {
+        veiculosEmpresa.push({});
+        veiculosEditados = true;
+        renderizarVeiculosEmpresa();
+      };
     </script>
     <div id="alterar-senha-modal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="alterar-senha-title">
       <div class="modal__overlay" data-modal-close></div>
