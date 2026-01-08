@@ -4920,16 +4920,26 @@
           sectionTitle('Endereços');
           const attrs = selected.enderecos;
           const lista = valores.enderecos || [];
-          if (!lista.length) {
-            // sem dados: manter em branco
-          } else {
-            lista.forEach((end, idx) => {
-              html += `<table><caption style="caption-side:top;text-align:left;"><strong>Endereço ${idx + 1}</strong></caption>`;
-              attrs.forEach((k) => {
-                const label = buildRelatorioConfig().enderecos.find((a) => a.key === k)?.label || k;
-                addRow(label, end?.[k]);
-              });
-              html += `</table>`;
+          if (lista.length) {
+            lista.forEach((end) => {
+              const log = attrs.includes('logradouro') ? safeText(end?.logradouro) : '';
+              const comp = attrs.includes('complemento') ? safeText(end?.complemento) : '';
+              const bc = attrs.includes('bairro') ? safeText(end?.bairro) : '';
+              const uf = attrs.includes('uf') ? safeText(end?.uf) : '';
+              const bcuf = [bc, uf].filter(Boolean).join(bc && uf ? '/' : '');
+              const cep = attrs.includes('cep') ? safeText(end?.cep) : '';
+              let linha = '';
+              if (log) linha = log;
+              if (comp) linha = linha ? `${linha}, ${comp}` : comp;
+              if (bcuf) linha = linha ? `${linha} - ${bcuf}` : bcuf;
+              if (cep) linha = linha ? `${linha} - ${cep}` : cep;
+              html += `<div class="section">`;
+              html += `<div>&bull; ${linha}</div>`;
+              if (attrs.includes('latLong')) {
+                const latLongVal = safeText(end?.latLong);
+                html += `<div>Lat/Long: ${latLongVal}</div>`;
+              }
+              html += `</div>`;
             });
           }
         }
@@ -5271,11 +5281,28 @@
           sectionTitle('Endereços');
           const attrs = selected.enderecos;
           const lista = valores.enderecos || [];
-          lista.forEach((end, idx) => {
-            out += `<table><caption style="caption-side:top;text-align:left;"><strong>Endereço ${idx + 1}</strong></caption>`;
-            attrs.forEach((k) => addRow(labelOf(cfg.enderecos, k), end?.[k]));
-            out += `</table>`;
-          });
+          if (lista.length) {
+            lista.forEach((end) => {
+              const log = attrs.includes('logradouro') ? safeText(end?.logradouro) : '';
+              const comp = attrs.includes('complemento') ? safeText(end?.complemento) : '';
+              const bc = attrs.includes('bairro') ? safeText(end?.bairro) : '';
+              const uf = attrs.includes('uf') ? safeText(end?.uf) : '';
+              const bcuf = [bc, uf].filter(Boolean).join(bc && uf ? '/' : '');
+              const cep = attrs.includes('cep') ? safeText(end?.cep) : '';
+              let linha = '';
+              if (log) linha = log;
+              if (comp) linha = linha ? `${linha}, ${comp}` : comp;
+              if (bcuf) linha = linha ? `${linha} - ${bcuf}` : bcuf;
+              if (cep) linha = linha ? `${linha} - ${cep}` : cep;
+              out += `<div class="section">`;
+              out += `<div>&bull; ${linha}</div>`;
+              if (attrs.includes('latLong')) {
+                const latLongVal = safeText(end?.latLong);
+                out += `<div>Lat/Long: ${latLongVal}</div>`;
+              }
+              out += `</div>`;
+            });
+          }
         }
 
         if (selected.veiculos?.length) {
