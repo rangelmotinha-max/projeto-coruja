@@ -15,7 +15,10 @@ function sanitizeEmpresa(payload) {
   const veiculos = Array.isArray(payload.veiculos)
     ? payload.veiculos
         .map((v) => {
-          const placa = String(v?.placa || '').trim();
+          const placa = String(v?.placa || '')
+            .toUpperCase()
+            .replace(/[^A-Z0-9]/g, '')
+            .trim();
           const marcaModelo = String(v?.marcaModelo || '').trim();
           const cor = String(v?.cor || '').trim();
           const anoModelo = typeof v?.anoModelo === 'number' ? v.anoModelo : (v?.anoModelo ? Number(String(v.anoModelo).replace(/\D/g, '')) || null : null);
@@ -23,7 +26,7 @@ function sanitizeEmpresa(payload) {
           const cnpj = String(v?.cnpj || cnpjDigits || '').replace(/\D/g, '');
           return { placa, marcaModelo, cor, anoModelo, nomeProprietario, cnpj };
         })
-        .filter((v) => (v.placa || v.marcaModelo || v.cor || v.anoModelo))
+        .filter((v) => (v.placa && v.nomeProprietario))
     : [];
 
   return {

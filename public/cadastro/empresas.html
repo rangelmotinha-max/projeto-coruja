@@ -284,6 +284,21 @@
       const salvarEmpresa = async (e) => {
         e.preventDefault();
         const payload = obterDadosFormulario();
+        // Validações de UI: exigir Razão Social/Nome Fantasia e placa nos veículos
+        const razaoVal = String(empresaForm.razaoSocial?.value || '').trim();
+        const fantasiaVal = String(empresaForm.nomeFantasia?.value || '').trim();
+        if (!razaoVal && !fantasiaVal) {
+          exibirMensagemForm('Informe Razão Social ou Nome Fantasia para vincular veículos.', 'error');
+          empresaForm.razaoSocial.focus();
+          return;
+        }
+        if (Array.isArray(payload.veiculos) && payload.veiculos.length) {
+          const semPlaca = payload.veiculos.find(v => !String(v.placa||'').trim());
+          if (semPlaca) {
+            exibirMensagemForm('Informe a placa de todos os veículos adicionados.', 'error');
+            return;
+          }
+        }
         if (!validarCnpj14(payload.cnpj)) {
           exibirMensagemForm('CNPJ inválido: deve conter exatamente 14 números.', 'error');
           empresaForm.cnpj.focus();
