@@ -354,7 +354,7 @@
 
         const thead = document.createElement('thead');
         const headRow = document.createElement('tr');
-        const ths = ['CNPJ', 'Razão Social', 'Nome Fantasia', 'Situação Cadastral', 'Veículos', 'Ações'];
+        const ths = ['CNPJ', 'Razão Social', 'Nome Fantasia', 'Situação Cadastral', 'Ações'];
         ths.forEach(t => {
           const th = document.createElement('th');
           th.textContent = t;
@@ -385,11 +385,6 @@
           tdSituacao.textContent = e.situacaoCadastral || '—';
           tdSituacao.style.padding = '0.5rem';
 
-          const tdVeiculos = document.createElement('td');
-          tdVeiculos.style.padding = '0.5rem';
-          const placas = Array.isArray(e.veiculos) ? e.veiculos.map(v => v.placa).filter(Boolean) : [];
-          tdVeiculos.textContent = placas.length ? placas.join(' | ') : '—';
-
           const tdAcoes = document.createElement('td');
           tdAcoes.style.padding = '0.5rem';
           const actions = document.createElement('div');
@@ -413,7 +408,6 @@
           tr.appendChild(tdRazao);
           tr.appendChild(tdFantasia);
           tr.appendChild(tdSituacao);
-          tr.appendChild(tdVeiculos);
           tr.appendChild(tdAcoes);
 
           tbody.appendChild(tr);
