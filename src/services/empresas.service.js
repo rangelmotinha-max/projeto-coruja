@@ -1,7 +1,9 @@
 const EmpresaModel = require('../models/empresas.model');
 const { criarErro } = require('../utils/helpers');
 
-function sanitizeEmpresa(payload) {
+function sanitizeEmpresa(payload, options = {}) {
+  // Comentário: permite preservar ausência de "veiculos" em payloads de atualização.
+  const preservarVeiculosAusentes = options.preservarVeiculosAusentes === true;
   const cnpjDigits = String(payload.cnpj || '').replace(/\D/g, '');
   const telefone = String(payload.telefone || '').trim();
   const razaoSocial = payload.razaoSocial ? String(payload.razaoSocial).trim() : '';
@@ -12,7 +14,8 @@ function sanitizeEmpresa(payload) {
         cpf: String(s?.cpf || '').replace(/\D/g, ''),
       })).filter((s) => s.nome || s.cpf)
     : [];
-  const veiculos = Array.isArray(payload.veiculos)
+  const temVeiculos = Object.prototype.hasOwnProperty.call(payload, 'veiculos');
+  const veiculosNormalizados = Array.isArray(payload.veiculos)
     ? payload.veiculos
         .map((v) => {
           const placa = String(v?.placa || '')
@@ -29,7 +32,7 @@ function sanitizeEmpresa(payload) {
         .filter((v) => (v.placa && v.nomeProprietario))
     : [];
 
-  return {
+  const resultado = {
     cnpj: cnpjDigits || null,
     razaoSocial: razaoSocial || null,
     nomeFantasia: nomeFantasia || null,
@@ -39,8 +42,14 @@ function sanitizeEmpresa(payload) {
     telefone: telefone || null,
     enderecos: require('../utils/validators').validarEnderecos(payload.enderecos || []),
     socios,
-    veiculos,
   };
+
+  // Comentário: só inclui "veiculos" quando o payload realmente enviou essa seção.
+  if (!preservarVeiculosAusentes || temVeiculos) {
+    resultado.veiculos = veiculosNormalizados;
+  }
+
+  return resultado;
 }
 
 async function criar(payload) {
@@ -119,7 +128,7 @@ async function buscarPorId(id) {
 async function atualizar(id, payload) {
   const existente = await EmpresaModel.findById(id);
   if (!existente) throw criarErro('Empresa não encontrada', 404);
-  const updates = sanitizeEmpresa(payload || {});
+  const updates = sanitizeEmpresa(payload || {}, { preservarVeiculosAusentes: true });
   return EmpresaModel.update(id, updates);
 }
 

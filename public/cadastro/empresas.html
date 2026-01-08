@@ -193,6 +193,7 @@
       let socios = [];
       let enderecosEmpresa = [];
       let veiculosEmpresa = [];
+      let veiculosEditados = false;
       let empresaEmEdicao = null;
 
       // Helpers de autenticação (locais desta página)
@@ -267,17 +268,20 @@
             latLong: String(e.latLong||'').trim() || null,
           }))
           .filter(e => Object.values(e).some(v => v));
-        dados.veiculos = veiculosEmpresa
-          .map(v => {
-            const placa = normalizarPlaca(String(v.placa||''));
-            const marcaModelo = String(v.marcaModelo||'').trim();
-            const cor = String(v.cor||'').trim();
-            const anoModelo = (v.anoModelo ?? null);
-            const nomeProprietario = String(v.nomeProprietario || nomeProprietarioDefault || '').trim() || null;
-            const cnpj = String(v.cnpj || cnpjEmpresa || '').replace(/\D/g, '') || null;
-            return { placa, marcaModelo, cor, anoModelo, nomeProprietario, cnpj };
-          })
-          .filter(v => (v.placa || v.marcaModelo || v.cor || v.anoModelo));
+        if (!empresaEmEdicao || veiculosEditados) {
+          // Comentário: só envia veículos na edição quando o usuário alterou essa seção.
+          dados.veiculos = veiculosEmpresa
+            .map(v => {
+              const placa = normalizarPlaca(String(v.placa||''));
+              const marcaModelo = String(v.marcaModelo||'').trim();
+              const cor = String(v.cor||'').trim();
+              const anoModelo = (v.anoModelo ?? null);
+              const nomeProprietario = String(v.nomeProprietario || nomeProprietarioDefault || '').trim() || null;
+              const cnpj = String(v.cnpj || cnpjEmpresa || '').replace(/\D/g, '') || null;
+              return { placa, marcaModelo, cor, anoModelo, nomeProprietario, cnpj };
+            })
+            .filter(v => (v.placa || v.marcaModelo || v.cor || v.anoModelo));
+        }
         return dados;
       };
       const atualizarRotuloSubmit = () => { submitBtn.textContent = empresaEmEdicao ? 'Salvar' : 'Incluir'; };
@@ -324,6 +328,7 @@
           socios = [];
           renderizarSocios();
           veiculosEmpresa = [];
+          veiculosEditados = false;
           renderizarVeiculosEmpresa();
           empresaEmEdicao = null;
           atualizarRotuloSubmit();
@@ -498,6 +503,7 @@
         socios = Array.isArray(e.socios) ? e.socios.map(s=>({ nome: s.nome||'', cpf: s.cpf||'' })) : [];
         enderecosEmpresa = Array.isArray(e.enderecos) ? e.enderecos.map(x=>({ uf:x.uf||'', logradouro:x.logradouro||'', bairro:x.bairro||'', complemento:x.complemento||'', cep: x.cep||'', latLong: x.latLong||'' })) : [];
         veiculosEmpresa = Array.isArray(e.veiculos) ? e.veiculos.map(v=>({ placa:v.placa||'', marcaModelo:v.marcaModelo||'', cor:v.cor||'', anoModelo:v.anoModelo??'', nomeProprietario:v.nomeProprietario||'', cnpj:v.cnpj||'' })) : [];
+        veiculosEditados = false;
         renderizarSocios();
         renderizarEnderecosEmpresa();
         renderizarVeiculosEmpresa();
@@ -521,7 +527,7 @@
             throw new Error(msg);
           }
           alert('Empresa excluída com sucesso!');
-          if (empresaEmEdicao === e.id) { empresaEmEdicao = null; atualizarRotuloSubmit(); empresaForm.reset(); socios = []; renderizarSocios(); veiculosEmpresa = []; renderizarVeiculosEmpresa(); }
+          if (empresaEmEdicao === e.id) { empresaEmEdicao = null; atualizarRotuloSubmit(); empresaForm.reset(); socios = []; renderizarSocios(); veiculosEmpresa = []; veiculosEditados = false; renderizarVeiculosEmpresa(); }
           listarEmpresas();
         } catch (err) {
           exibirMensagem(err?.message || 'Erro ao excluir empresa.', 'error');
@@ -735,6 +741,7 @@
           btnRemover.style.minWidth = 'fit-content';
           btnRemover.addEventListener('click', () => {
             veiculosEmpresa.splice(indice, 1);
+            veiculosEditados = true;
             renderizarVeiculosEmpresa();
           });
           titulo.appendChild(btnRemover);
@@ -754,6 +761,7 @@
           inputPlaca.value = veiculo.placa || '';
           inputPlaca.addEventListener('input', (e) => {
             veiculosEmpresa[indice].placa = e.target.value;
+            veiculosEditados = true;
           });
           campoPlaca.appendChild(inputPlaca);
           gridPrincipal.appendChild(campoPlaca);
@@ -767,6 +775,7 @@
           inputMarca.value = veiculo.marcaModelo || '';
           inputMarca.addEventListener('input', (e) => {
             veiculosEmpresa[indice].marcaModelo = e.target.value;
+            veiculosEditados = true;
           });
           campoMarca.appendChild(inputMarca);
           gridPrincipal.appendChild(campoMarca);
@@ -780,6 +789,7 @@
           inputCor.value = veiculo.cor || '';
           inputCor.addEventListener('input', (e) => {
             veiculosEmpresa[indice].cor = e.target.value;
+            veiculosEditados = true;
           });
           campoCor.appendChild(inputCor);
           gridPrincipal.appendChild(campoCor);
@@ -800,6 +810,7 @@
           inputAno.addEventListener('input', (e) => {
             const valor = e.target.value ? Number(e.target.value) : '';
             veiculosEmpresa[indice].anoModelo = (valor === '' || Number.isNaN(valor)) ? undefined : valor;
+            veiculosEditados = true;
           });
           campoAno.appendChild(inputAno);
           gridSecundario.appendChild(campoAno);
@@ -824,6 +835,7 @@
 
       const adicionarVeiculoEmpresa = () => {
         veiculosEmpresa.push({});
+        veiculosEditados = true;
         renderizarVeiculosEmpresa();
       };
     </script>

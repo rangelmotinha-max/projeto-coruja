@@ -189,9 +189,12 @@ class EmpresaCatalogoModel {
       await this._salvarEnderecos(db, id, updates.enderecos);
     }
 
-    if (Array.isArray(updates.veiculos)) {
+    const atualizaVeiculos = Object.prototype.hasOwnProperty.call(updates, 'veiculos');
+    if (atualizaVeiculos) {
+      // Comentário: aceita array vazio para limpeza explícita de veículos.
+      const veiculos = Array.isArray(updates.veiculos) ? updates.veiculos : [];
       await this._removerVeiculos(db, id);
-      await this._salvarVeiculos(db, id, updates.veiculos);
+      await this._salvarVeiculos(db, id, veiculos);
     }
 
     return this.findById(id);
