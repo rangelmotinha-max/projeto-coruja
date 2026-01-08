@@ -131,7 +131,15 @@ async function buscarPorId(id) {
 async function atualizar(id, payload) {
   const existente = await EmpresaModel.findById(id);
   if (!existente) throw criarErro('Empresa não encontrada', 404);
-  const updates = sanitizeEmpresa(payload || {}, { preservarVeiculosAusentes: true });
+  const payloadNormalizado = payload ? { ...payload } : {};
+  // Comentário: se o payload não trouxe razão social ou CNPJ, usa os dados existentes antes de normalizar veículos.
+  if (!Object.prototype.hasOwnProperty.call(payloadNormalizado, 'razaoSocial')) {
+    payloadNormalizado.razaoSocial = existente.razaoSocial;
+  }
+  if (!Object.prototype.hasOwnProperty.call(payloadNormalizado, 'cnpj')) {
+    payloadNormalizado.cnpj = existente.cnpj;
+  }
+  const updates = sanitizeEmpresa(payloadNormalizado, { preservarVeiculosAusentes: true });
   return EmpresaModel.update(id, updates);
 }
 
