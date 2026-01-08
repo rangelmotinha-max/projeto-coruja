@@ -1,8 +1,14 @@
 const { initDatabase } = require('../database/sqlite');
 
-// Modelo dedicado à consulta de veículos vinculados a empresas
+// Modelo dedicado aos veículos vinculados a empresas
 class VeiculoEmpresaModel {
-  // Busca veículos de empresas com filtros compatíveis com a busca de veículos
+  // Lista todos os veículos vinculados a empresas
+  static async findAll() {
+    const db = await initDatabase();
+    return db.all('SELECT * FROM veiculos_empresas ORDER BY atualizadoEm DESC');
+  }
+
+  // Busca veículos de empresas com filtros flexíveis
   static async search(filtros = {}) {
     const db = await initDatabase();
     const clausulas = [];
@@ -12,18 +18,15 @@ class VeiculoEmpresaModel {
       clausulas.push('placa = ?');
       valores.push(filtros.placa);
     }
-
-    const documento = filtros.cnpj || filtros.cpf;
-    if (documento) {
+    if (filtros.cpf) {
+      // Comentário: CPF representa o CNPJ para veículos de empresa.
       clausulas.push('cnpj = ?');
-      valores.push(documento);
+      valores.push(filtros.cpf);
     }
-
     if (filtros.nomeProprietario) {
       clausulas.push('LOWER(nomeProprietario) LIKE LOWER(?)');
       valores.push(`%${filtros.nomeProprietario}%`);
     }
-
     if (filtros.marcaModelo) {
       clausulas.push('LOWER(marcaModelo) LIKE LOWER(?)');
       valores.push(`%${filtros.marcaModelo}%`);
