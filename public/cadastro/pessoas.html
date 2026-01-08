@@ -2189,7 +2189,7 @@
             <tr style="background: var(--surface-muted);">
               <th style="text-align:left; padding: 0.35rem;">Nome</th>
               <th style="text-align:left; padding: 0.35rem;">CPF</th>
-              <th style="text-align:left; padding: 0.35rem;">Tipo</th>
+              <th style="text-align:left; padding: 0.35rem;">Tipo de Vínculo</th>
               <th style="text-align:center; padding: 0.35rem;">Ações</th>
             </tr>
           </thead>
@@ -2298,6 +2298,55 @@
           perguntaDiv.textContent = 'Deseja vincular a pessoa?';
           perguntaDiv.style.textAlign = window.innerWidth < 480 ? 'left' : 'right';
 
+          // Seleção do tipo de vínculo (com opção "Outro")
+          const tipoWrap = document.createElement('div');
+          tipoWrap.style.display = 'flex';
+          tipoWrap.style.flexDirection = window.innerWidth < 480 ? 'column' : 'row';
+          tipoWrap.style.gap = '0.35rem';
+          tipoWrap.style.alignItems = window.innerWidth < 480 ? 'stretch' : 'center';
+          tipoWrap.style.marginBottom = '0.35rem';
+
+          const tipoLabel = document.createElement('small');
+          tipoLabel.textContent = 'Tipo de vínculo';
+          tipoLabel.style.color = 'var(--muted)';
+          tipoLabel.setAttribute('aria-label', 'Selecione o tipo de vínculo');
+
+          const selectTipo = document.createElement('select');
+          selectTipo.className = 'form__input';
+          selectTipo.style.maxWidth = window.innerWidth < 480 ? '100%' : '12rem';
+          selectTipo.setAttribute('aria-label', 'Tipo de vínculo');
+          selectTipo.innerHTML = `
+            <option value="">Selecione</option>
+            <option value="parente">Parente</option>
+            <option value="conjuge">Cônjuge</option>
+            <option value="amigo">Amigo</option>
+            <option value="suspeito">Suspeito</option>
+            <option value="vitima">Vítima</option>
+            <option value="testemunha">Testemunha</option>
+            <option value="conhecido">Conhecido</option>
+            <option value="colega">Colega</option>
+            <option value="parceiro">Parceiro</option>
+            <option value="outro">Outro</option>
+          `;
+
+          const inputOutro = document.createElement('input');
+          inputOutro.type = 'text';
+          inputOutro.className = 'form__input';
+          inputOutro.placeholder = 'Especifique o tipo';
+          inputOutro.style.display = 'none';
+          inputOutro.style.maxWidth = window.innerWidth < 480 ? '100%' : '14rem';
+          inputOutro.setAttribute('aria-label', 'Especifique o tipo de vínculo');
+
+          selectTipo.addEventListener('change', () => {
+            const isOutro = selectTipo.value === 'outro';
+            inputOutro.style.display = isOutro ? '' : 'none';
+            if (!isOutro) inputOutro.value = '';
+          });
+
+          tipoWrap.appendChild(tipoLabel);
+          tipoWrap.appendChild(selectTipo);
+          tipoWrap.appendChild(inputOutro);
+
           const botoesDiv = document.createElement('div');
           botoesDiv.style.display = 'flex';
           botoesDiv.style.justifyContent = window.innerWidth < 480 ? 'flex-start' : 'flex-end';
@@ -2308,7 +2357,12 @@
           btnSim.type = 'button';
           btnSim.className = 'button button--primary';
           btnSim.textContent = 'Sim';
-          btnSim.addEventListener('click', () => confirmarVinculoPessoa(indice, true));
+          btnSim.addEventListener('click', () => {
+            const tipoSelecionado = selectTipo.value === 'outro'
+              ? (inputOutro.value || '').trim()
+              : (selectTipo.value || '');
+            confirmarVinculoPessoa(indice, true, tipoSelecionado);
+          });
 
           const btnNao = document.createElement('button');
           btnNao.type = 'button';
@@ -2331,6 +2385,7 @@
             btnNao.style.width = '100%';
           }
 
+          acoesTd.appendChild(tipoWrap);
           botoesDiv.appendChild(btnSim);
           botoesDiv.appendChild(btnNao);
           acoesTd.appendChild(perguntaDiv);
@@ -2619,7 +2674,7 @@
       };
 
       // Comentário: confirma e aplica o vínculo selecionado em cada resultado
-      const confirmarVinculoPessoa = (indice, skipConfirm = false) => {
+      const confirmarVinculoPessoa = (indice, skipConfirm = false, tipoVinculo = '') => {
         const pessoaEncontrada = resultadosBuscaPessoas[indice];
 
         if (!pessoaEncontrada) {
@@ -2656,7 +2711,7 @@
           id: pessoaEncontrada.id || pessoaEncontrada._id,
           nome: nomeEncontrado,
           cpf: cpfEncontrado,
-          tipo: '',
+          tipo: String(tipoVinculo || ''),
         });
 
         renderizarVinculosPessoas();
