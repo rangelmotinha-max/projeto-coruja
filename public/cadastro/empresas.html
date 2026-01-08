@@ -730,7 +730,13 @@
       };
       const configurarListenersVeiculosEmpresa = () => {
         if (listenersVeiculosEmpresaConfigurados) return;
-        const atualizarDados = () => sincronizarVeiculosEmpresa();
+        const atualizarDados = () => {
+          sincronizarVeiculosEmpresa();
+          if (veiculosEmpresa.length) {
+            // Comentário: marca edição para garantir envio quando Razão Social/CNPJ mudarem com veículos carregados.
+            veiculosEditados = true;
+          }
+        };
         empresaForm?.razaoSocial?.addEventListener('input', atualizarDados);
         empresaForm?.cnpj?.addEventListener('input', atualizarDados);
         listenersVeiculosEmpresaConfigurados = true;
