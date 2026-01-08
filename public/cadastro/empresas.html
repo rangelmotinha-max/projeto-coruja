@@ -253,8 +253,7 @@
         dados.cnpj = aplicarMascaraCnpj(dados.cnpj).replace(/\D/g, '');
         dados.telefone = aplicarMascaraTelefone(dados.telefone);
         const razao = String(dados.razaoSocial||'').trim();
-        const fantasia = String(dados.nomeFantasia||'').trim();
-        const nomeProprietarioDefault = razao || fantasia || null;
+        const nomeProprietarioDefault = razao || null;
         const cnpjEmpresa = dados.cnpj || null;
         sincronizarVeiculosEmpresa();
         dados.socios = socios
@@ -290,11 +289,10 @@
       const salvarEmpresa = async (e) => {
         e.preventDefault();
         const payload = obterDadosFormulario();
-        // Validações de UI: exigir Razão Social/Nome Fantasia e placa nos veículos
+        // Validações de UI: exigir Razão Social e placa nos veículos quando existirem
         const razaoVal = String(empresaForm.razaoSocial?.value || '').trim();
-        const fantasiaVal = String(empresaForm.nomeFantasia?.value || '').trim();
-        if (!razaoVal && !fantasiaVal) {
-          exibirMensagemForm('Informe Razão Social ou Nome Fantasia para vincular veículos.', 'error');
+        if (!razaoVal) {
+          exibirMensagemForm('Razão Social é obrigatória.', 'error');
           empresaForm.razaoSocial.focus();
           return;
         }
@@ -717,8 +715,7 @@
       };
       const obterNomeProprietarioEmpresa = () => {
         const razao = String(empresaForm?.razaoSocial?.value || '').trim();
-        const fantasia = String(empresaForm?.nomeFantasia?.value || '').trim();
-        return razao || fantasia || '';
+        return razao || '';
       };
       const obterCnpjEmpresa = () => String(empresaForm?.cnpj?.value || '').replace(/\D/g, '');
       const sincronizarVeiculosEmpresa = () => {
@@ -735,7 +732,6 @@
         if (listenersVeiculosEmpresaConfigurados) return;
         const atualizarDados = () => sincronizarVeiculosEmpresa();
         empresaForm?.razaoSocial?.addEventListener('input', atualizarDados);
-        empresaForm?.nomeFantasia?.addEventListener('input', atualizarDados);
         empresaForm?.cnpj?.addEventListener('input', atualizarDados);
         listenersVeiculosEmpresaConfigurados = true;
       };
@@ -847,7 +843,7 @@
           const inputNomeProprietario = document.createElement('input');
           inputNomeProprietario.type = 'hidden';
           inputNomeProprietario.dataset.veiculoNomeProprietario = 'true';
-          inputNomeProprietario.value = veiculo.nomeProprietario || empresaForm?.razaoSocial?.value || empresaForm?.nomeFantasia?.value || '';
+          inputNomeProprietario.value = veiculo.nomeProprietario || empresaForm?.razaoSocial?.value || '';
           const inputCnpjProprietario = document.createElement('input');
           inputCnpjProprietario.type = 'hidden';
           inputCnpjProprietario.dataset.veiculoCnpj = 'true';
