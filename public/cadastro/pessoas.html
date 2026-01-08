@@ -2581,10 +2581,11 @@
         listaVinculosVeiculosEl.appendChild(painel);
       };
 
-      const adicionarVinculoPessoa = (dados = { nome: '', cpf: '', tipo: '' }) => {
+      const adicionarVinculoPessoa = (dados = { id: undefined, nome: '', cpf: '', tipo: '' }) => {
         // Comentário: mantemos o formato original para garantir compatibilidade com o backend
         // e com fluxos de salvamento já existentes no formulário de pessoa.
         const novoVinculo = {
+          id: dados?.id,
           nome: String(dados?.nome || '').trim(),
           cpf: aplicarMascaraCpfInline(dados?.cpf || ''),
           tipo: String(dados?.tipo || ''),
@@ -2652,6 +2653,7 @@
         }
 
         adicionarVinculoPessoa({
+          id: pessoaEncontrada.id || pessoaEncontrada._id,
           nome: nomeEncontrado,
           cpf: cpfEncontrado,
           tipo: '',
@@ -5059,6 +5061,297 @@
         return html;
       }
 
+      // Busca pessoa vinculada por CPF (preferencial) ou por nome
+      async function buscarPessoaCompletaPorVinculo(v) {
+        try {
+          const id = v?.id || v?._id;
+          if (id) {
+            const respId = await fetchAutenticado(`${API_PESSOAS_URL}/${id}`);
+            const jsonId = await respId.json().catch(() => null);
+            if (respId.ok && jsonId) {
+              const obj = jsonId?.data || jsonId;
+              if (obj && typeof obj === 'object') return obj;
+            }
+          }
+          const cpfLimpo = String(v?.cpf || '').replace(/\D/g, '');
+          let url = '';
+          if (cpfLimpo && cpfLimpo.length === 11) {
+            url = `${API_PESSOAS_URL}/buscar?documento=${encodeURIComponent(cpfLimpo)}`;
+          } else if (v?.nome) {
+            url = `${API_PESSOAS_URL}/buscar?nome=${encodeURIComponent(String(v.nome).trim())}`;
+          } else {
+            return null;
+          }
+
+          const resp = await fetchAutenticado(url);
+          const json = await resp.json().catch(() => null);
+          if (!resp.ok || !json) return null;
+
+          let lista = [];
+          if (Array.isArray(json)) {
+            lista = json;
+          } else if (Array.isArray(json?.data)) {
+            lista = json.data;
+          } else if (json?.data && typeof json.data === 'object') {
+            lista = [json.data];
+          } else if (typeof json === 'object') {
+            // Algumas APIs retornam o objeto diretamente
+            // Tenta tratar como um único resultado
+            lista = [json];
+          }
+
+          if (!Array.isArray(lista) || lista.length === 0) return null;
+
+          if (cpfLimpo) {
+            const exata = lista.find(p => String(p?.cpf || '').replace(/\D/g,'') === cpfLimpo);
+            if (exata) return exata;
+          }
+          return lista[0] || null;
+        } catch {
+          return null;
+        }
+      }
+
+      // Mapeia a pessoa vinda da API para o formato usado pelo gerador atual
+      function montarValoresDaPessoaApi(pessoa) {
+        const fotosCadastro = Array.isArray(pessoa?.fotos)
+          ? pessoa.fotos.map(f => f.url || f.caminho || f.referencia).filter(Boolean)
+          : [];
+        const qrCode = pessoa?.redesImagens?.qrCode
+          ? (pessoa.redesImagens.qrCode.url || pessoa.redesImagens.qrCode.caminho)
+          : null;
+        const perfilRedes = Array.isArray(pessoa?.redesImagens?.perfis)
+          ? pessoa.redesImagens.perfis.map(i => i.url || i.caminho).filter(Boolean)
+          : [];
+        const imgsMonitor = Array.isArray(pessoa?.ocorrencias?.monitoramentos)
+          ? pessoa.ocorrencias.monitoramentos.flatMap(m => Array.isArray(m?.imagens) ? m.imagens.map(img => img?.caminho).filter(Boolean) : [])
+          : [];
+
+        return {
+          nomeCompleto: pessoa?.nomeCompleto,
+          apelido: pessoa?.apelido,
+          cpf: pessoa?.cpf,
+          rg: pessoa?.rg,
+          cnh: pessoa?.cnh,
+          dataNascimento: pessoa?.dataNascimento,
+          idade: pessoa?.idade,
+          nomeMae: pessoa?.nomeMae,
+          nomePai: pessoa?.nomePai,
+          sinais: pessoa?.sinais,
+          faccao: pessoa?.faccao ? formatarNomeFaccao(pessoa.faccao) : '',
+          emails: Array.isArray(pessoa?.emails) ? pessoa.emails : [],
+          redesSociais: Array.isArray(pessoa?.redesSociais) ? pessoa.redesSociais : [],
+          telefones: Array.isArray(pessoa?.telefones) ? pessoa.telefones : [],
+          enderecos: Array.isArray(pessoa?.enderecos) ? pessoa.enderecos : [],
+          veiculos: Array.isArray(pessoa?.veiculos) ? pessoa.veiculos : (pessoa?.veiculo ? [pessoa.veiculo] : []),
+          vinculos: {
+            pessoas: Array.isArray(pessoa?.vinculos?.pessoas) ? pessoa.vinculos.pessoas : [],
+            empresas: Array.isArray(pessoa?.vinculos?.empresas) ? pessoa.vinculos.empresas : [],
+            veiculos: Array.isArray(pessoa?.vinculos?.veiculos) ? pessoa.vinculos.veiculos : [],
+            empregaticio: Array.isArray(pessoa?.vinculos?.empregaticio) ? pessoa.vinculos.empregaticio : []
+          },
+          ocorrencias: {
+            policiais: Array.isArray(pessoa?.ocorrencias?.policiais) ? pessoa.ocorrencias.policiais : [],
+            processos: Array.isArray(pessoa?.ocorrencias?.processos) ? pessoa.ocorrencias.processos : [],
+            abordagens: Array.isArray(pessoa?.ocorrencias?.abordagens) ? pessoa.ocorrencias.abordagens : [],
+            prisoes: Array.isArray(pessoa?.ocorrencias?.prisoes) ? pessoa.ocorrencias.prisoes : [],
+            monitoramentos: Array.isArray(pessoa?.ocorrencias?.monitoramentos) ? pessoa.ocorrencias.monitoramentos : [],
+          },
+          fotosCadastro,
+          imagensMonitoramento: imgsMonitor,
+          qrCode,
+          perfilRedes,
+        };
+      }
+
+      // Constrói as seções do relatório dadas as seleções e um objeto valores
+      function construirSecoesHTML(selected, valores) {
+        let out = '';
+        const cfg = buildRelatorioConfig();
+        const labelOf = (arr, k) => arr.find(a => a.key === k)?.label || k;
+
+        function sectionTitle(t) {
+          const titulo = (t ?? '').toString().toLocaleUpperCase('pt-BR');
+          out += `<h2 style="text-align:center;">${titulo}</h2>`;
+        }
+        function addRow(label, value) {
+          out += `<tr><th>${label}</th><td>${safeText(value)}</td></tr>`;
+        }
+
+        if (selected?.imagens?.includes('fotosCadastro')) {
+          out += `<div class="section">${imgGrid(valores.fotosCadastro)}</div>`;
+        }
+
+        if (selected.identificacao?.length) {
+          sectionTitle('Identificação');
+          out += `<table>`;
+          selected.identificacao.forEach((k) => addRow(labelOf(cfg.identificacao, k), valores[k]));
+          out += `</table>`;
+        }
+
+        if (selected.contatos?.length) {
+          sectionTitle('Contatos');
+          if (selected.contatos.includes('emails')) {
+            out += `<div class="section"><strong>Emails</strong><ul>${(valores.emails || []).map((e) => `<li>${safeText(e)}</li>`).join('')}</ul></div>`;
+          }
+          if (selected.contatos.includes('redesSociais')) {
+            out += `<div class="section"><strong>Redes Sociais</strong><ul>${(valores.redesSociais || []).map((r) => `<li>${safeText(r)}</li>`).join('')}</ul></div>`;
+          }
+          const showQR = selected.imagens?.includes('qrCode') && valores.qrCode;
+          const showPerfil = selected.imagens?.includes('perfilRedes') && (valores.perfilRedes?.length);
+          if (showQR || showPerfil) {
+            out += `<div class="section"><div style="display:grid; grid-template-columns: repeat(${(showQR && showPerfil) ? 2 : 1}, minmax(220px, 1fr)); gap:10px; align-items:start;">`;
+            if (showQR) out += `<div><strong>QR-CODE</strong>${imgGrid([valores.qrCode])}</div>`;
+            if (showPerfil) out += `<div><strong>Foto de Perfil (redes)</strong>${imgGrid(valores.perfilRedes)}</div>`;
+            out += `</div></div>`;
+          }
+        }
+
+        if (selected.telefones?.includes('telefones')) {
+          sectionTitle('Telefones');
+          out += `<ul>${(valores.telefones || []).map((t) => `<li>${safeText(t)}</li>`).join('')}</ul>`;
+        }
+
+        if (selected.enderecos?.length) {
+          sectionTitle('Endereços');
+          const attrs = selected.enderecos;
+          const lista = valores.enderecos || [];
+          lista.forEach((end, idx) => {
+            out += `<table><caption style="caption-side:top;text-align:left;"><strong>Endereço ${idx + 1}</strong></caption>`;
+            attrs.forEach((k) => addRow(labelOf(cfg.enderecos, k), end?.[k]));
+            out += `</table>`;
+          });
+        }
+
+        if (selected.veiculos?.length) {
+          sectionTitle('Veículos');
+          const attrs = selected.veiculos;
+          (valores.veiculos || []).forEach((v) => {
+            const linha1 = [];
+            if (attrs.includes('placa') && safeText(v?.placa)) linha1.push(`${labelOf(cfg.veiculos, 'placa')}: ${safeText(v?.placa)}`);
+            if (attrs.includes('marcaModelo') && safeText(v?.marcaModelo)) linha1.push(`${labelOf(cfg.veiculos, 'marcaModelo')}: ${safeText(v?.marcaModelo)}`);
+            if (attrs.includes('cor')) linha1.push(`${labelOf(cfg.veiculos, 'cor')}: ${safeText(v?.cor) || '—'}`);
+            if (attrs.includes('anoModelo')) linha1.push(`${labelOf(cfg.veiculos, 'anoModelo')}: ${safeText(v?.anoModelo) || '—'}`);
+
+            const linha2 = [];
+            if (attrs.includes('nomeProprietario') && safeText(v?.nomeProprietario)) linha2.push(`${labelOf(cfg.veiculos, 'nomeProprietario')}: ${safeText(v?.nomeProprietario)}`);
+            if (attrs.includes('cpf') && safeText(v?.cpf)) linha2.push(`${labelOf(cfg.veiculos, 'cpf')}: ${safeText(v?.cpf)}`);
+
+            if (linha1.length || linha2.length) {
+              out += `<div class="section">`;
+              if (linha1.length) out += `<div>&bull; ${linha1.join(', ')}</div>`;
+              if (linha2.length) out += `<div>${linha2.join(', ')}</div>`;
+              out += `</div>`;
+            }
+          });
+        }
+
+        if (selected.vinculos?.length) {
+          sectionTitle('Vínculos');
+          if (selected.vinculos.includes('pessoas')) {
+            out += `<div class="section"><strong>Pessoas</strong><ul>${(valores.vinculos.pessoas || []).map((v) => `<li>${safeText(v?.nome)}${v?.cpf ? ', CPF: ' + safeText(v?.cpf) : ''}${v?.tipo ? ', Tipo de vínculo: ' + safeText(v?.tipo) : ''}</li>`).join('')}</ul></div>`;
+          }
+          if (selected.vinculos.includes('empresas')) {
+            out += `<div class="section"><strong>Empresas</strong><ul>${(valores.vinculos.empresas || []).map((e) => `<li>${safeText(e?.nome || e?.razaoSocial || '')}</li>`).join('')}</ul></div>`;
+          }
+          if (selected.vinculos.includes('veiculos')) {
+            out += `<div class="section"><strong>Veículos</strong><ul>${(valores.vinculos.veiculos || []).map((v) => `<li>${safeText(v?.placa || '')}${v?.marcaModelo ? ' - ' + safeText(v.marcaModelo) : ''}</li>`).join('')}</ul></div>`;
+          }
+          if (selected.vinculos.includes('empregaticio')) {
+            out += `<div class="section"><strong>Empregatício</strong><ul>${(valores.vinculos.empregaticio || []).map((e) => `<li>${safeText(e?.info)}</li>`).join('')}</ul></div>`;
+          }
+        }
+
+        if (selected.ocorrencias?.length) {
+          sectionTitle('Ocorrências');
+          if (selected.ocorrencias.includes('policiais')) {
+            const policias = valores.ocorrencias.policiais || [];
+            const isImgExt = (u) => /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(String(u||''));
+            out += `<div class="section"><strong>Policiais</strong><ul>`;
+            policias.forEach((o) => {
+              const data = safeText(o?.data);
+              const info = safeText(o?.info);
+              let imgSrc = '';
+              const docPath = o?.documento?.caminho || o?.documento;
+              if (docPath && isImgExt(docPath)) imgSrc = String(docPath);
+              out += `<li>` +
+                (data ? `<div><strong>Data:</strong> ${data}</div>` : '') +
+                (info ? `<div><strong>Informação:</strong> ${info}</div>` : '') +
+                (imgSrc ? `<div style="margin-top:4px;"><img src="${imgSrc}" alt="Documento da ocorrência" style="max-width:240px; max-height:240px; object-fit:contain; border:1px solid #ccc; padding:4px;" /></div>` : '') +
+              `</li>`;
+            });
+            out += `</ul></div>`;
+          }
+          if (selected.ocorrencias.includes('processos')) {
+            out += `<div class="section"><strong>Processos</strong><ul>${(valores.ocorrencias.processos || []).map((p) => `<li>${[safeText(p?.data) && `Data: ${safeText(p.data)}`, safeText(p?.info) && `Informação: ${safeText(p.info)}`].filter(Boolean).map(s=>`<div>${s}</div>`).join('')}</li>`).join('')}</ul></div>`;
+          }
+          if (selected.ocorrencias.includes('abordagens')) {
+            out += `<div class="section"><strong>Abordagens</strong><ul>${(valores.ocorrencias.abordagens || []).map((a) => `<li>${[safeText(a?.data) && `Data: ${safeText(a.data)}`, safeText(a?.info) && `Informação: ${safeText(a.info)}`].filter(Boolean).map(s=>`<div>${s}</div>`).join('')}</li>`).join('')}</ul></div>`;
+          }
+          if (selected.ocorrencias.includes('prisoes')) {
+            out += `<div class="section"><strong>Prisões</strong><ul>${(valores.ocorrencias.prisoes || []).map((p) => `<li>${[safeText(p?.data) && `Data: ${safeText(p.data)}`, safeText(p?.info) && `Informação: ${safeText(p.info)}`].filter(Boolean).map(s=>`<div>${s}</div>`).join('')}</li>`).join('')}</ul></div>`;
+          }
+          if (selected.ocorrencias.includes('monitoramentos')) {
+            const mostrarImgsMonitor = Array.isArray(selected.ocorrencias) && selected.ocorrencias.includes('monitoramentosImagens');
+            out += `<div class="section"><strong>Monitoramentos</strong><ul>`;
+            (valores.ocorrencias.monitoramentos || []).forEach((m) => {
+              const data = safeText(m?.data);
+              const info = safeText(m?.descricao);
+              let imgs = [];
+              if (mostrarImgsMonitor) {
+                const existentes = Array.isArray(m?.imagens) ? m.imagens.map((img) => String(img?.caminho || '').trim()).filter(Boolean) : [];
+                imgs = existentes;
+              }
+              out += `<li>` +
+                (data ? `<div><strong>Data:</strong> ${data}</div>` : '') +
+                (info ? `<div><strong>Informação:</strong> ${info}</div>` : '') +
+                (mostrarImgsMonitor && imgs.length ? `<div style="margin-top:4px;">${imgGrid(imgs)}</div>` : '') +
+              `</li>`;
+            });
+            out += `</ul></div>`;
+          }
+        }
+
+        // Seção de imagens de monitoramento fora de "Ocorrências"
+        const mostrarImgsMonitoramentoGlobal = Array.isArray(selected.ocorrencias) && selected.ocorrencias.includes('monitoramentosImagens');
+        const inlineMonitoramentosSelecionado = Array.isArray(selected.ocorrencias) && selected.ocorrencias.includes('monitoramentos');
+        if (mostrarImgsMonitoramentoGlobal && !inlineMonitoramentosSelecionado) {
+          out += `<div class="section"><strong>Imagens de monitoramento</strong>${imgGrid(valores.imagensMonitoramento)}</div>`;
+        }
+
+        return out;
+      }
+
+      // Gera o HTML principal e anexa cadastros completos das pessoas vinculadas (respeita as seleções)
+      async function generateReportHTMLComAnexos(selected) {
+        let html = generateReportHTML(selected);
+
+        if (!Array.isArray(vinculosPessoas) || vinculosPessoas.length === 0) {
+          return html;
+        }
+
+        const detalhes = await Promise.all(vinculosPessoas.map(v => buscarPessoaCompletaPorVinculo(v)));
+
+        let anexos = '';
+        anexos += `<div style="page-break-before: always;"></div>`;
+        anexos += `<h1>Pessoas Vinculadas</h1>`;
+
+        detalhes.forEach((p, idx) => {
+          anexos += `<hr />`;
+          if (!p) {
+            anexos += `<div class="section"><em>Vínculo ${idx + 1}: não foi possível localizar detalhes.</em></div>`;
+            return;
+          }
+          const valoresV = montarValoresDaPessoaApi(p);
+          const subtitle = `${safeText(p.nomeCompleto || 'Pessoa vinculada')}${p?.cpf ? ' — CPF: ' + safeText(p.cpf) : ''}`;
+          anexos += `<h2 style="margin-top:8px;">${subtitle}</h2>`;
+          anexos += construirSecoesHTML(selected, valoresV);
+        });
+
+        html = html.replace('</body></html>', anexos + '</body></html>');
+        return html;
+      }
+
       function downloadWord(html, filename = 'relatorio-pessoa.doc') {
         const blob = new Blob([html], { type: 'application/msword' });
         const url = URL.createObjectURL(blob);
@@ -5089,9 +5382,9 @@
       relatorioLimparBtn?.addEventListener('click', () => {
         relatorioSelecoesEl.querySelectorAll('.rel-section, .rel-attr').forEach((el) => { el.checked = false; });
       });
-      relatorioGerarBtn?.addEventListener('click', () => {
+      relatorioGerarBtn?.addEventListener('click', async () => {
         const selected = collectSelected(relConfig);
-        const html = generateReportHTML(selected);
+        const html = await generateReportHTMLComAnexos(selected);
         const formato = (document.querySelector('input[name="relatorioFormato"]:checked')?.value || 'pdf');
         if (formato === 'word') {
           downloadWord(html);
