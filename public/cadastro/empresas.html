@@ -193,7 +193,9 @@
       let socios = [];
       let enderecosEmpresa = [];
       let empresaEmEdicao = null;
-      // Seção de veículos removida
+      let veiculosEmpresa = [];
+      let veiculosEditados = false;
+      let listenersVeiculosEmpresaConfigurados = false;
 
       // Helpers de autenticação (locais desta página)
       const getCookie = (name) => document.cookie.split(';').map(c=>c.trim()).find(c=>c.startsWith(`${name}=`))?.split('=')[1];
@@ -533,13 +535,13 @@
         document.getElementById('empresa-telefone')?.addEventListener('input', e=>{ e.target.value=aplicarMascaraTelefone(e.target.value); });
         document.getElementById('adicionar-socio')?.addEventListener('click', adicionarSocio);
         document.getElementById('adicionar-endereco-empresa')?.addEventListener('click', adicionarEnderecoEmpresa);
-        // Seção de veículos removida
+        document.getElementById('adicionar-veiculo-empresa')?.addEventListener('click', adicionarVeiculoEmpresa);
         empresaForm.addEventListener('submit', salvarEmpresa);
         listarBtn?.addEventListener('click', listarEmpresas);
         campoConsulta?.addEventListener('input', (e) => { termoBusca = e.target.value || ''; filtrarEmpresas(termoBusca); });
         renderizarSocios();
         renderizarEnderecosEmpresa();
-        // Seção de veículos removida
+        renderizarVeiculosEmpresa();
         listarEmpresas();
       };
       document.addEventListener('DOMContentLoaded', inicializar);
