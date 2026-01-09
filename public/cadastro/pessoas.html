@@ -3035,7 +3035,7 @@
 
         ocorrenciasPoliciais.forEach((item, i) => {
           const linha = document.createElement('div');
-          linha.style.cssText = 'display:grid; grid-template-columns: 10rem 1fr 15rem auto; gap:0.5rem; align-items:end;';
+          linha.style.cssText = 'display:grid; grid-template-columns: 10rem 1fr auto; gap:0.5rem; align-items:end;';
 
           // Campo de data da ocorrência
           const campoData = document.createElement('label');
@@ -3050,6 +3050,7 @@
           // Campo para anexar documento
           const campoDoc = document.createElement('div');
           campoDoc.className = 'form__field';
+          try { campoDoc.style.gridColumn = '1 / -1'; } catch {}
           const labelDoc = document.createElement('span');
           labelDoc.className = 'form__label';
           labelDoc.textContent = 'Anexar documento';
@@ -3072,7 +3073,7 @@
             linkDoc.href = item.documento.caminho;
             linkDoc.target = '_blank';
             linkDoc.rel = 'noreferrer noopener';
-            linkDoc.textContent = 'Visualizar documento salvo';
+            linkDoc.textContent = 'Abrir';
           }
 
           inputDoc.addEventListener('change', (e) => {
@@ -3106,8 +3107,8 @@
 
           linha.appendChild(campoData);
           linha.appendChild(campoInfo);
-          linha.appendChild(campoDoc);
           linha.appendChild(btnRemover);
+          linha.appendChild(campoDoc);
           lista.appendChild(linha);
         });
       };
