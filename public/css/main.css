@@ -717,6 +717,39 @@ body:not(.theme-dark) .form__label {
   background: var(--input-focus-bg);
 }
 
+/* Sombra dedicada para selects da lista de redes em modo dark */
+body.theme-dark #lista-redes select.form__input {
+  /* Sombra sutil sempre ativa para reforçar profundidade no dark */
+  box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.30);
+  border-color: color-mix(in srgb, var(--primary) 55%, transparent);
+}
+body.theme-dark #lista-redes select.form__input:focus {
+  /* Anel de foco mais evidente em roxo no dark */
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.60);
+  border-color: color-mix(in srgb, var(--primary) 65%, transparent);
+  outline: none;
+  background: var(--input-focus-bg);
+}
+/* Também cobre navegadores que usam :focus-visible para o anel de foco */
+body.theme-dark #lista-redes select.form__input:focus-visible {
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.60);
+  border-color: color-mix(in srgb, var(--primary) 65%, transparent);
+  outline: none;
+  background: var(--input-focus-bg);
+}
+
+/* Dropdown do select em modo escuro (lista de opções) */
+body.theme-dark #lista-redes select.form__input {
+  /* Instrui o navegador a usar UI do controle em dark */
+  color-scheme: dark;
+}
+body.theme-dark #lista-redes select.form__input,
+body.theme-dark #lista-redes select.form__input option,
+body.theme-dark #lista-redes select.form__input optgroup {
+  background-color: #2a2a2a;
+  color: var(--text);
+}
+
 .form__actions {
   /* Área para botões principais */
   display: flex;
