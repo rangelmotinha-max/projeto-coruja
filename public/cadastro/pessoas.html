@@ -1551,6 +1551,20 @@
           legend.style.fontSize = '0.9rem';
           legend.style.fontWeight = '600';
 
+          const actions = document.createElement('div');
+          actions.style.display = 'flex';
+          actions.style.gap = '0.25rem';
+          actions.style.alignSelf = 'flex-end';
+
+          const abrirBtn = document.createElement('button');
+          abrirBtn.type = 'button';
+          abrirBtn.className = 'button button--ghost';
+          abrirBtn.textContent = 'Abrir';
+          abrirBtn.addEventListener('click', () => {
+            const url = foto?.previewUrl;
+            if (url) window.open(url, '_blank');
+          });
+
           const removerBtn = document.createElement('button');
           removerBtn.type = 'button';
           removerBtn.className = 'button button--ghost';
@@ -1559,7 +1573,9 @@
 
           wrapper.appendChild(img);
           wrapper.appendChild(legend);
-          wrapper.appendChild(removerBtn);
+          actions.appendChild(abrirBtn);
+          actions.appendChild(removerBtn);
+          wrapper.appendChild(actions);
           container.appendChild(wrapper);
         });
       };
@@ -1598,7 +1614,7 @@
         });
         const abrirBtn = document.createElement('button');
         abrirBtn.type = 'button';
-        abrirBtn.className = 'button button--secondary';
+        abrirBtn.className = 'button button--ghost';
         abrirBtn.textContent = 'Abrir';
         abrirBtn.addEventListener('click', () => {
           const url = qrCodeSelecionado?.previewUrl;
@@ -1658,7 +1674,7 @@
           });
           const abrirBtn = document.createElement('button');
           abrirBtn.type = 'button';
-          abrirBtn.className = 'button button--secondary';
+          abrirBtn.className = 'button button--ghost';
           abrirBtn.textContent = 'Abrir';
           abrirBtn.addEventListener('click', () => {
             const url = item?.previewUrl;

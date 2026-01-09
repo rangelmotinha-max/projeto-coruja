@@ -488,8 +488,8 @@
           ${foto.url ? `<img src="${foto.url}" alt="Foto da entidade" style="width:100%; height:120px; object-fit:cover; border-radius:8px;" />` : ''}
           <span style="font-size: 0.9rem;">${foto.nomeArquivo || 'Foto'}</span>
           <div style="display:flex; gap:0.5rem; align-self:flex-end;">
-            ${foto.url ? `<a class="button button--ghost" href="${foto.url}" target="_blank" rel="noopener" title="Abrir" aria-label="Abrir foto">Abrir</a>` : ''}
-            <button class="button button--ghost" type="button" data-remover-foto="${foto.id}">Remover</button>
+            ${foto.url ? `<button class="button button--ghost" type="button" data-abrir-foto-url="${foto.url}" title="Abrir" aria-label="Abrir foto" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; min-width: fit-content;">Abrir</button>` : ''}
+            <button class="button button--ghost" type="button" data-remover-foto="${foto.id}" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; min-width: fit-content;">Remover</button>
           </div>
         </div>
       `;
@@ -542,6 +542,11 @@
   });
 
   fotosAtuaisContainer.addEventListener('click', (e) => {
+    const abrirUrl = e.target.getAttribute('data-abrir-foto-url');
+    if (abrirUrl) {
+      try { window.open(abrirUrl, '_blank', 'noopener'); } catch {}
+      return;
+    }
     const fotoId = e.target.getAttribute('data-remover-foto');
     if (fotoId) {
       estado.fotosParaRemover.push(fotoId);
