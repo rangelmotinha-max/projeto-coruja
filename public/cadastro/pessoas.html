@@ -4675,7 +4675,6 @@
           imagens: [
             { key: 'fotosCadastro', label: 'Fotos do cadastro' },
             { key: 'qrCode', label: 'QR-CODE de redes' },
-            { key: 'perfilRedes', label: 'Foto de Perfil (redes)' },
           ],
           identificacao: [
             { key: 'nomeCompleto', label: 'Nome Completo' },
@@ -4693,6 +4692,7 @@
           contatos: [
             { key: 'emails', label: 'Emails' },
             { key: 'redesSociais', label: 'Redes Sociais' },
+            { key: 'perfilRedes', label: 'Foto de Perfil' },
           ],
           telefones: [
             { key: 'telefones', label: 'Telefones' },
@@ -4716,7 +4716,7 @@
           vinculos: [
             { key: 'pessoas', label: 'Pessoas' },
             { key: 'empresas', label: 'Empresas' },
-            { key: 'veiculos', label: 'Veículos' },
+            { key: 'veiculos', label: 'Veículos da Empresa' },
             { key: 'empregaticio', label: 'Empregatício' },
           ],
           ocorrencias: [
@@ -4796,8 +4796,10 @@
       }
 
       function safeText(val) {
-        const s = String(val ?? '').trim();
-        return s;
+        if (val === null || val === undefined) return 'N/I';
+        if (Array.isArray(val)) return val.length ? val.map((v) => String(v ?? '').trim()).filter(Boolean).join(', ') || 'N/I' : 'N/I';
+        const s = String(val).trim();
+        return s ? s : 'N/I';
       }
 
       function imgGrid(items, opts = {}) {
@@ -4894,14 +4896,16 @@
         if (selected.contatos?.length) {
           sectionTitle('Contatos');
           if (selected.contatos.includes('emails')) {
-            html += `<div class="section"><strong>Emails</strong><ul>${(valores.emails || []).map((e) => `<li>${safeText(e)}</li>`).join('')}</ul></div>`;
+            const ems = Array.isArray(valores.emails) ? valores.emails : [];
+            html += `<div class="section"><strong>Emails</strong><ul>${ems.length ? ems.map((e) => `<li>${safeText(e)}</li>`).join('') : '<li>N/I</li>'}</ul></div>`;
           }
           if (selected.contatos.includes('redesSociais')) {
-            html += `<div class="section"><strong>Redes Sociais</strong><ul>${(valores.redesSociais || []).map((r) => `<li>${safeText(r)}</li>`).join('')}</ul></div>`;
+            const redes = Array.isArray(valores.redesSociais) ? valores.redesSociais : [];
+            html += `<div class="section"><strong>Redes Sociais</strong><ul>${redes.length ? redes.map((r) => `<li>${safeText(r)}</li>`).join('') : '<li>N/I</li>'}</ul></div>`;
           }
           // Imagens de redes (QR-CODE e Perfil) devem aparecer lado a lado acima de Telefones
           const showQR = selected.imagens?.includes('qrCode') && valores.qrCode;
-          const showPerfil = selected.imagens?.includes('perfilRedes') && (valores.perfilRedes?.length);
+          const showPerfil = selected.contatos?.includes('perfilRedes') && (valores.perfilRedes?.length);
           if (showQR || showPerfil) {
             html += `<div class=\"section\">`;
             html += `<div style=\"display:grid; grid-template-columns: repeat(${(showQR && showPerfil) ? 2 : 1}, minmax(220px, 1fr)); gap:10px; align-items:start;\">`;
@@ -4918,7 +4922,8 @@
 
         if (selected.telefones?.includes('telefones')) {
           sectionTitle('Telefones');
-          html += `<ul>${(valores.telefones || []).map((t) => `<li>${safeText(t)}</li>`).join('')}</ul>`;
+          const tels = Array.isArray(valores.telefones) ? valores.telefones : [];
+          html += `<ul>${tels.length ? tels.map((t) => `<li>${safeText(t)}</li>`).join('') : '<li>N/I</li>'}</ul>`;
         }
 
         if (selected.enderecos?.length) {
@@ -4946,6 +4951,8 @@
               }
               html += `</div>`;
             });
+            } else {
+              html += `<div class="section"><div>&bull; N/I</div></div>`;
           }
         }
 
@@ -4954,7 +4961,7 @@
           const attrs = selected.veiculos;
           const lista = valores.veiculos || [];
           if (!lista.length) {
-            // sem dados: manter em branco
+            html += `<ul><li>N/I</li></ul>`;
           } else {
             const cfgV = buildRelatorioConfig().veiculos;
             const labelOf = (key) => cfgV.find((a) => a.key === key)?.label || key;
@@ -4982,11 +4989,16 @@
         if (selected.vinculos?.length) {
           sectionTitle('Vínculos');
           if (selected.vinculos.includes('pessoas')) {
-            html += `<div class="section"><strong>Pessoas</strong><ul>${(valores.vinculos.pessoas || []).map((v) => `<li>${safeText(v?.nome)}${v?.cpf ? ', CPF: ' + safeText(v?.cpf) : ''}${v?.tipo ? ', Tipo de vínculo: ' + safeText(v?.tipo) : ''}</li>`).join('')}</ul></div>`;
+            const arr = Array.isArray(valores.vinculos.pessoas) ? valores.vinculos.pessoas : [];
+            html += `<div class="section"><strong>Pessoas</strong><ul>${arr.length ? arr.map((v) => `<li>${safeText(v?.nome)}${v?.cpf ? ', CPF: ' + safeText(v?.cpf) : ''}${v?.tipo ? ', Tipo de vínculo: ' + safeText(v?.tipo) : ''}</li>`).join('') : '<li>N/I</li>'}</ul></div>`;
           }
           if (selected.vinculos.includes('empresas')) {
             html += `<div class="section"><strong>Empresas</strong><ul>`;
-            (valores.vinculos.empresas || []).forEach((e) => {
+            const arr = Array.isArray(valores.vinculos.empresas) ? valores.vinculos.empresas : [];
+            if (!arr.length) {
+              html += `<li>N/I</li>`;
+            } else {
+              arr.forEach((e) => {
               const emp = e?.id ? (empresasOpcoes || []).find((opt) => String(opt.id) === String(e.id)) : null;
               const cnpj = emp?.cnpj || e?.cnpj || '';
               const cnpjFmt = cnpj ? aplicarMascaraCnpj(cnpj) : '';
@@ -4997,13 +5009,18 @@
                 `<div>Razão Social: ${safeText(razao)}</div>` +
                 `<div>Situação Cadastral: ${safeText(situacao)}</div>` +
               `</li>`;
-            });
+              });
+            }
             html += `</ul></div>`;
           }
           if (selected.vinculos.includes('veiculos')) {
             const veiculosLookup = new Map((valores.veiculos || []).map((vv) => [normalizarPlaca(vv?.placa || ''), vv]));
-            html += `<div class="section"><strong>Veículos</strong><ul>`;
-            (valores.vinculos.veiculos || []).forEach((v) => {
+            html += `<div class="section"><strong>Veículos da Empresa</strong><ul>`;
+            const arr = Array.isArray(valores.vinculos.veiculos) ? valores.vinculos.veiculos : [];
+            if (!arr.length) {
+              html += `<li>N/I</li>`;
+            } else {
+              arr.forEach((v) => {
               const placaN = normalizarPlaca(v?.placa || '');
               const base = veiculosLookup.get(placaN) || {};
               const linha1Parts = [];
@@ -5024,21 +5041,26 @@
                 (linha1Parts.length ? `<div>${linha1Parts.join(', ')}</div>` : '') +
                 (linha2Parts.length ? `<div>${linha2Parts.join(', ')}</div>` : '') +
               `</li>`;
-            });
+              });
+            }
             html += `</ul></div>`;
           }
           if (selected.vinculos.includes('empregaticio')) {
-            html += `<div class="section"><strong>Empregatício</strong><ul>${(valores.vinculos.empregaticio || []).map((e) => `<li>${safeText(e?.info)}</li>`).join('')}</ul></div>`;
+            const arr = Array.isArray(valores.vinculos.empregaticio) ? valores.vinculos.empregaticio : [];
+            html += `<div class="section"><strong>Empregatício</strong><ul>${arr.length ? arr.map((e) => `<li>${safeText(e?.info)}</li>`).join('') : '<li>N/I</li>'}</ul></div>`;
           }
         }
 
         if (selected.ocorrencias?.length) {
           sectionTitle('Ocorrências');
           if (selected.ocorrencias.includes('policiais')) {
-            const policias = valores.ocorrencias.policiais || [];
+            const policias = Array.isArray(valores.ocorrencias.policiais) ? valores.ocorrencias.policiais : [];
             const isImgExt = (u) => /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(String(u||''));
             html += `<div class="section"><strong>Policiais</strong><ul>`;
-            policias.forEach((o) => {
+            if (!policias.length) {
+              html += `<li>N/I</li>`;
+            } else {
+              policias.forEach((o) => {
               const data = safeText(o?.data);
               const info = safeText(o?.info);
               let imgSrc = '';
@@ -5053,69 +5075,86 @@
                 (info ? `<div><strong>Informação:</strong> ${info}</div>` : '') +
                 (imgSrc ? `<div style="margin-top:4px;"><img src="${imgSrc}" alt="Documento da ocorrência" style="max-width:240px; max-height:240px; object-fit:contain; border:1px solid #ccc; padding:4px;" /></div>` : '') +
               `</li>`;
-            });
+              });
+            }
             html += `</ul></div>`;
           }
           if (selected.ocorrencias.includes('processos')) {
-            const processosList = valores.ocorrencias.processos || [];
+            const processosList = Array.isArray(valores.ocorrencias.processos) ? valores.ocorrencias.processos : [];
             html += `<div class="section"><strong>Processos</strong><ul>`;
-            processosList.forEach((p) => {
-              const data = safeText(p?.data);
-              const info = safeText(p?.info);
-              html += `<li>` +
-                (data ? `<div><strong>Data:</strong> ${data}</div>` : '') +
-                (info ? `<div><strong>Informação:</strong> ${info}</div>` : '') +
-              `</li>`;
-            });
+            if (!processosList.length) {
+              html += `<li>N/I</li>`;
+            } else {
+              processosList.forEach((p) => {
+                const data = safeText(p?.data);
+                const info = safeText(p?.info);
+                html += `<li>` +
+                  (data ? `<div><strong>Data:</strong> ${data}</div>` : '') +
+                  (info ? `<div><strong>Informação:</strong> ${info}</div>` : '') +
+                `</li>`;
+              });
+            }
             html += `</ul></div>`;
           }
           if (selected.ocorrencias.includes('abordagens')) {
-            const abordagensList = valores.ocorrencias.abordagens || [];
+            const abordagensList = Array.isArray(valores.ocorrencias.abordagens) ? valores.ocorrencias.abordagens : [];
             html += `<div class="section"><strong>Abordagens</strong><ul>`;
-            abordagensList.forEach((a) => {
-              const data = safeText(a?.data);
-              const info = safeText(a?.info);
-              html += `<li>` +
-                (data ? `<div><strong>Data:</strong> ${data}</div>` : '') +
-                (info ? `<div><strong>Informação:</strong> ${info}</div>` : '') +
-              `</li>`;
-            });
+            if (!abordagensList.length) {
+              html += `<li>N/I</li>`;
+            } else {
+              abordagensList.forEach((a) => {
+                const data = safeText(a?.data);
+                const info = safeText(a?.info);
+                html += `<li>` +
+                  (data ? `<div><strong>Data:</strong> ${data}</div>` : '') +
+                  (info ? `<div><strong>Informação:</strong> ${info}</div>` : '') +
+                `</li>`;
+              });
+            }
             html += `</ul></div>`;
           }
           if (selected.ocorrencias.includes('prisoes')) {
-            const prisoesList = valores.ocorrencias.prisoes || [];
+            const prisoesList = Array.isArray(valores.ocorrencias.prisoes) ? valores.ocorrencias.prisoes : [];
             html += `<div class="section"><strong>Prisões</strong><ul>`;
-            prisoesList.forEach((p) => {
-              const data = safeText(p?.data);
-              const info = safeText(p?.info);
-              html += `<li>` +
-                (data ? `<div><strong>Data:</strong> ${data}</div>` : '') +
-                (info ? `<div><strong>Informação:</strong> ${info}</div>` : '') +
-              `</li>`;
-            });
+            if (!prisoesList.length) {
+              html += `<li>N/I</li>`;
+            } else {
+              prisoesList.forEach((p) => {
+                const data = safeText(p?.data);
+                const info = safeText(p?.info);
+                html += `<li>` +
+                  (data ? `<div><strong>Data:</strong> ${data}</div>` : '') +
+                  (info ? `<div><strong>Informação:</strong> ${info}</div>` : '') +
+                `</li>`;
+              });
+            }
             html += `</ul></div>`;
           }
           if (selected.ocorrencias.includes('monitoramentos')) {
             const monitList = valores.ocorrencias.monitoramentos || [];
             const mostrarImgsMonitor = Array.isArray(selected.ocorrencias) && selected.ocorrencias.includes('monitoramentosImagens');
             html += `<div class=\"section\"><strong>Monitoramentos</strong><ul>`;
-            monitList.forEach((m) => {
-              const data = safeText(m?.data);
-              const info = safeText(m?.descricao); // legenda "Informação"
-              let imgs = [];
-              if (mostrarImgsMonitor) {
-                const existentes = Array.isArray(m?.imagens) ? m.imagens.map((img) => String(img?.caminho || '').trim()).filter(Boolean) : [];
-                const selecionadas = Array.isArray(m?.imagensSelecionadas)
-                  ? m.imagensSelecionadas.map((it) => it?.previewUrl || (it?.file ? (()=>{ try { return URL.createObjectURL(it.file); } catch { return ''; } })() : '')).filter(Boolean)
-                  : [];
-                imgs = Array.from(new Set([...existentes, ...selecionadas]));
-              }
-              html += `<li>` +
-                (data ? `<div><strong>Data:</strong> ${data}</div>` : '') +
-                (info ? `<div><strong>Informação:</strong> ${info}</div>` : '') +
-                (mostrarImgsMonitor && imgs.length ? `<div style=\"margin-top:4px;\">${imgGrid(imgs)}</div>` : '') +
-              `</li>`;
-            });
+            if (!monitList.length) {
+              html += `<li>N/I</li>`;
+            } else {
+              monitList.forEach((m) => {
+                const data = safeText(m?.data);
+                const info = safeText(m?.descricao); // legenda "Informação"
+                let imgs = [];
+                if (mostrarImgsMonitor) {
+                  const existentes = Array.isArray(m?.imagens) ? m.imagens.map((img) => String(img?.caminho || '').trim()).filter(Boolean) : [];
+                  const selecionadas = Array.isArray(m?.imagensSelecionadas)
+                    ? m.imagensSelecionadas.map((it) => it?.previewUrl || (it?.file ? (()=>{ try { return URL.createObjectURL(it.file); } catch { return ''; } })() : '')).filter(Boolean)
+                    : [];
+                  imgs = Array.from(new Set([...existentes, ...selecionadas]));
+                }
+                html += `<li>` +
+                  (data ? `<div><strong>Data:</strong> ${data}</div>` : '') +
+                  (info ? `<div><strong>Informação:</strong> ${info}</div>` : '') +
+                  (mostrarImgsMonitor && imgs.length ? `<div style=\"margin-top:4px;\">${imgGrid(imgs)}</div>` : '') +
+                `</li>`;
+              });
+            }
             html += `</ul></div>`;
           }
         }
@@ -5124,8 +5163,12 @@
         const mostrarImgsMonitoramentoGlobal = Array.isArray(selected.ocorrencias) && selected.ocorrencias.includes('monitoramentosImagens');
         const inlineMonitoramentosSelecionado = Array.isArray(selected.ocorrencias) && selected.ocorrencias.includes('monitoramentos');
         if (mostrarImgsMonitoramentoGlobal && !inlineMonitoramentosSelecionado) {
-          html += `<div class="section"><strong>Imagens de monitoramento</strong>${imgGrid(valores.imagensMonitoramento)}</div>`;
+          const imgs = Array.isArray(valores.imagensMonitoramento) ? valores.imagensMonitoramento : [];
+          html += `<div class="section"><strong>Imagens de monitoramento</strong>${imgs.length ? imgGrid(imgs) : '<div>N/I</div>'}</div>`;
         }
+
+        // Legenda ao final do relatório (canto esquerdo)
+        html += `<div style=\"margin-top:16px; text-align:left;\"><div style=\"color:#c00; font-weight:bold;\">Legenda:</div><div>- N/I: não informado ou não encontrado.</div></div>`;
 
         html += `</body></html>`;
         return html;
@@ -5268,7 +5311,7 @@
             out += `<div class="section"><strong>Redes Sociais</strong><ul>${(valores.redesSociais || []).map((r) => `<li>${safeText(r)}</li>`).join('')}</ul></div>`;
           }
           const showQR = selected.imagens?.includes('qrCode') && valores.qrCode;
-          const showPerfil = selected.imagens?.includes('perfilRedes') && (valores.perfilRedes?.length);
+          const showPerfil = selected.contatos?.includes('perfilRedes') && (valores.perfilRedes?.length);
           if (showQR || showPerfil) {
             out += `<div class="section"><div style="display:grid; grid-template-columns: repeat(${(showQR && showPerfil) ? 2 : 1}, minmax(220px, 1fr)); gap:10px; align-items:start;">`;
             if (showQR) out += `<div><strong>QR-CODE</strong>${imgGrid([valores.qrCode])}</div>`;
@@ -5285,7 +5328,7 @@
         if (selected.enderecos?.length) {
           sectionTitle('Endereços');
           const attrs = selected.enderecos;
-          const lista = valores.enderecos || [];
+          const lista = Array.isArray(valores.enderecos) ? valores.enderecos : [];
           if (lista.length) {
             lista.forEach((end) => {
               const log = attrs.includes('logradouro') ? safeText(end?.logradouro) : '';
@@ -5300,25 +5343,29 @@
               if (bcuf) linha = linha ? `${linha} - ${bcuf}` : bcuf;
               if (cep) linha = linha ? `${linha} - ${cep}` : cep;
               out += `<div class="section">`;
-              out += `<div>&bull; ${linha}</div>`;
+              out += `<div>&bull; ${linha || 'N/I'}</div>`;
               if (attrs.includes('latLong')) {
                 const latLongVal = safeText(end?.latLong);
                 out += `<div>Lat/Long: ${latLongVal}</div>`;
               }
               out += `</div>`;
             });
+          } else {
+            out += `<div class="section"><div>&bull; N/I</div></div>`;
           }
         }
 
         if (selected.veiculos?.length) {
           sectionTitle('Veículos');
           const attrs = selected.veiculos;
-          (valores.veiculos || []).forEach((v) => {
+          const veics = Array.isArray(valores.veiculos) ? valores.veiculos : [];
+          let printed = 0;
+          veics.forEach((v) => {
             const linha1 = [];
             if (attrs.includes('placa') && safeText(v?.placa)) linha1.push(`${labelOf(cfg.veiculos, 'placa')}: ${safeText(v?.placa)}`);
             if (attrs.includes('marcaModelo') && safeText(v?.marcaModelo)) linha1.push(`${labelOf(cfg.veiculos, 'marcaModelo')}: ${safeText(v?.marcaModelo)}`);
-            if (attrs.includes('cor')) linha1.push(`${labelOf(cfg.veiculos, 'cor')}: ${safeText(v?.cor) || '—'}`);
-            if (attrs.includes('anoModelo')) linha1.push(`${labelOf(cfg.veiculos, 'anoModelo')}: ${safeText(v?.anoModelo) || '—'}`);
+            if (attrs.includes('cor')) linha1.push(`${labelOf(cfg.veiculos, 'cor')}: ${safeText(v?.cor)}`);
+            if (attrs.includes('anoModelo')) linha1.push(`${labelOf(cfg.veiculos, 'anoModelo')}: ${safeText(v?.anoModelo)}`);
 
             const linha2 = [];
             if (attrs.includes('nomeProprietario') && safeText(v?.nomeProprietario)) linha2.push(`${labelOf(cfg.veiculos, 'nomeProprietario')}: ${safeText(v?.nomeProprietario)}`);
@@ -5329,33 +5376,44 @@
               if (linha1.length) out += `<div>&bull; ${linha1.join(', ')}</div>`;
               if (linha2.length) out += `<div>${linha2.join(', ')}</div>`;
               out += `</div>`;
+              printed++;
             }
           });
+          if (!printed) {
+            out += `<div class="section"><div>&bull; N/I</div></div>`;
+          }
         }
 
         if (selected.vinculos?.length) {
           sectionTitle('Vínculos');
           if (selected.vinculos.includes('pessoas')) {
-            out += `<div class="section"><strong>Pessoas</strong><ul>${(valores.vinculos.pessoas || []).map((v) => `<li>${safeText(v?.nome)}${v?.cpf ? ', CPF: ' + safeText(v?.cpf) : ''}${v?.tipo ? ', Tipo de vínculo: ' + safeText(v?.tipo) : ''}</li>`).join('')}</ul></div>`;
+            const arr = Array.isArray(valores.vinculos.pessoas) ? valores.vinculos.pessoas : [];
+            out += `<div class="section"><strong>Pessoas</strong><ul>${arr.length ? arr.map((v) => `<li>${safeText(v?.nome)}${v?.cpf ? ', CPF: ' + safeText(v?.cpf) : ''}${v?.tipo ? ', Tipo de vínculo: ' + safeText(v?.tipo) : ''}</li>`).join('') : '<li>N/I</li>'}</ul></div>`;
           }
           if (selected.vinculos.includes('empresas')) {
-            out += `<div class="section"><strong>Empresas</strong><ul>${(valores.vinculos.empresas || []).map((e) => `<li>${safeText(e?.nome || e?.razaoSocial || '')}</li>`).join('')}</ul></div>`;
+            const arr = Array.isArray(valores.vinculos.empresas) ? valores.vinculos.empresas : [];
+            out += `<div class="section"><strong>Empresas</strong><ul>${arr.length ? arr.map((e) => `<li>${safeText(e?.nome || e?.razaoSocial || '')}</li>`).join('') : '<li>N/I</li>'}</ul></div>`;
           }
           if (selected.vinculos.includes('veiculos')) {
-            out += `<div class="section"><strong>Veículos</strong><ul>${(valores.vinculos.veiculos || []).map((v) => `<li>${safeText(v?.placa || '')}${v?.marcaModelo ? ' - ' + safeText(v.marcaModelo) : ''}</li>`).join('')}</ul></div>`;
+            const arr = Array.isArray(valores.vinculos.veiculos) ? valores.vinculos.veiculos : [];
+            out += `<div class="section"><strong>Veículos da Empresa</strong><ul>${arr.length ? arr.map((v) => `<li>${safeText(v?.placa || '')}${v?.marcaModelo ? ' - ' + safeText(v.marcaModelo) : ''}</li>`).join('') : '<li>N/I</li>'}</ul></div>`;
           }
           if (selected.vinculos.includes('empregaticio')) {
-            out += `<div class="section"><strong>Empregatício</strong><ul>${(valores.vinculos.empregaticio || []).map((e) => `<li>${safeText(e?.info)}</li>`).join('')}</ul></div>`;
+            const arr = Array.isArray(valores.vinculos.empregaticio) ? valores.vinculos.empregaticio : [];
+            out += `<div class="section"><strong>Empregatício</strong><ul>${arr.length ? arr.map((e) => `<li>${safeText(e?.info)}</li>`).join('') : '<li>N/I</li>'}</ul></div>`;
           }
         }
 
         if (selected.ocorrencias?.length) {
           sectionTitle('Ocorrências');
           if (selected.ocorrencias.includes('policiais')) {
-            const policias = valores.ocorrencias.policiais || [];
+            const policias = Array.isArray(valores.ocorrencias.policiais) ? valores.ocorrencias.policiais : [];
             const isImgExt = (u) => /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(String(u||''));
             out += `<div class="section"><strong>Policiais</strong><ul>`;
-            policias.forEach((o) => {
+            if (!policias.length) {
+              out += `<li>N/I</li>`;
+            } else {
+              policias.forEach((o) => {
               const data = safeText(o?.data);
               const info = safeText(o?.info);
               let imgSrc = '';
@@ -5366,22 +5424,30 @@
                 (info ? `<div><strong>Informação:</strong> ${info}</div>` : '') +
                 (imgSrc ? `<div style="margin-top:4px;"><img src="${imgSrc}" alt="Documento da ocorrência" style="max-width:240px; max-height:240px; object-fit:contain; border:1px solid #ccc; padding:4px;" /></div>` : '') +
               `</li>`;
-            });
+              });
+            }
             out += `</ul></div>`;
           }
           if (selected.ocorrencias.includes('processos')) {
-            out += `<div class="section"><strong>Processos</strong><ul>${(valores.ocorrencias.processos || []).map((p) => `<li>${[safeText(p?.data) && `Data: ${safeText(p.data)}`, safeText(p?.info) && `Informação: ${safeText(p.info)}`].filter(Boolean).map(s=>`<div>${s}</div>`).join('')}</li>`).join('')}</ul></div>`;
+            const arr = Array.isArray(valores.ocorrencias.processos) ? valores.ocorrencias.processos : [];
+            out += `<div class="section"><strong>Processos</strong><ul>${arr.length ? arr.map((p) => `<li>${[safeText(p?.data) && `Data: ${safeText(p.data)}`, safeText(p?.info) && `Informação: ${safeText(p.info)}`].filter(Boolean).map(s=>`<div>${s}</div>`).join('')}</li>`).join('') : '<li>N/I</li>'}</ul></div>`;
           }
           if (selected.ocorrencias.includes('abordagens')) {
-            out += `<div class="section"><strong>Abordagens</strong><ul>${(valores.ocorrencias.abordagens || []).map((a) => `<li>${[safeText(a?.data) && `Data: ${safeText(a.data)}`, safeText(a?.info) && `Informação: ${safeText(a.info)}`].filter(Boolean).map(s=>`<div>${s}</div>`).join('')}</li>`).join('')}</ul></div>`;
+            const arr = Array.isArray(valores.ocorrencias.abordagens) ? valores.ocorrencias.abordagens : [];
+            out += `<div class="section"><strong>Abordagens</strong><ul>${arr.length ? arr.map((a) => `<li>${[safeText(a?.data) && `Data: ${safeText(a.data)}`, safeText(a?.info) && `Informação: ${safeText(a.info)}`].filter(Boolean).map(s=>`<div>${s}</div>`).join('')}</li>`).join('') : '<li>N/I</li>'}</ul></div>`;
           }
           if (selected.ocorrencias.includes('prisoes')) {
-            out += `<div class="section"><strong>Prisões</strong><ul>${(valores.ocorrencias.prisoes || []).map((p) => `<li>${[safeText(p?.data) && `Data: ${safeText(p.data)}`, safeText(p?.info) && `Informação: ${safeText(p.info)}`].filter(Boolean).map(s=>`<div>${s}</div>`).join('')}</li>`).join('')}</ul></div>`;
+            const arr = Array.isArray(valores.ocorrencias.prisoes) ? valores.ocorrencias.prisoes : [];
+            out += `<div class="section"><strong>Prisões</strong><ul>${arr.length ? arr.map((p) => `<li>${[safeText(p?.data) && `Data: ${safeText(p.data)}`, safeText(p?.info) && `Informação: ${safeText(p.info)}`].filter(Boolean).map(s=>`<div>${s}</div>`).join('')}</li>`).join('') : '<li>N/I</li>'}</ul></div>`;
           }
           if (selected.ocorrencias.includes('monitoramentos')) {
             const mostrarImgsMonitor = Array.isArray(selected.ocorrencias) && selected.ocorrencias.includes('monitoramentosImagens');
             out += `<div class="section"><strong>Monitoramentos</strong><ul>`;
-            (valores.ocorrencias.monitoramentos || []).forEach((m) => {
+            const arr = Array.isArray(valores.ocorrencias.monitoramentos) ? valores.ocorrencias.monitoramentos : [];
+            if (!arr.length) {
+              out += `<li>N/I</li>`;
+            } else {
+              arr.forEach((m) => {
               const data = safeText(m?.data);
               const info = safeText(m?.descricao);
               let imgs = [];
@@ -5394,7 +5460,8 @@
                 (info ? `<div><strong>Informação:</strong> ${info}</div>` : '') +
                 (mostrarImgsMonitor && imgs.length ? `<div style="margin-top:4px;">${imgGrid(imgs)}</div>` : '') +
               `</li>`;
-            });
+              });
+            }
             out += `</ul></div>`;
           }
         }
@@ -5403,8 +5470,12 @@
         const mostrarImgsMonitoramentoGlobal = Array.isArray(selected.ocorrencias) && selected.ocorrencias.includes('monitoramentosImagens');
         const inlineMonitoramentosSelecionado = Array.isArray(selected.ocorrencias) && selected.ocorrencias.includes('monitoramentos');
         if (mostrarImgsMonitoramentoGlobal && !inlineMonitoramentosSelecionado) {
-          out += `<div class="section"><strong>Imagens de monitoramento</strong>${imgGrid(valores.imagensMonitoramento)}</div>`;
+          const imgs = Array.isArray(valores.imagensMonitoramento) ? valores.imagensMonitoramento : [];
+          out += `<div class="section"><strong>Imagens de monitoramento</strong>${imgs.length ? imgGrid(imgs) : '<div>N/I</div>'}</div>`;
         }
+
+        // Legenda ao final do relatório (canto esquerdo)
+        out += `<div style="margin-top:16px; text-align:left;"><div style="color:#c00; font-weight:bold;">Legenda:</div><div>- N/I: não informado ou não encontrado.</div></div>`;
 
         return out;
       }
