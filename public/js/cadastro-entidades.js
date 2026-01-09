@@ -487,7 +487,10 @@
         <div style="display:flex; flex-direction:column; gap:0.35rem; align-items:flex-start;">
           ${foto.url ? `<img src="${foto.url}" alt="Foto da entidade" style="width:100%; height:120px; object-fit:cover; border-radius:8px;" />` : ''}
           <span style="font-size: 0.9rem;">${foto.nomeArquivo || 'Foto'}</span>
-          <button class="button button--ghost" type="button" data-remover-foto="${foto.id}">Remover</button>
+          <div style="display:flex; gap:0.5rem; align-self:flex-end;">
+            ${foto.url ? `<a class="button button--ghost" href="${foto.url}" target="_blank" rel="noopener" title="Abrir" aria-label="Abrir foto">Abrir</a>` : ''}
+            <button class="button button--ghost" type="button" data-remover-foto="${foto.id}">Remover</button>
+          </div>
         </div>
       `;
       fotosAtuaisContainer.appendChild(card);
