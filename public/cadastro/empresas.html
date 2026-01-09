@@ -326,7 +326,10 @@
           empresaForm.reset();
           socios = [];
           renderizarSocios();
-          // Seção de veículos removida
+          // Comentário: limpa o estado de veículos após salvar para evitar reaproveitamento indevido.
+          veiculosEmpresa = [];
+          veiculosEditados = false;
+          renderizarVeiculosEmpresa();
           empresaEmEdicao = null;
           atualizarRotuloSubmit();
           listarEmpresas();
@@ -533,7 +536,17 @@
             throw new Error(msg);
           }
           alert('Empresa excluída com sucesso!');
-          if (empresaEmEdicao === e.id) { empresaEmEdicao = null; atualizarRotuloSubmit(); empresaForm.reset(); socios = []; renderizarSocios(); }
+          if (empresaEmEdicao === e.id) {
+            empresaEmEdicao = null;
+            atualizarRotuloSubmit();
+            empresaForm.reset();
+            socios = [];
+            renderizarSocios();
+            // Comentário: limpa veículos quando a edição atual é cancelada pela exclusão.
+            veiculosEmpresa = [];
+            veiculosEditados = false;
+            renderizarVeiculosEmpresa();
+          }
           listarEmpresas();
         } catch (err) {
           exibirMensagem(err?.message || 'Erro ao excluir empresa.', 'error');
@@ -547,6 +560,12 @@
         document.getElementById('adicionar-endereco-empresa')?.addEventListener('click', adicionarEnderecoEmpresa);
         document.getElementById('adicionar-veiculo-empresa')?.addEventListener('click', adicionarVeiculoEmpresa);
         empresaForm.addEventListener('submit', salvarEmpresa);
+        empresaForm.addEventListener('reset', () => {
+          // Comentário: garante que o reset do formulário também limpe os veículos.
+          veiculosEmpresa = [];
+          veiculosEditados = false;
+          renderizarVeiculosEmpresa();
+        });
         listarBtn?.addEventListener('click', listarEmpresas);
         campoConsulta?.addEventListener('input', (e) => { termoBusca = e.target.value || ''; filtrarEmpresas(termoBusca); });
         renderizarSocios();
