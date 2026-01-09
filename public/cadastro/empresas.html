@@ -194,6 +194,7 @@
       let enderecosEmpresa = [];
       let empresaEmEdicao = null;
       let veiculosEmpresa = [];
+      let veiculosEmpresaOriginal = [];
       let veiculosEditados = false;
       let listenersVeiculosEmpresaConfigurados = false;
 
@@ -309,7 +310,7 @@
           return;
         }
         try {
-          exibirMensagemForm('Salvando empresa...', 'info');
+          // Removido: não exibir mensagem de carregamento ao salvar
           const metodo = empresaEmEdicao ? 'PUT' : 'POST';
           const url = empresaEmEdicao ? `${API_EMPRESAS}/${empresaEmEdicao}` : API_EMPRESAS;
           const resp = await fetchAutenticado(url, { method: metodo, body: JSON.stringify(payload) });
@@ -318,16 +319,33 @@
             const msg = data?.mensagem || data?.message || 'Não foi possível salvar a empresa.';
             throw new Error(msg);
           }
-          // Sucesso: informa quantidade de veículos salvos para evitar confusão visual
-          const veiculosSalvos = Array.isArray(data?.veiculos) ? data.veiculos.length : (Array.isArray(payload.veiculos) ? payload.veiculos.length : 0);
-          const sucessoMsg = empresaEmEdicao ? 'Alterações realizadas com sucesso!' : 'Empresa cadastrada com sucesso!';
-          exibirMensagemForm(`${sucessoMsg} ${veiculosSalvos ? `Veículos salvos: ${veiculosSalvos}.` : ''}`, 'success');
-          alert(sucessoMsg);
+          // Mensagens conforme contexto de operação
+          if (!empresaEmEdicao) {
+            const sucessoMsg = 'Empresa cadastrada com sucesso!';
+            exibirMensagemForm(sucessoMsg, 'success');
+            alert(sucessoMsg);
+          } else {
+            // Edição: decidir entre alterações gerais x inclusão de veículo
+            if (veiculosEditados) {
+              const placasOrig = new Set((veiculosEmpresaOriginal||[]).map(v => normalizarPlaca(v.placa||'')));
+              const placasAtual = new Set((veiculosEmpresa||[]).map(v => normalizarPlaca(v.placa||'')));
+              let houveInclusao = false;
+              for (const p of placasAtual) { if (p && !placasOrig.has(p)) { houveInclusao = true; break; } }
+              if (houveInclusao) {
+                alert('Veículo incluido com sucesso');
+              } else {
+                alert('Alterações realizadas com sucesso');
+              }
+            } else {
+              alert('Alterações realizadas com sucesso');
+            }
+          }
           empresaForm.reset();
           socios = [];
           renderizarSocios();
           // Comentário: limpa o estado de veículos após salvar para evitar reaproveitamento indevido.
           veiculosEmpresa = [];
+          veiculosEmpresaOriginal = [];
           veiculosEditados = false;
           renderizarVeiculosEmpresa();
           empresaEmEdicao = null;
@@ -513,6 +531,8 @@
               cnpj: v.cnpj || '',
             }))
           : [];
+        // snapshot para detectar inclusões/edições de veículos durante a edição
+        veiculosEmpresaOriginal = veiculosEmpresa.map(v => ({ ...v }));
         renderizarSocios();
         renderizarEnderecosEmpresa();
         renderizarVeiculosEmpresa();
