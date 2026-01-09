@@ -89,23 +89,40 @@
   const renderizarLiderancas = () => {
     liderancasContainer.innerHTML = '';
     estado.liderancas.forEach((nome, index) => {
-      const linha = document.createElement('div');
-      linha.className = 'form__grid form__grid--2';
-      linha.innerHTML = `
+      // Container da liderança com barra superior e campos abaixo
+      const bloco = document.createElement('div');
+      bloco.style.cssText = 'border: 1px solid var(--border); border-radius: 0.5rem; padding: 0.75rem;';
+
+      // Barra superior: botão de remover acima dos campos
+      const topBar = document.createElement('div');
+      topBar.style.cssText = 'display:flex; justify-content:flex-end; margin-bottom:0.5rem;';
+      const btnTopo = document.createElement('button');
+      btnTopo.className = 'button button--danger';
+      btnTopo.type = 'button';
+      btnTopo.textContent = '−';
+      btnTopo.title = 'Excluir';
+      btnTopo.setAttribute('aria-label', 'Remover liderança');
+      btnTopo.setAttribute('data-remover-lideranca', String(index));
+      topBar.appendChild(btnTopo);
+      bloco.appendChild(topBar);
+
+      // Grid com o único campo de nome da liderança
+      const grid = document.createElement('div');
+      grid.className = 'form__grid form__grid--1';
+      grid.innerHTML = `
         <label class="form__field" style="margin:0;">
           <span class="form__label">Nome da liderança</span>
           <input class="form__input" type="text" value="${nome || ''}" data-lideranca-index="${index}" />
         </label>
-        <div class="form__actions" style="margin:0; justify-content:flex-end;">
-          <button class="button button--ghost" type="button" data-remover-lideranca="${index}">Remover</button>
-        </div>
       `;
-      const input = linha.querySelector('input[data-lideranca-index]');
+      bloco.appendChild(grid);
+
+      const input = bloco.querySelector('input[data-lideranca-index]');
       input.addEventListener('input', (e) => {
         const idx = Number(e.target.getAttribute('data-lideranca-index'));
         estado.liderancas[idx] = e.target.value;
       });
-      liderancasContainer.appendChild(linha);
+      liderancasContainer.appendChild(bloco);
     });
   };
 

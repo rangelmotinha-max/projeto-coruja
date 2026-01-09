@@ -638,6 +638,21 @@
         enderecosEmpresa.forEach((endereco, idx) => {
           const div = document.createElement('div');
           div.style.cssText = 'border: 1px solid var(--border); border-radius: 0.5rem; padding: 1rem;';
+
+          // Barra superior com botão de remoção
+          const topBar = document.createElement('div');
+          topBar.style.cssText = 'display:flex; justify-content:flex-end; margin-bottom:0.5rem;';
+          const btnRemoverTopo = document.createElement('button');
+          btnRemoverTopo.type = 'button';
+          btnRemoverTopo.className = 'button button--danger';
+          btnRemoverTopo.textContent = '-';
+          btnRemoverTopo.style.minWidth = 'fit-content';
+          btnRemoverTopo.setAttribute('aria-label', 'Remover endereço');
+          btnRemoverTopo.title = 'Excluir';
+          btnRemoverTopo.addEventListener('click', () => { enderecosEmpresa.splice(idx,1); renderizarEnderecosEmpresa(); });
+          topBar.appendChild(btnRemoverTopo);
+          div.appendChild(topBar);
+
           const grid = document.createElement('div');
           grid.className = 'form__grid form__grid--4';
           grid.innerHTML = `
@@ -694,15 +709,7 @@
             }
           });
 
-          const actions = document.createElement('div');
-          actions.className = 'form__actions';
-          const removerBtn = document.createElement('button');
-          removerBtn.type = 'button';
-          removerBtn.className = 'button button--danger';
-          removerBtn.textContent = 'Remover';
-          removerBtn.addEventListener('click', () => { enderecosEmpresa.splice(idx,1); renderizarEnderecosEmpresa(); });
-          actions.appendChild(removerBtn);
-          div.appendChild(actions);
+          // Botão de remoção está na barra superior
 
           lista.appendChild(div);
         });
@@ -812,7 +819,7 @@
           const btnRemover = document.createElement('button');
           btnRemover.type = 'button';
           btnRemover.className = 'button button--danger';
-          btnRemover.textContent = 'Remover';
+          btnRemover.textContent = '-';
           btnRemover.style.minWidth = 'fit-content';
           btnRemover.addEventListener('click', () => {
             veiculosEmpresa.splice(indice, 1);
