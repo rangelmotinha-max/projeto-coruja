@@ -490,6 +490,7 @@
       };
 
       const preencherFormularioComEmpresa = (e) => {
+        veiculosEditados = false;
         empresaForm.cnpj.value = aplicarMascaraCnpj(e.cnpj || '');
         empresaForm.razaoSocial.value = e.razaoSocial || '';
         empresaForm.nomeFantasia.value = e.nomeFantasia || '';
@@ -499,7 +500,16 @@
         empresaForm.telefone.value = aplicarMascaraTelefone(e.telefone || '');
         socios = Array.isArray(e.socios) ? e.socios.map(s=>({ nome: s.nome||'', cpf: s.cpf||'' })) : [];
         enderecosEmpresa = Array.isArray(e.enderecos) ? e.enderecos.map(x=>({ uf:x.uf||'', logradouro:x.logradouro||'', bairro:x.bairro||'', complemento:x.complemento||'', cep: x.cep||'', latLong: x.latLong||'' })) : [];
-        // Seção de veículos removida
+        veiculosEmpresa = Array.isArray(e.veiculos)
+          ? e.veiculos.map((v) => ({
+              placa: v.placa || '',
+              marcaModelo: v.marcaModelo || '',
+              cor: v.cor || '',
+              anoModelo: v.anoModelo,
+              nomeProprietario: v.nomeProprietario || '',
+              cnpj: v.cnpj || '',
+            }))
+          : [];
         renderizarSocios();
         renderizarEnderecosEmpresa();
         renderizarVeiculosEmpresa();
