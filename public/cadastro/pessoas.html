@@ -3212,16 +3212,17 @@
               actions.style.display = 'flex';
               actions.style.gap = '0.5rem';
 
-              const verBtn = document.createElement('a');
-              verBtn.href = url;
-              verBtn.target = '_blank';
-              verBtn.rel = 'noopener';
-              verBtn.className = 'button button--ghost';
-              verBtn.textContent = 'Abrir';
+              const abrirBtn = document.createElement('button');
+              abrirBtn.type = 'button';
+              abrirBtn.className = 'button button--ghost';
+              abrirBtn.textContent = 'Abrir';
+              abrirBtn.style.cssText = 'padding: 0.25rem 0.5rem; font-size: 0.75rem; min-width: fit-content;';
+              abrirBtn.addEventListener('click', () => { try { window.open(url, '_blank', 'noopener'); } catch {} });
 
               const removerBtn = document.createElement('button');
               removerBtn.type = 'button';
-              removerBtn.className = 'button button--danger';
+              removerBtn.className = 'button button--ghost';
+              removerBtn.style.cssText = 'padding: 0.25rem 0.5rem; font-size: 0.75rem; min-width: fit-content;';
               removerBtn.textContent = 'Remover';
               removerBtn.addEventListener('click', () => {
                 const ok = window.confirm('Deseja realmente excluir essa imagem?');
@@ -3232,7 +3233,7 @@
                 }
               });
 
-              actions.appendChild(verBtn);
+              actions.appendChild(abrirBtn);
               actions.appendChild(removerBtn);
 
               wrap.appendChild(imgEl);
@@ -3275,9 +3276,21 @@
               legendPrev.style.fontSize = '0.9rem';
               legendPrev.style.fontWeight = '600';
 
+              const actionsPrev = document.createElement('div');
+              actionsPrev.style.display = 'flex';
+              actionsPrev.style.gap = '0.5rem';
+
+              const abrirPrevBtn = document.createElement('button');
+              abrirPrevBtn.type = 'button';
+              abrirPrevBtn.className = 'button button--ghost';
+              abrirPrevBtn.textContent = 'Abrir';
+              abrirPrevBtn.style.cssText = 'padding: 0.25rem 0.5rem; font-size: 0.75rem; min-width: fit-content;';
+              abrirPrevBtn.addEventListener('click', () => { try { window.open(foto.previewUrl, '_blank', 'noopener'); } catch {} });
+
               const removerPrevBtn = document.createElement('button');
               removerPrevBtn.type = 'button';
               removerPrevBtn.className = 'button button--ghost';
+              removerPrevBtn.style.cssText = 'padding: 0.25rem 0.5rem; font-size: 0.75rem; min-width: fit-content;';
               removerPrevBtn.textContent = 'Remover';
               removerPrevBtn.addEventListener('click', () => {
                 const ok = window.confirm('Deseja realmente excluir essa imagem?');
@@ -3295,10 +3308,11 @@
                 }
                 renderizarMonitoramentos();
               });
-
+              actionsPrev.appendChild(abrirPrevBtn);
+              actionsPrev.appendChild(removerPrevBtn);
               previewWrapper.appendChild(imgPrev);
               previewWrapper.appendChild(legendPrev);
-              previewWrapper.appendChild(removerPrevBtn);
+              previewWrapper.appendChild(actionsPrev);
               grid.appendChild(previewWrapper);
             });
             campoFoto.appendChild(grid);
