@@ -4800,14 +4800,19 @@
         return s;
       }
 
-      function imgGrid(items) {
+      function imgGrid(items, opts = {}) {
         if (!items?.length) return '';
+        const base = 150;
+        const scale = (typeof opts.scale === 'number' && opts.scale > 0) ? opts.scale : 1;
+        const size = Math.round(base * scale); // image max size
+        const cardWidth = size + 12; // accounts for 6px padding on each side
+        const minCol = size; // min column width to fit image nicely
         return `
           <div style="text-align:center;">
-            <div style="display:inline-grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:10px; justify-content:center; justify-items:center; max-width:960px;">
+            <div style="display:inline-grid; grid-template-columns: repeat(auto-fit, minmax(${minCol}px, 1fr)); gap:10px; justify-content:center; justify-items:center; max-width:960px;">
               ${items.map((src) => `
-                <div style="border:1px solid #ccc; padding:6px; display:inline-block; page-break-inside: avoid; break-inside: avoid;">
-                  <img src="${src}" alt="" style="width:150px; height:150px; object-fit:cover; display:block;" />
+                <div style="border:1px solid #ccc; padding:6px; display:inline-block; page-break-inside: avoid; break-inside: avoid; width:${cardWidth}px; text-align:center;">
+                  <img src="${src}" alt="" style="max-width:${size}px; max-height:${size}px; width:auto; height:auto; object-fit:contain; display:block; margin:0 auto;" />
                 </div>
               `).join('')}
             </div>
@@ -4903,8 +4908,8 @@
             if (showQR) {
               html += `<div><strong>QR-CODE</strong>${imgGrid([valores.qrCode])}</div>`;
             }
-            if (showPerfil) {
-              html += `<div><strong>Foto de Perfil (redes)</strong>${imgGrid(valores.perfilRedes)}</div>`;
+              if (showPerfil) {
+              html += `<div><strong>Foto de Perfil</strong>${imgGrid(valores.perfilRedes, { scale: 2.4 })}</div>`;
             }
             html += `</div>`;
             html += `</div>`;
@@ -5267,7 +5272,7 @@
           if (showQR || showPerfil) {
             out += `<div class="section"><div style="display:grid; grid-template-columns: repeat(${(showQR && showPerfil) ? 2 : 1}, minmax(220px, 1fr)); gap:10px; align-items:start;">`;
             if (showQR) out += `<div><strong>QR-CODE</strong>${imgGrid([valores.qrCode])}</div>`;
-            if (showPerfil) out += `<div><strong>Foto de Perfil (redes)</strong>${imgGrid(valores.perfilRedes)}</div>`;
+            if (showPerfil) out += `<div><strong>Foto de Perfil</strong>${imgGrid(valores.perfilRedes, { scale: 2.4 })}</div>`;
             out += `</div></div>`;
           }
         }
