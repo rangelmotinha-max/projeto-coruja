@@ -689,6 +689,7 @@ body:not(.theme-dark) .form__label {
   border: 1px solid var(--border);
   background: var(--input-bg);
   color: var(--text);
+  font-family: inherit;
   font-size: 1rem;
   transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
 }

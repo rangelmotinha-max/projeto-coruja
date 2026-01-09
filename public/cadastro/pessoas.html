@@ -4813,7 +4813,7 @@
           <div style="text-align:center;">
             <div style="display:inline-grid; grid-template-columns: repeat(auto-fit, minmax(${minCol}px, 1fr)); gap:10px; justify-content:center; justify-items:center; max-width:960px;">
               ${items.map((src) => `
-                <div style="border:1px solid #ccc; padding:6px; display:inline-block; page-break-inside: avoid; break-inside: avoid; width:${cardWidth}px; text-align:center;">
+                <div style="padding:6px; display:inline-block; page-break-inside: avoid; break-inside: avoid; width:${cardWidth}px; text-align:center;">
                   <img src="${src}" alt="" style="max-width:${size}px; max-height:${size}px; width:auto; height:auto; object-fit:contain; display:block; margin:0 auto;" />
                 </div>
               `).join('')}
@@ -5073,7 +5073,7 @@
               html += `<li>` +
                 (data ? `<div><strong>Data:</strong> ${data}</div>` : '') +
                 (info ? `<div><strong>Informação:</strong> ${info}</div>` : '') +
-                (imgSrc ? `<div style="margin-top:4px;"><img src="${imgSrc}" alt="Documento da ocorrência" style="max-width:240px; max-height:240px; object-fit:contain; border:1px solid #ccc; padding:4px;" /></div>` : '') +
+                (imgSrc ? `<div style="margin-top:4px;"><img src="${imgSrc}" alt="Documento da ocorrência" style="max-width:240px; max-height:240px; object-fit:contain; padding:4px;" /></div>` : '') +
               `</li>`;
               });
             }
@@ -5422,7 +5422,7 @@
               out += `<li>` +
                 (data ? `<div><strong>Data:</strong> ${data}</div>` : '') +
                 (info ? `<div><strong>Informação:</strong> ${info}</div>` : '') +
-                (imgSrc ? `<div style="margin-top:4px;"><img src="${imgSrc}" alt="Documento da ocorrência" style="max-width:240px; max-height:240px; object-fit:contain; border:1px solid #ccc; padding:4px;" /></div>` : '') +
+                (imgSrc ? `<div style="margin-top:4px;"><img src="${imgSrc}" alt="Documento da ocorrência" style="max-width:240px; max-height:240px; object-fit:contain; padding:4px;" /></div>` : '') +
               `</li>`;
               });
             }
