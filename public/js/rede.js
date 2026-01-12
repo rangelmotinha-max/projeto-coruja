@@ -90,16 +90,33 @@ async function carregarPessoas() {
   if (!response.ok) throw new Error('Falha ao buscar pessoas');
   const pessoas = await response.json();
 
-  // Comentário: monta uma lista plana de endereços por pessoa.
-  return (Array.isArray(pessoas) ? pessoas : []).flatMap((pessoa) => {
-    const enderecos = Array.isArray(pessoa.enderecos) ? pessoa.enderecos : [];
-    return enderecos.map((endereco) => ({
-      pessoa,
-      endereco,
-      texto: montarEnderecoCompleto(endereco),
-      latLong: endereco.latLong,
-    }));
-  });
+  // Comentário: seleciona um endereço válido por pessoa para mapear a rede.
+  const obterEnderecoValido = (enderecos) => {
+    const lista = Array.isArray(enderecos) ? enderecos : [];
+    // Comentário: valida se há coordenadas parseáveis ou texto suficiente para geocodificação.
+    const enderecoEhValido = (endereco) => {
+      if (!endereco) return false;
+      return Boolean(parseLatLong(endereco.latLong) || montarEnderecoCompleto(endereco));
+    };
+    // Comentário: prioriza o endereço principal quando disponível e válido.
+    const enderecoPrincipal = lista.find((endereco) => endereco?.principal === true && enderecoEhValido(endereco));
+    if (enderecoPrincipal) return enderecoPrincipal;
+    // Comentário: fallback para o primeiro endereço com lat/long parseável ou texto.
+    return lista.find((endereco) => enderecoEhValido(endereco)) || null;
+  };
+
+  return (Array.isArray(pessoas) ? pessoas : [])
+    .map((pessoa) => {
+      const enderecoSelecionado = obterEnderecoValido(pessoa?.enderecos);
+      if (!enderecoSelecionado) return null;
+      return {
+        pessoa,
+        endereco: enderecoSelecionado,
+        texto: montarEnderecoCompleto(enderecoSelecionado),
+        latLong: enderecoSelecionado.latLong,
+      };
+    })
+    .filter(Boolean);
 }
 
 async function mapearEnderecos(enderecos, { mapa, geocoder, infoWindow, cache, statusEl, marcadores }) {
