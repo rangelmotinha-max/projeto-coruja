@@ -285,7 +285,11 @@ function validarEnderecos(enderecos) {
     id: endereco.id || undefined,
     uf: normalizarOpcional(endereco.uf),
     logradouro: normalizarOpcional(endereco.logradouro),
+    // Número é opcional, mas usado na geocodificação e exibição completa.
+    numero: normalizarOpcional(endereco.numero),
     bairro: normalizarOpcional(endereco.bairro),
+    // Cidade é opcional para compatibilidade, mas facilita a geocodificação.
+    cidade: normalizarOpcional(endereco.cidade),
     // Complemento agora é validado e normalizado para ser persistido corretamente.
     complemento: normalizarOpcional(endereco.complemento),
     // Permite salvar latitude/longitude em formato livre (ex: "-23.5, -46.6")

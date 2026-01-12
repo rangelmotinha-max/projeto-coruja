@@ -53,3 +53,15 @@ npm start
 ```
 
 A aplicação inicializa a conexão SQLite automaticamente ao utilizar os modelos.
+
+## Configuração do Google Maps (Geocoding)
+
+- Defina a chave da API do Google Maps na variável de ambiente `GOOGLE_MAPS_API_KEY`.
+- O backend injeta essa chave no frontend via `/js/maps-config.js`, consumido em `public/rede.html`.
+
+Exemplo (Linux/macOS):
+
+```bash
+# Comentário: substitua pelo valor fornecido no Google Cloud Console
+export GOOGLE_MAPS_API_KEY="sua-chave-aqui"
+```

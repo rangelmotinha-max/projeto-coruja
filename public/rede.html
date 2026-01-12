@@ -79,10 +79,27 @@
             <p>Inclua aqui indicadores-chave, alertas e relatórios sobre relações entre pessoas, empresas e entidades.</p>
           </div>
         </section>
+
+        <section class="panel" aria-label="Mapa da rede">
+          <div class="panel__header panel__header--stacked">
+            <h2 class="panel__title">Mapa de Pessoas</h2>
+            <p class="panel__meta">Geocodificação dos endereços cadastrados e distribuição geográfica.</p>
+          </div>
+          <div class="stack">
+            <p id="rede-status" class="panel__meta" role="status" aria-live="polite">
+              Carregando mapa e endereços...
+            </p>
+            <!-- Comentário: o mapa é renderizado via Google Maps JavaScript API -->
+            <div id="rede-map" class="rede-map" aria-label="Mapa com marcadores da rede"></div>
+          </div>
+        </section>
       </main>
     </div>
 
     <script src="/js/main.js"></script>
+    <!-- Comentário: config expõe a key do Google Maps via variável de ambiente -->
+    <script src="/js/maps-config.js"></script>
+    <script src="/js/rede.js"></script>
     <div id="alterar-senha-modal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="alterar-senha-title">
       <div class="modal__overlay" data-modal-close></div>
       <div class="modal__panel modal__panel--sm" role="document">

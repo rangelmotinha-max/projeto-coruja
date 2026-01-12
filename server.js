@@ -69,6 +69,16 @@ app.get('/consulta/veiculos', authMiddleware, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'consulta', 'veiculos.html'));
 });
 
+// Rota para expor configurações públicas do frontend (ex: Google Maps API Key)
+app.get('/js/maps-config.js', (req, res) => {
+  res.type('application/javascript');
+  // Comentário: evita hardcode expondo a key via variável de ambiente.
+  res.send(
+    `window.APP_CONFIG = window.APP_CONFIG || {};\n` +
+    `window.APP_CONFIG.googleMapsApiKey = ${JSON.stringify(env.googleMapsApiKey)};\n`
+  );
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', routes);
