@@ -94,7 +94,7 @@ function inicializarMapa(mapEl, statusEl, regiaoSelect, aplicarFiltroBtn) {
 }
 
 async function carregarPessoas() {
-  const response = await fetch('/api/pessoas');
+  const response = await fetch('/api/pessoas', { credentials: 'include' });
   if (!response.ok) throw new Error('Falha ao buscar pessoas');
   const pessoas = await response.json();
   const resumoInvalidos = {

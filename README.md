@@ -59,9 +59,26 @@ A aplicação inicializa a conexão SQLite automaticamente ao utilizar os modelo
 - Defina a chave da API do Google Maps na variável de ambiente `GOOGLE_MAPS_API_KEY`.
 - O backend injeta essa chave no frontend via `/js/maps-config.js`, consumido em `public/rede.html`.
 
+Opção A: arquivo `.env` (recomendado)
+
+1. Copie o arquivo `.env.example` para `.env` na raiz do projeto.
+2. Preencha `GOOGLE_MAPS_API_KEY` com sua chave do Google Cloud.
+3. Reinicie o servidor (`npm start`).
+
+Opção B: variável de ambiente temporária
+
 Exemplo (Linux/macOS):
 
 ```bash
 # Comentário: substitua pelo valor fornecido no Google Cloud Console
 export GOOGLE_MAPS_API_KEY="sua-chave-aqui"
 ```
+
+Exemplo (Windows PowerShell):
+
+```powershell
+$env:GOOGLE_MAPS_API_KEY = "sua-chave-aqui"
+npm start
+```
+
+Observação: se o mapa exibir a mensagem "Informe a chave do Google Maps na variável GOOGLE_MAPS_API_KEY", verifique se a chave está presente no `.env` ou no ambiente antes de iniciar o servidor. O endpoint `/js/maps-config.js` deve retornar `window.APP_CONFIG.googleMapsApiKey` com um valor não vazio.
