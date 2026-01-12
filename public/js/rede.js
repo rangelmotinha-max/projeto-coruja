@@ -4,8 +4,10 @@
 document.addEventListener('DOMContentLoaded', () => {
   const mapEl = document.getElementById('rede-map');
   const statusEl = document.getElementById('rede-status');
+  const regiaoSelect = document.getElementById('rede-regiao-select');
+  const aplicarFiltroBtn = document.getElementById('rede-aplicar-filtro');
 
-  if (!mapEl || !statusEl) return;
+  if (!mapEl || !statusEl || !regiaoSelect || !aplicarFiltroBtn) return;
 
   const apiKey = window.APP_CONFIG?.googleMapsApiKey;
   if (!apiKey) {
@@ -15,7 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Comentário: carrega o script do Google Maps de forma assíncrona.
   carregarScriptGoogleMaps(apiKey)
-    .then(() => inicializarMapa(mapEl, statusEl))
+    .then(() => inicializarMapa(mapEl, statusEl, regiaoSelect, aplicarFiltroBtn))
     .catch(() => {
       statusEl.textContent = 'Falha ao carregar o Google Maps. Verifique sua chave e conexão.';
     });
@@ -39,7 +41,7 @@ function carregarScriptGoogleMaps(apiKey) {
   });
 }
 
-function inicializarMapa(mapEl, statusEl) {
+function inicializarMapa(mapEl, statusEl, regiaoSelect, aplicarFiltroBtn) {
   // Comentário: posição inicial aproximada do Brasil.
   const mapa = new google.maps.Map(mapEl, {
     center: { lat: -14.235, lng: -51.9253 },
@@ -49,12 +51,38 @@ function inicializarMapa(mapEl, statusEl) {
   const geocoder = new google.maps.Geocoder();
   const infoWindow = new google.maps.InfoWindow();
   const cache = carregarCacheLocal();
+  const marcadores = [];
 
   carregarPessoas()
-    .then((enderecos) => mapearEnderecos(enderecos, { mapa, geocoder, infoWindow, cache, statusEl }))
+    .then((enderecos) => mapearEnderecos(enderecos, {
+      mapa,
+      geocoder,
+      infoWindow,
+      cache,
+      statusEl,
+      marcadores,
+    }))
+    .then(() => {
+      // Comentário: aplica o filtro inicial conforme a seleção atual.
+      aplicarFiltroRegiao({
+        regiaoSelecionada: regiaoSelect.value,
+        marcadores,
+        mapa,
+        statusEl,
+      });
+    })
     .catch(() => {
       statusEl.textContent = 'Não foi possível carregar pessoas no momento.';
     });
+
+  aplicarFiltroBtn.addEventListener('click', () => {
+    aplicarFiltroRegiao({
+      regiaoSelecionada: regiaoSelect.value,
+      marcadores,
+      mapa,
+      statusEl,
+    });
+  });
 }
 
 async function carregarPessoas() {
@@ -74,7 +102,7 @@ async function carregarPessoas() {
   });
 }
 
-async function mapearEnderecos(enderecos, { mapa, geocoder, infoWindow, cache, statusEl }) {
+async function mapearEnderecos(enderecos, { mapa, geocoder, infoWindow, cache, statusEl, marcadores }) {
   const enderecosValidos = enderecos.filter((item) => item.texto);
   const total = enderecosValidos.length;
   let processados = 0;
@@ -93,13 +121,16 @@ async function mapearEnderecos(enderecos, { mapa, geocoder, infoWindow, cache, s
 
     if (coordenadas) {
       criados += 1;
-      adicionarMarcador({
+      const regiaoAdministrativa = obterRegiaoAdministrativa(item.endereco);
+      const marcador = adicionarMarcador({
         mapa,
         infoWindow,
         pessoa: item.pessoa,
         enderecoTexto: item.texto,
         coordenadas,
+        regiaoAdministrativa,
       });
+      marcadores.push(marcador);
     }
 
     statusEl.textContent = `Processados ${processados}/${total}. Marcadores criados: ${criados}.`;
@@ -174,7 +205,7 @@ function geocode(geocoder, enderecoTexto) {
   });
 }
 
-function adicionarMarcador({ mapa, infoWindow, pessoa, enderecoTexto, coordenadas }) {
+function adicionarMarcador({ mapa, infoWindow, pessoa, enderecoTexto, coordenadas, regiaoAdministrativa }) {
   const marker = new google.maps.Marker({
     map: mapa,
     position: coordenadas,
@@ -184,11 +215,17 @@ function adicionarMarcador({ mapa, infoWindow, pessoa, enderecoTexto, coordenada
   marker.addListener('click', () => {
     const nome = pessoa?.nomeCompleto || 'Pessoa';
     const apelido = pessoa?.apelido ? `<div><strong>Apelido:</strong> ${pessoa.apelido}</div>` : '';
+    const regiao = regiaoAdministrativa ? `<div><strong>Região:</strong> ${regiaoAdministrativa}</div>` : '';
     infoWindow.setContent(
-      `<div><strong>${nome}</strong></div>${apelido}<div>${enderecoTexto}</div>`
+      `<div><strong>${nome}</strong></div>${apelido}${regiao}<div>${enderecoTexto}</div>`
     );
     infoWindow.open(mapa, marker);
   });
+
+  return {
+    marker,
+    regiaoAdministrativa,
+  };
 }
 
 function parseLatLong(latLong) {
@@ -227,3 +264,80 @@ function salvarCacheLocal(cache) {
 function aguardar(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
+function aplicarFiltroRegiao({ regiaoSelecionada, marcadores, mapa, statusEl }) {
+  // Comentário: exibe todos quando não há filtro definido.
+  const regiao = String(regiaoSelecionada || '').trim();
+  let visiveis = 0;
+
+  marcadores.forEach(({ marker, regiaoAdministrativa }) => {
+    const corresponde = !regiao || regiaoAdministrativa === regiao;
+    marker.setMap(corresponde ? mapa : null);
+    if (corresponde) visiveis += 1;
+  });
+
+  if (!regiao) {
+    statusEl.textContent = `Filtro limpo. Marcadores visíveis: ${visiveis}.`;
+    return;
+  }
+
+  statusEl.textContent = `Filtro aplicado para ${regiao}. Marcadores visíveis: ${visiveis}.`;
+}
+
+function obterRegiaoAdministrativa(endereco) {
+  if (!endereco) return '';
+
+  // Comentário: prioridade para campo explícito, se existir no backend.
+  const campoExplicito = String(endereco.regiaoAdministrativa || '').trim();
+  if (campoExplicito) return campoExplicito;
+
+  const cidade = normalizarTexto(endereco.cidade);
+  const bairro = normalizarTexto(endereco.bairro);
+  const chave = cidade || bairro;
+
+  return MAPEAMENTO_REGIOES_DF[chave] || '';
+}
+
+function normalizarTexto(valor) {
+  return String(valor || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '');
+}
+
+// Comentário: mapeamento simples de cidades/bairros para regiões administrativas do DF.
+const MAPEAMENTO_REGIOES_DF = {
+  'aguas claras': 'Águas Claras',
+  'arniqueira': 'Arniqueira',
+  'brazlandia': 'Brazlândia',
+  'candangolandia': 'Candangolândia',
+  'ceilandia': 'Ceilândia',
+  'cruzeiro': 'Cruzeiro',
+  'fercal': 'Fercal',
+  'gama': 'Gama',
+  'guara': 'Guará',
+  'itapoa': 'Itapoã',
+  'jardim botanico': 'Jardim Botânico',
+  'lago norte': 'Lago Norte',
+  'lago sul': 'Lago Sul',
+  'nucleo bandeirante': 'Núcleo Bandeirante',
+  'paranoa': 'Paranoá',
+  'park way': 'Park Way',
+  'planaltina': 'Planaltina',
+  'plano piloto': 'Plano Piloto',
+  'recanto das emas': 'Recanto das Emas',
+  'riacho fundo': 'Riacho Fundo',
+  'riacho fundo ii': 'Riacho Fundo II',
+  'samambaia': 'Samambaia',
+  'santa maria': 'Santa Maria',
+  'sao sebastiao': 'São Sebastião',
+  'scia/estrutural': 'SCIA/Estrutural',
+  'sia': 'SIA',
+  'sobradinho': 'Sobradinho',
+  'sobradinho ii': 'Sobradinho II',
+  'sudoeste/octogonal': 'Sudoeste/Octogonal',
+  'taguatinga': 'Taguatinga',
+  'varjao': 'Varjão',
+  'vicente pires': 'Vicente Pires',
+};
