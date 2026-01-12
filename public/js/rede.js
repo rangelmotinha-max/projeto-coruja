@@ -54,14 +54,22 @@ function inicializarMapa(mapEl, statusEl, regiaoSelect, aplicarFiltroBtn) {
   const marcadores = [];
 
   carregarPessoas()
-    .then((enderecos) => mapearEnderecos(enderecos, {
-      mapa,
-      geocoder,
-      infoWindow,
-      cache,
-      statusEl,
-      marcadores,
-    }))
+    .then(({ enderecosValidos, resumoInvalidos }) => {
+      // Comentário: informa antecipadamente quantos cadastros ficaram sem endereço válido.
+      if (resumoInvalidos.total > 0) {
+        statusEl.textContent = montarResumoInvalidos(resumoInvalidos);
+      }
+
+      return mapearEnderecos(enderecosValidos, {
+        mapa,
+        geocoder,
+        infoWindow,
+        cache,
+        statusEl,
+        marcadores,
+        resumoInvalidos,
+      });
+    })
     .then(() => {
       // Comentário: aplica o filtro inicial conforme a seleção atual.
       aplicarFiltroRegiao({
@@ -89,6 +97,12 @@ async function carregarPessoas() {
   const response = await fetch('/api/pessoas');
   if (!response.ok) throw new Error('Falha ao buscar pessoas');
   const pessoas = await response.json();
+  const resumoInvalidos = {
+    total: 0,
+    semEndereco: 0,
+    semTextoGeocodificavel: 0,
+    latLongInvalido: 0,
+  };
 
   // Comentário: seleciona um endereço válido por pessoa para mapear a rede.
   const obterEnderecoValido = (enderecos) => {
@@ -105,10 +119,37 @@ async function carregarPessoas() {
     return lista.find((endereco) => enderecoEhValido(endereco)) || null;
   };
 
-  return (Array.isArray(pessoas) ? pessoas : [])
+  const enderecosValidos = (Array.isArray(pessoas) ? pessoas : [])
     .map((pessoa) => {
-      const enderecoSelecionado = obterEnderecoValido(pessoa?.enderecos);
-      if (!enderecoSelecionado) return null;
+      const enderecos = Array.isArray(pessoa?.enderecos) ? pessoa.enderecos : [];
+      if (enderecos.length === 0) {
+        resumoInvalidos.total += 1;
+        resumoInvalidos.semEndereco += 1;
+        return null;
+      }
+
+      const enderecoSelecionado = obterEnderecoValido(enderecos);
+      if (!enderecoSelecionado) {
+        resumoInvalidos.total += 1;
+        const possuiTexto = enderecos.some((endereco) => Boolean(montarEnderecoCompleto(endereco)));
+        const possuiLatLong = enderecos.some((endereco) => Boolean(endereco?.latLong));
+        const possuiLatLongValido = enderecos.some((endereco) => Boolean(parseLatLong(endereco?.latLong)));
+
+        if (!possuiTexto) {
+          resumoInvalidos.semTextoGeocodificavel += 1;
+        }
+
+        if (possuiLatLong && !possuiLatLongValido) {
+          resumoInvalidos.latLongInvalido += 1;
+        }
+
+        if (!possuiTexto && !possuiLatLong) {
+          resumoInvalidos.semEndereco += 1;
+        }
+
+        return null;
+      }
+
       return {
         pessoa,
         endereco: enderecoSelecionado,
@@ -117,20 +158,31 @@ async function carregarPessoas() {
       };
     })
     .filter(Boolean);
+
+  return { enderecosValidos, resumoInvalidos };
 }
 
-async function mapearEnderecos(enderecos, { mapa, geocoder, infoWindow, cache, statusEl, marcadores }) {
+async function mapearEnderecos(enderecos, {
+  mapa,
+  geocoder,
+  infoWindow,
+  cache,
+  statusEl,
+  marcadores,
+  resumoInvalidos,
+}) {
   const enderecosValidos = enderecos.filter((item) => item.texto);
   const total = enderecosValidos.length;
   let processados = 0;
   let criados = 0;
 
   if (total === 0) {
-    statusEl.textContent = 'Nenhum endereço válido encontrado para geocodificação.';
+    const resumo = resumoInvalidos?.total ? `${montarResumoInvalidos(resumoInvalidos)} ` : '';
+    statusEl.textContent = `${resumo}Nenhum endereço válido encontrado para geocodificação.`;
     return;
   }
 
-  statusEl.textContent = `Geocodificando ${total} endereço(s)...`;
+  statusEl.textContent = montarStatusGeocodificacao(total, resumoInvalidos);
 
   for (const item of enderecosValidos) {
     processados += 1;
@@ -150,10 +202,46 @@ async function mapearEnderecos(enderecos, { mapa, geocoder, infoWindow, cache, s
       marcadores.push(marcador);
     }
 
-    statusEl.textContent = `Processados ${processados}/${total}. Marcadores criados: ${criados}.`;
+    statusEl.textContent = montarStatusGeocodificacao(total, resumoInvalidos, {
+      processados,
+      criados,
+    });
     // Comentário: pausa simples para reduzir o risco de limite de requisição.
     await aguardar(250);
   }
+}
+
+function montarResumoInvalidos(resumoInvalidos) {
+  const motivos = [];
+  // Comentário: adiciona apenas motivos com contagem > 0 para evitar poluição no status.
+  if (resumoInvalidos.semEndereco) {
+    motivos.push(`sem endereço: ${resumoInvalidos.semEndereco}`);
+  }
+  if (resumoInvalidos.semTextoGeocodificavel) {
+    motivos.push(`sem texto geocodificável: ${resumoInvalidos.semTextoGeocodificavel}`);
+  }
+  if (resumoInvalidos.latLongInvalido) {
+    motivos.push(`lat/long inválido: ${resumoInvalidos.latLongInvalido}`);
+  }
+
+  const detalhes = motivos.length > 0 ? ` (${motivos.join('; ')})` : '';
+  return `Endereços inválidos: ${resumoInvalidos.total}${detalhes}.`;
+}
+
+function montarStatusGeocodificacao(total, resumoInvalidos, progresso = null) {
+  const partes = [];
+  // Comentário: inclui resumo de inválidos antes ou durante a geocodificação.
+  if (resumoInvalidos?.total) {
+    partes.push(montarResumoInvalidos(resumoInvalidos));
+  }
+
+  if (progresso) {
+    partes.push(`Processados ${progresso.processados}/${total}. Marcadores criados: ${progresso.criados}.`);
+  } else {
+    partes.push(`Geocodificando ${total} endereço(s)...`);
+  }
+
+  return partes.join(' ');
 }
 
 function montarEnderecoCompleto(endereco) {
