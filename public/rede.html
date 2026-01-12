@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Consulta de Veículos | Projeto Coruja</title>
+    <title>Rede | Projeto Coruja</title>
     <link rel="stylesheet" href="/css/main.css" />
   </head>
   <body class="theme-dark">
@@ -41,7 +41,7 @@
         <nav class="sidebar__nav" aria-label="Menu principal">
           <a class="sidebar__link" href="/home">Home</a>
           <a class="sidebar__link" href="/usuarios">Usuários</a>
-          <a class="sidebar__link" href="/rede">Rede</a>
+          <a class="sidebar__link sidebar__link--active" href="/rede">Rede</a>
           <!-- Início do menu de nível superior: Cadastro -->
           <details class="sidebar__section">
             <summary class="sidebar__link sidebar__link--parent" aria-label="Abrir menu Cadastro">Cadastro</summary>
@@ -49,80 +49,60 @@
               <a class="sidebar__link sidebar__link--child" href="/cadastro/pessoas">Pessoas</a>
               <a class="sidebar__link sidebar__link--child" href="/cadastro/empresas">Empresas</a>
               <a class="sidebar__link sidebar__link--child" href="/cadastro/entidades">Entidades</a>
-              
             </div>
           </details>
           <!-- Início do menu de nível superior: Consulta -->
-          <details class="sidebar__section sidebar__section--active" open>
+          <details class="sidebar__section">
             <summary class="sidebar__link sidebar__link--parent" aria-label="Abrir menu Consulta">Consulta</summary>
             <div class="sidebar__subnav">
               <a class="sidebar__link sidebar__link--child" href="/consulta/pessoas">Pessoas</a>
               <a class="sidebar__link sidebar__link--child" href="/consulta/empresas">Empresas</a>
-              <a class="sidebar__link sidebar__link--child sidebar__link--active" href="/consulta/veiculos">Veículos</a>
+              <a class="sidebar__link sidebar__link--child" href="/consulta/veiculos">Veículos</a>
             </div>
           </details>
-          <!-- Fim do menu de nível superior: Consulta -->
         </nav>
-
       </aside>
 
-      <main class="content" data-page="consulta-veiculos">
+      <main class="content" data-page="rede">
         <header class="content__header">
-          <p class="content__eyebrow">Consulta</p>
-          <h1 class="content__title">Veículos</h1>
-
+          <p class="content__eyebrow">Rede</p>
+          <h1 class="content__title">Visão geral de vínculos</h1>
+          <p class="content__subtitle">Acompanhe conexões estratégicas e fluxos de relacionamento.</p>
         </header>
 
-        <section class="panel" aria-label="Consulta de veículos">
-          <div class="panel__header">
-            <div>
-              <!-- Formulário orientado a filtros principais para agilizar a busca de veículos -->
-            </div>
-          </div>
-          <form class="form" aria-label="Filtros de consulta de veículos" data-veiculos-form>
-            <div class="form__grid form__grid--2">
-              <label class="form__field">
-                <span class="form__label">Nome do Proprietário</span>
-                <!-- Campo dedicado a localizar veículos pelo proprietário principal -->
-                <input class="form__input" type="text" name="nomeProprietario" placeholder="Digite o nome do proprietário" />
-              </label>
-              <label class="form__field">
-                <span class="form__label">CPF do Proprietário</span>
-                <!-- Campo numérico para vincular o CPF ao cadastro do proprietário -->
-                <input class="form__input" type="text" name="cpf" placeholder="000.000.000-00" inputmode="numeric" />
-              </label>
-            </div>
-            <div class="form__grid form__grid--2">
-              <label class="form__field">
-                <span class="form__label">Placa</span>
-                <!-- Campo de busca pela placa principal do veículo -->
-                <input class="form__input" type="text" name="placa" placeholder="ABC1D23" maxlength="7" />
-              </label>
-              <label class="form__field">
-                <span class="form__label">Marca/Modelo</span>
-                <!-- Campo para pesquisar por marca ou modelo combinados -->
-                <input class="form__input" type="text" name="marcaModelo" placeholder="Ex.: Toyota Corolla" />
-              </label>
-            </div>
-            <div class="form__actions">
-              <button type="submit" class="button button--primary">Consultar</button>
-              <button type="reset" class="button button--ghost">Limpar filtros</button>
-            </div>
-          </form>
-        </section>
-
-        <section class="panel" aria-label="Resultados da consulta">
+        <section class="panel" aria-label="Resumo da rede">
           <div class="panel__header panel__header--stacked">
-            <h2 class="panel__title">Resultados</h2>
-            <!-- Espaço reservado para ações extras (ex.: exportação) se necessário no futuro -->
+            <h2 class="panel__title">Resumo</h2>
+            <p class="panel__meta">Centralize informações relevantes sobre a rede.</p>
           </div>
-          <div class="message" role="status" aria-live="polite" data-results-message>Aguardando consulta...</div>
-          <div class="results" data-results-container aria-live="polite"></div>
+          <div class="stack">
+            <p>Inclua aqui indicadores-chave, alertas e relatórios sobre relações entre pessoas, empresas e entidades.</p>
+          </div>
         </section>
       </main>
     </div>
 
     <script src="/js/main.js"></script>
-    <script src="/js/consulta-veiculos.js"></script>
+    <div id="alterar-senha-modal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="alterar-senha-title">
+      <div class="modal__overlay" data-modal-close></div>
+      <div class="modal__panel modal__panel--sm" role="document">
+        <button class="modal__close" id="alterar-senha-close" aria-label="Fechar">×</button>
+        <h3 id="alterar-senha-title">Alterar senha</h3>
+        <form id="alterar-senha-form" class="form" novalidate>
+          <label class="form__field">
+            <span class="form__label">Senha atual</span>
+            <input class="form__input" type="password" id="senha-atual" required />
+          </label>
+          <label class="form__field">
+            <span class="form__label">Nova senha</span>
+            <input class="form__input" type="password" id="senha-nova" required />
+          </label>
+          <div class="form__actions">
+            <button type="button" class="button button--ghost" id="alterar-senha-cancelar">Cancelar</button>
+            <button type="submit" class="button button--primary" id="alterar-senha-submit">Alterar</button>
+          </div>
+        </form>
+      </div>
+    </div>
   </body>
 </html>

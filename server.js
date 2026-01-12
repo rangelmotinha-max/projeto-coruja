@@ -30,6 +30,11 @@ app.get('/usuarios', authMiddleware, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'usuarios.html'));
 });
 
+// Rota protegida garantindo acesso autenticado à página de Rede
+app.get('/rede', authMiddleware, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'rede.html'));
+});
+
 // Rota protegida garantindo acesso autenticado à página de Pessoas
 app.get('/cadastro/pessoas', authMiddleware, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'cadastro', 'pessoas.html'));
