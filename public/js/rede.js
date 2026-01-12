@@ -236,9 +236,9 @@ function montarStatusGeocodificacao(total, resumoInvalidos, progresso = null) {
   }
 
   if (progresso) {
-    partes.push(`Processados ${progresso.processados}/${total}. Marcadores criados: ${progresso.criados}.`);
+    partes.push(`Pessoas processadas: ${progresso.processados}/${total}. Pessoas mapeadas: ${progresso.criados}.`);
   } else {
-    partes.push(`Geocodificando ${total} endereço(s)...`);
+    partes.push(`Geocodificando ${total} pessoa(s)...`);
   }
 
   return partes.join(' ');
@@ -386,7 +386,7 @@ function aplicarFiltroRegiao({ regiaoSelecionada, marcadores, mapa, statusEl }) 
     return;
   }
 
-  statusEl.textContent = `Filtro aplicado para ${regiao}. Marcadores visíveis: ${visiveis}.`;
+  statusEl.textContent = `Filtro aplicado para ${regiao}. Pessoas visíveis: ${visiveis}.`;
 }
 
 function obterRegiaoAdministrativa(endereco) {
