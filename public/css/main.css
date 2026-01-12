@@ -35,6 +35,8 @@
   --warning-border: rgba(245, 158, 11, 0.35);
   --sky-surface: rgba(59, 130, 246, 0.14);
   --sky-border: rgba(59, 130, 246, 0.35);
+  /* Força UI nativa de controles em dark (lista de seleção, etc.) */
+  color-scheme: dark;
 }
 
 /* Paleta do tema claro inspirada em Material Design 3 (tons suaves) */
@@ -739,13 +741,20 @@ body.theme-dark #lista-redes select.form__input:focus-visible {
 }
 
 /* Dropdown do select em modo escuro (lista de opções) */
-body.theme-dark #lista-redes select.form__input {
+/* Dropdown do select em modo escuro (lista de opções) */
+/* Escopo global para todos selects com classe form__input (inclui Rede) */
+body.theme-dark select.form__input {
   /* Instrui o navegador a usar UI do controle em dark */
   color-scheme: dark;
+  background-color: var(--input-bg);
+  color: var(--text);
+  border-color: var(--border);
 }
-body.theme-dark #lista-redes select.form__input,
-body.theme-dark #lista-redes select.form__input option,
-body.theme-dark #lista-redes select.form__input optgroup {
+body.theme-dark select.form__input:focus {
+  background-color: var(--input-focus-bg);
+}
+body.theme-dark select.form__input option,
+body.theme-dark select.form__input optgroup {
   background-color: #2a2a2a;
   color: var(--text);
 }
