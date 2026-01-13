@@ -1377,8 +1377,12 @@
           const btnRemover = document.createElement('button');
           btnRemover.type = 'button';
           btnRemover.className = 'button button--danger';
-          btnRemover.textContent = 'Remover';
-          btnRemover.addEventListener('click', () => {
+          btnRemover.textContent = '−';
+          btnRemover.title = 'Excluir';
+          btnRemover.setAttribute('aria-label', 'Remover empresa vinculada');
+          btnRemover.addEventListener('click', async () => {
+            const ok = await confirmarExclusao();
+            if (!ok) return;
             empresasVinculadas = empresasVinculadas.filter((_, idx) => idx !== index);
             renderizarEmpresasVinculadasLista();
           });
@@ -2753,7 +2757,7 @@
           const btnRemover = document.createElement('button');
           btnRemover.className = 'button button--danger';
           btnRemover.type = 'button';
-          btnRemover.textContent = 'Remover';
+          btnRemover.textContent = '−';
           btnRemover.title = 'Excluir';
           btnRemover.setAttribute('aria-label', 'Remover vínculo de veículo');
           btnRemover.addEventListener('click', async () => {
