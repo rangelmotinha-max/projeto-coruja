@@ -2030,7 +2030,9 @@
           const btnRemover = document.createElement('button');
           btnRemover.type = 'button';
           btnRemover.className = 'button button--danger';
-          btnRemover.textContent = 'Remover';
+          btnRemover.textContent = '-';
+          btnRemover.setAttribute('aria-label', 'Remover veículo');
+          btnRemover.title = 'Excluir';
           btnRemover.style.minWidth = 'fit-content';
           btnRemover.addEventListener('click', () => {
             veiculos.splice(indice, 1); // Comentário: remove o veículo selecionado

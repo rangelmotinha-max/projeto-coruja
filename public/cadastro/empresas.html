@@ -126,7 +126,7 @@
             <div class="form__section" aria-label="Endereços da empresa">
               <div class="form__section-header" style="display:flex; justify-content: space-between; align-items: center;">
                 <h3 class="form__section-title" style="font-size:1rem; margin:0;">Endereços</h3>
-                <button class="button button--secondary" id="adicionar-endereco-empresa" type="button">+</button>
+                <button class="button button--secondary" id="adicionar-endereco-empresa" type="button" title="Adicionar" aria-label="Adicionar endereço">+</button>
               </div>
               <div id="lista-enderecos-empresa" class="form__section-body" style="display:flex; flex-direction:column; gap:0.75rem;"></div>
             </div>
@@ -144,7 +144,7 @@
             <div class="form__subsection" aria-label="Veículos da empresa">
               <div class="form__section-header" style="display:flex; justify-content: space-between; align-items: center;">
                 <h3 class="form__section-title">Veículos</h3>
-                <button class="button button--secondary" id="adicionar-veiculo-empresa" type="button">+</button>
+                <button class="button button--secondary" id="adicionar-veiculo-empresa" type="button" title="Adicionar" aria-label="Adicionar veículo">+</button>
               </div>
               <div id="lista-veiculos-empresa" class="form__section-body" style="display:flex; flex-direction:column; gap:0.75rem;"></div>
             </div>
@@ -821,6 +821,8 @@
           btnRemover.type = 'button';
           btnRemover.className = 'button button--danger';
           btnRemover.textContent = '-';
+          btnRemover.setAttribute('aria-label', 'Remover veículo');
+          btnRemover.title = 'Excluir';
           btnRemover.style.minWidth = 'fit-content';
           btnRemover.addEventListener('click', () => {
             veiculosEmpresa.splice(indice, 1);
