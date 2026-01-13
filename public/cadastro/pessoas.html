@@ -2351,7 +2351,15 @@
           btnRem.className = 'button button--danger';
           btnRem.type = 'button';
           btnRem.textContent = 'Remover';
-          btnRem.addEventListener('click', () => {
+          btnRem.title = 'Excluir';
+          btnRem.setAttribute('aria-label', 'Remover vínculo de pessoa');
+          btnRem.addEventListener('click', async () => {
+            const v = vinculosPessoas[i] || {};
+            const temDados = [v.nome, v.cpf, v.tipo].some(val => String(val||'').trim());
+            if (temDados) {
+              const ok = await confirmarExclusao();
+              if (!ok) return;
+            }
             vinculosPessoas.splice(i, 1);
             renderizarVinculosPessoas();
           });
@@ -2746,7 +2754,16 @@
           btnRemover.className = 'button button--danger';
           btnRemover.type = 'button';
           btnRemover.textContent = 'Remover';
-          btnRemover.addEventListener('click', () => {
+          btnRemover.title = 'Excluir';
+          btnRemover.setAttribute('aria-label', 'Remover vínculo de veículo');
+          btnRemover.addEventListener('click', async () => {
+            const v = vinculosVeiculos[indice] || {};
+            const temDados = [v.placa, v.marcaModelo, v.cor, (v.anoModelo ?? ''), v.nome, v.cpf]
+              .some(val => String(val||'').trim());
+            if (temDados) {
+              const ok = await confirmarExclusao();
+              if (!ok) return;
+            }
             vinculosVeiculos.splice(indice, 1);
             renderizarVinculosVeiculos();
           });
@@ -3064,7 +3081,15 @@
           const btn = linha.querySelector('button');
           infoEl.value = String(item?.info || '');
           infoEl.addEventListener('input', (e) => { vinculosEmpregaticio[i].info = e.target.value; });
-          btn.addEventListener('click', () => { vinculosEmpregaticio.splice(i,1); renderizarVinculosEmpregaticio(); });
+          btn.addEventListener('click', async () => {
+            const temDados = String(vinculosEmpregaticio[i]?.info || '').trim();
+            if (temDados) {
+              const ok = await confirmarExclusao();
+              if (!ok) return;
+            }
+            vinculosEmpregaticio.splice(i,1);
+            renderizarVinculosEmpregaticio();
+          });
           lista.appendChild(linha);
         });
       };
@@ -3132,7 +3157,15 @@
           infoEl.value = String(item?.info || '');
           dataEl.addEventListener('input', (e) => { arrRef[i].data = e.target.value; });
           infoEl.addEventListener('input', (e) => { arrRef[i].info = e.target.value; });
-          btn.addEventListener('click', () => { arrRef.splice(i,1); renderizarLinhaDataInfo(arrRef, listaElId, labelData, placeholderInfo); });
+          btn.addEventListener('click', async () => {
+            const temDados = (String(arrRef[i]?.data||'').trim() || String(arrRef[i]?.info||'').trim());
+            if (temDados) {
+              const ok = await confirmarExclusao();
+              if (!ok) return;
+            }
+            arrRef.splice(i,1);
+            renderizarLinhaDataInfo(arrRef, listaElId, labelData, placeholderInfo);
+          });
           lista.appendChild(linha);
         });
       };
@@ -3217,7 +3250,20 @@
           infoEl.value = String(item?.info || '');
           dataEl.addEventListener('input', (e) => { ocorrenciasPoliciais[i].data = e.target.value; });
           infoEl.addEventListener('input', (e) => { ocorrenciasPoliciais[i].info = e.target.value; });
-          btnRemover.addEventListener('click', () => { ocorrenciasPoliciais.splice(i,1); renderizarOcorrenciasPoliciais(); });
+          btnRemover.addEventListener('click', async () => {
+            const temDados = (
+              String(ocorrenciasPoliciais[i]?.data||'').trim() ||
+              String(ocorrenciasPoliciais[i]?.info||'').trim() ||
+              ocorrenciasPoliciais[i]?.arquivo ||
+              ocorrenciasPoliciais[i]?.documento
+            );
+            if (temDados) {
+              const ok = await confirmarExclusao();
+              if (!ok) return;
+            }
+            ocorrenciasPoliciais.splice(i,1);
+            renderizarOcorrenciasPoliciais();
+          });
 
           linha.appendChild(campoData);
           linha.appendChild(campoInfo);
@@ -3339,8 +3385,8 @@
               removerBtn.className = 'button button--ghost';
               removerBtn.style.cssText = 'padding: 0.25rem 0.5rem; font-size: 0.75rem; min-width: fit-content;';
               removerBtn.textContent = 'Remover';
-              removerBtn.addEventListener('click', () => {
-                const ok = window.confirm('Deseja realmente excluir essa imagem?');
+              removerBtn.addEventListener('click', async () => {
+                const ok = await confirmarExclusao('Deseja realmente excluir essa imagem?');
                 if (!ok) return;
                 if (Array.isArray(monitoramentos[i].imagens)) {
                   monitoramentos[i].imagens.splice(idx, 1);
@@ -3407,8 +3453,8 @@
               removerPrevBtn.className = 'button button--ghost';
               removerPrevBtn.style.cssText = 'padding: 0.25rem 0.5rem; font-size: 0.75rem; min-width: fit-content;';
               removerPrevBtn.textContent = 'Remover';
-              removerPrevBtn.addEventListener('click', () => {
-                const ok = window.confirm('Deseja realmente excluir essa imagem?');
+              removerPrevBtn.addEventListener('click', async () => {
+                const ok = await confirmarExclusao('Deseja realmente excluir essa imagem?');
                 if (!ok) return;
                 if (foto?.previewUrl && !foto.singleLegacy) {
                   try { URL.revokeObjectURL(foto.previewUrl); } catch {}
@@ -3453,7 +3499,14 @@
           descricaoEl.value = String(item?.descricao || '');
           dataEl.addEventListener('input', (e) => { monitoramentos[i].data = e.target.value; renderizarMonitoramentos(); });
           descricaoEl.addEventListener('input', (e) => { monitoramentos[i].descricao = e.target.value; });
-          btnRemover.addEventListener('click', () => {
+          btnRemover.addEventListener('click', async () => {
+            const hasImgsSel = Array.isArray(monitoramentos[i]?.imagensSelecionadas) && monitoramentos[i].imagensSelecionadas.length > 0;
+            const hasImgsExist = Array.isArray(monitoramentos[i]?.imagens) && monitoramentos[i].imagens.length > 0;
+            const temDados = String(monitoramentos[i]?.data||'').trim() || String(monitoramentos[i]?.descricao||'').trim() || hasImgsSel || hasImgsExist;
+            if (temDados) {
+              const ok = await confirmarExclusao();
+              if (!ok) return;
+            }
             // Revoga URLs de preview para liberar memória
             const imgs = Array.isArray(monitoramentos[i]?.imagensSelecionadas) ? monitoramentos[i].imagensSelecionadas : [];
             imgs.forEach((f) => { try { URL.revokeObjectURL(f.previewUrl); } catch {} });
@@ -3560,7 +3613,14 @@
           removerBtn.setAttribute('aria-label', 'Remover endereço');
           removerBtn.title = 'Excluir';
           removerBtn.style.cssText = 'padding: 0.25rem 0.5rem; font-size: 0.75rem; min-width: fit-content;';
-          removerBtn.addEventListener('click', () => {
+          removerBtn.addEventListener('click', async () => {
+            const e = enderecos[indiceOrdenado] || {};
+            const temDados = [e.uf, e.logradouro, e.bairro, e.complemento, e.cep, e.latLong]
+              .some(v => String(v||'').trim());
+            if (temDados) {
+              const ok = await confirmarExclusao();
+              if (!ok) return;
+            }
             enderecos.splice(indiceOrdenado, 1);
             if (indicadorEnderecoAtual === indiceOrdenado) {
               indicadorEnderecoAtual = enderecos.length > 0 ? 0 : null;
