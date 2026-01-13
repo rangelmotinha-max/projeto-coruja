@@ -1602,6 +1602,8 @@
           wrapper.style.display = 'flex';
           wrapper.style.flexDirection = 'column';
           wrapper.style.gap = '0.5rem';
+          wrapper.style.position = 'relative';
+          wrapper.style.overflow = 'hidden';
 
           const img = document.createElement('img');
           img.src = foto.previewUrl;
@@ -1618,13 +1620,25 @@
 
           const actions = document.createElement('div');
           actions.style.display = 'flex';
-          actions.style.gap = '0.25rem';
-          actions.style.alignSelf = 'flex-end';
+          actions.style.gap = '0.35rem';
+          actions.style.alignItems = 'center';
+          actions.style.alignSelf = 'stretch';
+          actions.style.justifyContent = 'flex-start';
+          actions.style.marginTop = '0.25rem';
+          actions.style.padding = '0';
+          actions.style.width = '100%';
+          actions.style.flexWrap = 'nowrap';
+          actions.style.whiteSpace = 'nowrap';
 
           const abrirBtn = document.createElement('button');
           abrirBtn.type = 'button';
           abrirBtn.className = 'button button--ghost';
           abrirBtn.textContent = 'Abrir';
+          abrirBtn.style.flex = '0 0 auto';
+          abrirBtn.style.minWidth = 'auto';
+          abrirBtn.style.padding = '0.25rem 0.6rem';
+          abrirBtn.style.fontSize = '0.85rem';
+          abrirBtn.style.lineHeight = '1.2';
           abrirBtn.addEventListener('click', () => {
             const url = foto?.previewUrl;
             if (url) window.open(url, '_blank');
@@ -1634,6 +1648,11 @@
           removerBtn.type = 'button';
           removerBtn.className = 'button button--ghost';
           removerBtn.textContent = 'Remover';
+          removerBtn.style.flex = '0 0 auto';
+          removerBtn.style.minWidth = 'auto';
+          removerBtn.style.padding = '0.25rem 0.6rem';
+          removerBtn.style.fontSize = '0.85rem';
+          removerBtn.style.lineHeight = '1.2';
           removerBtn.addEventListener('click', () => removerFoto(index));
 
           wrapper.appendChild(img);
@@ -1706,6 +1725,7 @@
           wrap.style.display = 'flex';
           wrap.style.flexDirection = 'column';
           wrap.style.alignItems = 'center';
+          wrap.style.overflow = 'hidden';
           // Frame proporcional para a imagem (4:3) baseado na largura
           const frame = document.createElement('div');
           frame.style.width = '100%';
@@ -1725,12 +1745,20 @@
           actions.style.display = 'flex';
           actions.style.gap = '0.25rem';
           actions.style.alignItems = 'center';
-          actions.style.justifyContent = 'center';
+          actions.style.justifyContent = 'flex-start';
+          actions.style.width = '100%';
+          actions.style.flexWrap = 'nowrap';
+          actions.style.whiteSpace = 'nowrap';
 
           const btn = document.createElement('button');
           btn.type = 'button';
           btn.className = 'button button--ghost';
           btn.textContent = 'Remover';
+          btn.style.flex = '0 0 auto';
+          btn.style.minWidth = 'auto';
+          btn.style.padding = '0.25rem 0.6rem';
+          btn.style.fontSize = '0.85rem';
+          btn.style.lineHeight = '1.2';
           btn.addEventListener('click', async () => {
             const ok = await confirmarExclusao();
             if (!ok) return;
@@ -1745,6 +1773,11 @@
           abrirBtn.type = 'button';
           abrirBtn.className = 'button button--ghost';
           abrirBtn.textContent = 'Abrir';
+          abrirBtn.style.flex = '0 0 auto';
+          abrirBtn.style.minWidth = 'auto';
+          abrirBtn.style.padding = '0.25rem 0.6rem';
+          abrirBtn.style.fontSize = '0.85rem';
+          abrirBtn.style.lineHeight = '1.2';
           abrirBtn.addEventListener('click', () => {
             const url = item?.previewUrl;
             if (url) window.open(url, '_blank');
