@@ -2354,7 +2354,7 @@
           const btnRem = document.createElement('button');
           btnRem.className = 'button button--danger';
           btnRem.type = 'button';
-          btnRem.textContent = 'Remover';
+          btnRem.textContent = '−';
           btnRem.title = 'Excluir';
           btnRem.setAttribute('aria-label', 'Remover vínculo de pessoa');
           btnRem.addEventListener('click', async () => {
@@ -2432,21 +2432,30 @@
           `;
 
           const acoesTd = linha.querySelector('td:last-child');
-          acoesTd.style.minWidth = '180px';
+          acoesTd.style.minWidth = '220px';
+
+          const isMobile = window.innerWidth < 640;
+
+          // Container em grid para alinhar tipo de vínculo, pergunta e botões
+          const acoesGrid = document.createElement('div');
+          acoesGrid.style.display = 'grid';
+          acoesGrid.style.gridTemplateColumns = isMobile ? '1fr' : '1fr auto';
+          acoesGrid.style.alignItems = 'center';
+          acoesGrid.style.gap = '0.35rem';
 
           const perguntaDiv = document.createElement('div');
           perguntaDiv.style.color = 'white';
-          perguntaDiv.style.marginBottom = '0.25rem';
+          perguntaDiv.style.margin = '0';
           perguntaDiv.textContent = 'Deseja vincular a pessoa?';
-          perguntaDiv.style.textAlign = window.innerWidth < 480 ? 'left' : 'right';
+          perguntaDiv.style.textAlign = isMobile ? 'left' : 'right';
 
           // Seleção do tipo de vínculo (com opção "Outro")
           const tipoWrap = document.createElement('div');
           tipoWrap.style.display = 'flex';
-          tipoWrap.style.flexDirection = window.innerWidth < 480 ? 'column' : 'row';
+          tipoWrap.style.flexDirection = isMobile ? 'column' : 'row';
           tipoWrap.style.gap = '0.35rem';
-          tipoWrap.style.alignItems = window.innerWidth < 480 ? 'stretch' : 'center';
-          tipoWrap.style.marginBottom = '0.35rem';
+          tipoWrap.style.alignItems = isMobile ? 'stretch' : 'center';
+          tipoWrap.style.margin = '0';
 
           const tipoLabel = document.createElement('small');
           tipoLabel.textContent = 'Tipo de vínculo';
@@ -2455,7 +2464,7 @@
 
           const selectTipo = document.createElement('select');
           selectTipo.className = 'form__input';
-          selectTipo.style.maxWidth = window.innerWidth < 480 ? '100%' : '12rem';
+          selectTipo.style.maxWidth = isMobile ? '100%' : '12rem';
           selectTipo.setAttribute('aria-label', 'Tipo de vínculo');
           selectTipo.innerHTML = `
             <option value="">Selecione</option>
@@ -2476,7 +2485,7 @@
           inputOutro.className = 'form__input';
           inputOutro.placeholder = 'Especifique o tipo';
           inputOutro.style.display = 'none';
-          inputOutro.style.maxWidth = window.innerWidth < 480 ? '100%' : '14rem';
+          inputOutro.style.maxWidth = isMobile ? '100%' : '14rem';
           inputOutro.setAttribute('aria-label', 'Especifique o tipo de vínculo');
 
           selectTipo.addEventListener('change', () => {
@@ -2491,9 +2500,11 @@
 
           const botoesDiv = document.createElement('div');
           botoesDiv.style.display = 'flex';
-          botoesDiv.style.justifyContent = window.innerWidth < 480 ? 'flex-start' : 'flex-end';
+          botoesDiv.style.justifyContent = isMobile ? 'flex-start' : 'flex-end';
           botoesDiv.style.gap = '0.35rem';
-          botoesDiv.style.flexDirection = window.innerWidth < 480 ? 'column' : 'row';
+          botoesDiv.style.flexDirection = isMobile ? 'column' : 'row';
+          botoesDiv.style.gridColumn = isMobile ? '1' : '2';
+          botoesDiv.style.marginTop = '0.15rem';
 
           const btnSim = document.createElement('button');
           btnSim.type = 'button';
@@ -2522,16 +2533,18 @@
             setTimeout(() => { mostrarMensagemResultadosPessoas = true; }, 0);
           });
 
-          if (window.innerWidth < 480) {
+          if (isMobile) {
             btnSim.style.width = '100%';
             btnNao.style.width = '100%';
           }
 
-          acoesTd.appendChild(tipoWrap);
+          // Monta o grid: linha 1 -> tipo (col1) e pergunta (col2); linha 2 -> botões (col2)
+          acoesGrid.appendChild(tipoWrap);
+          acoesGrid.appendChild(perguntaDiv);
           botoesDiv.appendChild(btnSim);
           botoesDiv.appendChild(btnNao);
-          acoesTd.appendChild(perguntaDiv);
-          acoesTd.appendChild(botoesDiv);
+          acoesGrid.appendChild(botoesDiv);
+          acoesTd.appendChild(acoesGrid);
 
           corpo.appendChild(linha);
         });
