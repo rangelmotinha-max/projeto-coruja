@@ -1680,9 +1680,12 @@
         const actions = document.createElement('div');
         actions.style.marginTop = '0.35rem';
         actions.style.display = 'flex';
-        actions.style.gap = '0.25rem';
+        actions.style.gap = '0.35rem';
         actions.style.alignItems = 'center';
         actions.style.justifyContent = 'center';
+        actions.style.width = '100%';
+        actions.style.flexWrap = 'nowrap';
+        actions.style.whiteSpace = 'nowrap';
 
         const btn = document.createElement('button');
         btn.type = 'button';
@@ -1745,7 +1748,7 @@
           actions.style.display = 'flex';
           actions.style.gap = '0.25rem';
           actions.style.alignItems = 'center';
-          actions.style.justifyContent = 'flex-start';
+          actions.style.justifyContent = 'center';
           actions.style.width = '100%';
           actions.style.flexWrap = 'nowrap';
           actions.style.whiteSpace = 'nowrap';
@@ -2539,10 +2542,13 @@
           botoesDiv.style.gridColumn = isMobile ? '1' : '2';
           botoesDiv.style.marginTop = '0.15rem';
 
-          const btnSim = document.createElement('button');
-          btnSim.type = 'button';
-          btnSim.className = 'button button--primary';
-          btnSim.textContent = 'Sim';
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'button button--ghost';
+          btn.textContent = 'Remover';
+          btn.style.padding = '0.25rem 0.6rem';
+          btn.style.fontSize = '0.85rem';
+          btn.style.lineHeight = '1.2';
           btnSim.addEventListener('click', () => {
             const tipoSelecionado = selectTipo.value === 'outro'
               ? (inputOutro.value || '').trim()
@@ -2550,10 +2556,13 @@
             confirmarVinculoPessoa(indice, true, tipoSelecionado);
           });
 
-          const btnNao = document.createElement('button');
-          btnNao.type = 'button';
-          btnNao.className = 'button button--ghost';
-          btnNao.textContent = 'Não';
+          const abrirBtn = document.createElement('button');
+          abrirBtn.type = 'button';
+          abrirBtn.className = 'button button--ghost';
+          abrirBtn.textContent = 'Abrir';
+          abrirBtn.style.padding = '0.25rem 0.6rem';
+          abrirBtn.style.fontSize = '0.85rem';
+          abrirBtn.style.lineHeight = '1.2';
           btnNao.addEventListener('click', () => {
             // Não exibir mensagem; limpar campo de busca e resultados
             resultadosBuscaPessoas.splice(indice, 1);
