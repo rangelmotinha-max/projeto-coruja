@@ -1517,6 +1517,66 @@
       let vinculosEmpresas = [];
       let vinculosVeiculos = [];
 
+      // Diálogo de confirmação customizado (Sim/Não)
+      const confirmarExclusao = (mensagem = 'Deseja realmente excluir esse registro?') => {
+        return new Promise((resolve) => {
+          const overlay = document.createElement('div');
+          overlay.style.position = 'fixed';
+          overlay.style.inset = '0';
+          overlay.style.background = 'rgba(0,0,0,0.45)';
+          overlay.style.display = 'flex';
+          overlay.style.alignItems = 'center';
+          overlay.style.justifyContent = 'center';
+          overlay.style.zIndex = '1000';
+
+          const modal = document.createElement('div');
+          modal.className = 'panel';
+          modal.style.maxWidth = '420px';
+          modal.style.width = '90%';
+          modal.style.padding = '1rem';
+          modal.style.background = 'var(--surface)';
+          modal.style.border = '1px solid var(--border)';
+          modal.style.borderRadius = '0.5rem';
+          modal.style.boxShadow = '0 10px 30px rgba(0,0,0,0.25)';
+
+          const texto = document.createElement('p');
+          texto.textContent = mensagem;
+          texto.style.margin = '0 0 0.75rem';
+          texto.style.textAlign = 'center';
+
+          const botoes = document.createElement('div');
+          botoes.style.display = 'flex';
+          botoes.style.gap = '0.5rem';
+          botoes.style.justifyContent = 'center';
+
+          const btnSim = document.createElement('button');
+          btnSim.type = 'button';
+          btnSim.className = 'button button--danger';
+          btnSim.textContent = 'Sim';
+          const btnNao = document.createElement('button');
+          btnNao.type = 'button';
+          btnNao.className = 'button button--secondary';
+          btnNao.textContent = 'Não';
+
+          const fechar = (valor) => {
+            try { document.body.removeChild(overlay); } catch {}
+            resolve(valor);
+          };
+
+          btnSim.addEventListener('click', () => fechar(true));
+          btnNao.addEventListener('click', () => fechar(false));
+          overlay.addEventListener('click', (e) => { if (e.target === overlay) fechar(false); });
+          window.addEventListener('keydown', function esc(ev) { if (ev.key === 'Escape') { window.removeEventListener('keydown', esc); fechar(false); } });
+
+          botoes.appendChild(btnSim);
+          botoes.appendChild(btnNao);
+          modal.appendChild(texto);
+          modal.appendChild(botoes);
+          overlay.appendChild(modal);
+          document.body.appendChild(overlay);
+        });
+      };
+
       // Renderiza as pré-visualizações das fotos selecionadas
       const renderizarFotos = () => {
         const container = document.getElementById('lista-fotos');
@@ -1605,7 +1665,9 @@
         btn.type = 'button';
         btn.className = 'button button--ghost';
         btn.textContent = 'Remover';
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', async () => {
+          const ok = await confirmarExclusao();
+          if (!ok) return;
           if (qrCodeSelecionado?.existing && qrCodeSelecionado.referencia) {
             removerQrCode = true; // marca para exclusão no backend
           }
@@ -1665,7 +1727,9 @@
           btn.type = 'button';
           btn.className = 'button button--ghost';
           btn.textContent = 'Remover';
-          btn.addEventListener('click', () => {
+          btn.addEventListener('click', async () => {
+            const ok = await confirmarExclusao();
+            if (!ok) return;
             const [rem] = perfilImagensSelecionadas.splice(idx, 1);
             if (rem?.existing && rem.referencia) perfilImagensParaRemover.push(rem.referencia);
             // Persistir remoção imediatamente quando estiver editando um cadastro
@@ -1691,7 +1755,11 @@
       };
 
       // Remove uma foto da lista e libera o URL de pré-visualização
-      const removerFoto = (index) => {
+      const removerFoto = async (index) => {
+        const foto = fotosSelecionadas[index];
+        if (!foto) return;
+        const ok = await confirmarExclusao();
+        if (!ok) return;
         const [removida] = fotosSelecionadas.splice(index, 1);
         if (removida?.existing && removida.referencia) {
           fotosParaRemover.push(removida.referencia); // Mantém controle das imagens persistidas que foram excluídas
@@ -1787,9 +1855,18 @@
           btnRemover.style.padding = '0.25rem 0.5rem';
           btnRemover.style.fontSize = '0.75rem';
           btnRemover.style.minWidth = 'fit-content';
-          btnRemover.addEventListener('click', () => {
-            telefones.splice(indice, 1);
-            renderizarTelefones();
+          btnRemover.addEventListener('click', async () => {
+            const temDados = (telefones[indice] || '').trim() !== '';
+            if (!temDados) {
+              telefones.splice(indice, 1);
+              renderizarTelefones();
+              return;
+            }
+            const ok = await confirmarExclusao();
+            if (ok) {
+              telefones.splice(indice, 1);
+              renderizarTelefones();
+            }
           });
           divTelefone.appendChild(btnRemover);
 
@@ -1837,9 +1914,18 @@
           btnRemover.style.padding = '0.25rem 0.5rem';
           btnRemover.style.fontSize = '0.75rem';
           btnRemover.style.minWidth = 'fit-content';
-          btnRemover.addEventListener('click', () => {
-            emails.splice(indice, 1);
-            renderizarEmails();
+          btnRemover.addEventListener('click', async () => {
+            const temDados = (emails[indice] || '').trim() !== '';
+            if (!temDados) {
+              emails.splice(indice, 1);
+              renderizarEmails();
+              return;
+            }
+            const ok = await confirmarExclusao();
+            if (ok) {
+              emails.splice(indice, 1);
+              renderizarEmails();
+            }
           });
           linha.appendChild(btnRemover);
 
@@ -1916,9 +2002,20 @@
           btnRemover.style.padding = '0.25rem 0.5rem';
           btnRemover.style.fontSize = '0.75rem';
           btnRemover.style.minWidth = 'fit-content';
-          btnRemover.addEventListener('click', () => {
-            redes.splice(indice, 1);
-            renderizarRedes();
+          btnRemover.addEventListener('click', async () => {
+            const valor = redes[indice] || '';
+            const [tipo = '', perfil = ''] = valor.split('|');
+            const temDados = tipo.trim() !== '' || perfil.trim() !== '';
+            if (!temDados) {
+              redes.splice(indice, 1);
+              renderizarRedes();
+              return;
+            }
+            const ok = await confirmarExclusao();
+            if (ok) {
+              redes.splice(indice, 1);
+              renderizarRedes();
+            }
           });
           linha.appendChild(btnRemover);
 
@@ -2034,9 +2131,23 @@
           btnRemover.setAttribute('aria-label', 'Remover veículo');
           btnRemover.title = 'Excluir';
           btnRemover.style.minWidth = 'fit-content';
-          btnRemover.addEventListener('click', () => {
-            veiculos.splice(indice, 1); // Comentário: remove o veículo selecionado
-            renderizarVeiculos();
+          btnRemover.addEventListener('click', async () => {
+            const v = veiculo || {};
+            const temDados = [v.placa, v.marcaModelo, v.cor, v.anoModelo, v.nomeProprietario, v.cpf]
+              .some((campo) => {
+                if (campo === undefined || campo === null) return false;
+                return String(campo).trim() !== '';
+              });
+            if (!temDados) {
+              veiculos.splice(indice, 1);
+              renderizarVeiculos();
+              return;
+            }
+            const ok = await confirmarExclusao();
+            if (ok) {
+              veiculos.splice(indice, 1); // remove o veículo selecionado
+              renderizarVeiculos();
+            }
           });
           titulo.appendChild(btnRemover);
           wrapper.appendChild(titulo);

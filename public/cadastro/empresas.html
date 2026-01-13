@@ -199,6 +199,62 @@
       let veiculosEditados = false;
       let listenersVeiculosEmpresaConfigurados = false;
 
+      // Diálogo de confirmação reutilizável (consistente com pessoas.html)
+      const confirmarExclusao = (mensagem = 'Deseja realmente excluir esse registro?') => {
+        return new Promise((resolve) => {
+          const overlay = document.createElement('div');
+          overlay.style.position = 'fixed';
+          overlay.style.inset = '0';
+          overlay.style.background = 'rgba(0,0,0,0.45)';
+          overlay.style.display = 'flex';
+          overlay.style.alignItems = 'center';
+          overlay.style.justifyContent = 'center';
+          overlay.style.zIndex = '1000';
+
+          const modal = document.createElement('div');
+          modal.className = 'panel';
+          modal.style.maxWidth = '420px';
+          modal.style.width = '90%';
+          modal.style.padding = '1rem';
+          modal.style.background = 'var(--surface)';
+          modal.style.border = '1px solid var(--border)';
+          modal.style.borderRadius = '0.5rem';
+          modal.style.boxShadow = '0 10px 30px rgba(0,0,0,0.25)';
+
+          const texto = document.createElement('p');
+          texto.textContent = mensagem;
+          texto.style.margin = '0 0 0.75rem';
+          texto.style.textAlign = 'center';
+
+          const botoes = document.createElement('div');
+          botoes.style.display = 'flex';
+          botoes.style.gap = '0.5rem';
+          botoes.style.justifyContent = 'center';
+
+          const btnSim = document.createElement('button');
+          btnSim.type = 'button';
+          btnSim.className = 'button button--danger';
+          btnSim.textContent = 'Sim';
+          const btnNao = document.createElement('button');
+          btnNao.type = 'button';
+          btnNao.className = 'button button--secondary';
+          btnNao.textContent = 'Não';
+
+          const fechar = (valor) => { try { document.body.removeChild(overlay); } catch {} resolve(valor); };
+          btnSim.addEventListener('click', () => fechar(true));
+          btnNao.addEventListener('click', () => fechar(false));
+          overlay.addEventListener('click', (e) => { if (e.target === overlay) fechar(false); });
+          window.addEventListener('keydown', function esc(ev) { if (ev.key === 'Escape') { window.removeEventListener('keydown', esc); fechar(false); } });
+
+          botoes.appendChild(btnSim);
+          botoes.appendChild(btnNao);
+          modal.appendChild(texto);
+          modal.appendChild(botoes);
+          overlay.appendChild(modal);
+          document.body.appendChild(overlay);
+        });
+      };
+
       // Helpers de autenticação (locais desta página)
       const getCookie = (name) => document.cookie.split(';').map(c=>c.trim()).find(c=>c.startsWith(`${name}=`))?.split('=')[1];
       const obterToken = () => localStorage.getItem('authToken') || getCookie('authToken');
@@ -244,7 +300,15 @@
           cpfEl.value = s.cpf || '';
           nomeEl.addEventListener('input', (e) => { socios[i].nome = e.target.value; });
           cpfEl.addEventListener('input', (e) => { socios[i].cpf = e.target.value; });
-          btn.addEventListener('click', () => { socios.splice(i, 1); renderizarSocios(); });
+          btn.addEventListener('click', async () => {
+            const temDados = (String(nomeEl.value||'').trim() || String(cpfEl.value||'').trim());
+            if (temDados) {
+              const ok = await confirmarExclusao();
+              if (!ok) return;
+            }
+            socios.splice(i, 1);
+            renderizarSocios();
+          });
           lista.appendChild(linha);
         });
       };
@@ -548,7 +612,8 @@
       };
 
       const excluirEmpresa = async (e) => {
-        if (!confirm(`Excluir empresa "${e.razaoSocial || e.nomeFantasia || e.cnpj}"?`)) return;
+        const ok = await confirmarExclusao(`Excluir empresa "${e.razaoSocial || e.nomeFantasia || e.cnpj}"?`);
+        if (!ok) return;
         try {
           const resp = await fetchAutenticado(`${API_EMPRESAS}/${e.id}`, { method: 'DELETE' });
           if (!resp.ok) {
@@ -650,7 +715,17 @@
           btnRemoverTopo.style.minWidth = 'fit-content';
           btnRemoverTopo.setAttribute('aria-label', 'Remover endereço');
           btnRemoverTopo.title = 'Excluir';
-          btnRemoverTopo.addEventListener('click', () => { enderecosEmpresa.splice(idx,1); renderizarEnderecosEmpresa(); });
+          btnRemoverTopo.addEventListener('click', async () => {
+            const e = enderecosEmpresa[idx] || {};
+            const temDados = [e.uf, e.logradouro, e.bairro, e.complemento, e.cep, e.latLong]
+              .some(v => String(v||'').trim());
+            if (temDados) {
+              const ok = await confirmarExclusao();
+              if (!ok) return;
+            }
+            enderecosEmpresa.splice(idx,1);
+            renderizarEnderecosEmpresa();
+          });
           topBar.appendChild(btnRemoverTopo);
           div.appendChild(topBar);
 
@@ -824,7 +899,14 @@
           btnRemover.setAttribute('aria-label', 'Remover veículo');
           btnRemover.title = 'Excluir';
           btnRemover.style.minWidth = 'fit-content';
-          btnRemover.addEventListener('click', () => {
+          btnRemover.addEventListener('click', async () => {
+            const v = veiculosEmpresa[indice] || {};
+            const temDados = [v.placa, v.marcaModelo, v.cor, (v.anoModelo ?? '')]
+              .some(val => String(val||'').toString().trim());
+            if (temDados) {
+              const ok = await confirmarExclusao();
+              if (!ok) return;
+            }
             veiculosEmpresa.splice(indice, 1);
             veiculosEditados = true;
             renderizarVeiculosEmpresa();

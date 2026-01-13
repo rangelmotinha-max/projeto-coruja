@@ -169,6 +169,62 @@
         return fetch(url, { ...options, headers });
       };
 
+      // Diálogo de confirmação reutilizável
+      const confirmarExclusao = (mensagem = 'Deseja realmente excluir esse registro?') => {
+        return new Promise((resolve) => {
+          const overlay = document.createElement('div');
+          overlay.style.position = 'fixed';
+          overlay.style.inset = '0';
+          overlay.style.background = 'rgba(0,0,0,0.45)';
+          overlay.style.display = 'flex';
+          overlay.style.alignItems = 'center';
+          overlay.style.justifyContent = 'center';
+          overlay.style.zIndex = '1000';
+
+          const modal = document.createElement('div');
+          modal.className = 'panel';
+          modal.style.maxWidth = '420px';
+          modal.style.width = '90%';
+          modal.style.padding = '1rem';
+          modal.style.background = 'var(--surface)';
+          modal.style.border = '1px solid var(--border)';
+          modal.style.borderRadius = '0.5rem';
+          modal.style.boxShadow = '0 10px 30px rgba(0,0,0,0.25)';
+
+          const texto = document.createElement('p');
+          texto.textContent = mensagem;
+          texto.style.margin = '0 0 0.75rem';
+          texto.style.textAlign = 'center';
+
+          const botoes = document.createElement('div');
+          botoes.style.display = 'flex';
+          botoes.style.gap = '0.5rem';
+          botoes.style.justifyContent = 'center';
+
+          const btnSim = document.createElement('button');
+          btnSim.type = 'button';
+          btnSim.className = 'button button--danger';
+          btnSim.textContent = 'Sim';
+          const btnNao = document.createElement('button');
+          btnNao.type = 'button';
+          btnNao.className = 'button button--secondary';
+          btnNao.textContent = 'Não';
+
+          const fechar = (valor) => { try { document.body.removeChild(overlay); } catch {} resolve(valor); };
+          btnSim.addEventListener('click', () => fechar(true));
+          btnNao.addEventListener('click', () => fechar(false));
+          overlay.addEventListener('click', (e) => { if (e.target === overlay) fechar(false); });
+          window.addEventListener('keydown', function esc(ev) { if (ev.key === 'Escape') { window.removeEventListener('keydown', esc); fechar(false); } });
+
+          botoes.appendChild(btnSim);
+          botoes.appendChild(btnNao);
+          modal.appendChild(texto);
+          modal.appendChild(botoes);
+          overlay.appendChild(modal);
+          document.body.appendChild(overlay);
+        });
+      };
+
       // Exibe mensagens padronizadas para feedback rápido
       const exibirMensagem = (elemento, texto, tipo = 'info') => {
         if (!elemento) return;
@@ -373,7 +429,19 @@
           removerBtn.type = 'button';
           removerBtn.className = 'button button--danger';
           removerBtn.textContent = 'Remover';
-          removerBtn.addEventListener('click', () => { enderecosVeiculo.splice(indiceOrdenado,1); renderizarEnderecosVeiculo(); });
+          removerBtn.title = 'Excluir';
+          removerBtn.setAttribute('aria-label', 'Remover endereço');
+          removerBtn.addEventListener('click', async () => {
+            const e = enderecosVeiculo[indiceOrdenado] || {};
+            const temDados = [e.uf, e.logradouro, e.bairro, e.complemento, e.cep, e.latLong]
+              .some(v => String(v||'').trim());
+            if (temDados) {
+              const ok = await confirmarExclusao();
+              if (!ok) return;
+            }
+            enderecosVeiculo.splice(indiceOrdenado,1);
+            renderizarEnderecosVeiculo();
+          });
           actions.appendChild(removerBtn);
           div.appendChild(actions);
 
@@ -582,7 +650,8 @@
         }
 
         if (botao.dataset.remover) {
-          if (!confirm('Confirma a exclusão deste veículo?')) return;
+          const ok = await confirmarExclusao('Confirma a exclusão deste veículo?');
+          if (!ok) return;
           try {
             const resposta = await fetchAutenticado(`${API_VEICULOS}/${id}`, { method: 'DELETE' });
             if (!resposta.ok) {

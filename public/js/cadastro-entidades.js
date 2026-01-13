@@ -40,6 +40,62 @@
     return fetch(url, { ...options, headers });
   };
 
+  // Diálogo de confirmação reutilizável
+  const confirmarExclusao = (mensagem = 'Deseja realmente excluir esse registro?') => {
+    return new Promise((resolve) => {
+      const overlay = document.createElement('div');
+      overlay.style.position = 'fixed';
+      overlay.style.inset = '0';
+      overlay.style.background = 'rgba(0,0,0,0.45)';
+      overlay.style.display = 'flex';
+      overlay.style.alignItems = 'center';
+      overlay.style.justifyContent = 'center';
+      overlay.style.zIndex = '1000';
+
+      const modal = document.createElement('div');
+      modal.className = 'panel';
+      modal.style.maxWidth = '420px';
+      modal.style.width = '90%';
+      modal.style.padding = '1rem';
+      modal.style.background = 'var(--surface)';
+      modal.style.border = '1px solid var(--border)';
+      modal.style.borderRadius = '0.5rem';
+      modal.style.boxShadow = '0 10px 30px rgba(0,0,0,0.25)';
+
+      const texto = document.createElement('p');
+      texto.textContent = mensagem;
+      texto.style.margin = '0 0 0.75rem';
+      texto.style.textAlign = 'center';
+
+      const botoes = document.createElement('div');
+      botoes.style.display = 'flex';
+      botoes.style.gap = '0.5rem';
+      botoes.style.justifyContent = 'center';
+
+      const btnSim = document.createElement('button');
+      btnSim.type = 'button';
+      btnSim.className = 'button button--danger';
+      btnSim.textContent = 'Sim';
+      const btnNao = document.createElement('button');
+      btnNao.type = 'button';
+      btnNao.className = 'button button--secondary';
+      btnNao.textContent = 'Não';
+
+      const fechar = (valor) => { try { document.body.removeChild(overlay); } catch {} resolve(valor); };
+      btnSim.addEventListener('click', () => fechar(true));
+      btnNao.addEventListener('click', () => fechar(false));
+      overlay.addEventListener('click', (e) => { if (e.target === overlay) fechar(false); });
+      window.addEventListener('keydown', function esc(ev) { if (ev.key === 'Escape') { window.removeEventListener('keydown', esc); fechar(false); } });
+
+      botoes.appendChild(btnSim);
+      botoes.appendChild(btnNao);
+      modal.appendChild(texto);
+      modal.appendChild(botoes);
+      overlay.appendChild(modal);
+      document.body.appendChild(overlay);
+    });
+  };
+
   // Mensagens de feedback reutilizáveis
   const exibirMensagem = (el, texto, tipo = 'info') => {
     if (!el) return;
@@ -162,7 +218,12 @@
       btnRemover.style.padding = '0.25rem 0.5rem';
       btnRemover.style.fontSize = '0.75rem';
       btnRemover.style.minWidth = 'fit-content';
-      btnRemover.addEventListener('click', () => {
+      btnRemover.addEventListener('click', async () => {
+        const temDados = String(inputTelefone.value||'').trim();
+        if (temDados) {
+          const ok = await confirmarExclusao();
+          if (!ok) return;
+        }
         estado.telefones.splice(indice, 1);
         renderizarTelefones();
       });
@@ -313,7 +374,14 @@
       removerBtn.setAttribute('aria-label', 'Remover endereço');
       removerBtn.title = 'Excluir';
       removerBtn.style.cssText = 'padding: 0.25rem 0.5rem; font-size: 0.75rem; min-width: fit-content;';
-      removerBtn.addEventListener('click', () => {
+      removerBtn.addEventListener('click', async () => {
+        const e = estado.enderecos[indiceOrdenado] || {};
+        const temDados = [e.uf, e.logradouro, e.bairro, e.complemento, e.cep, e.latLong]
+          .some(v => String(v||'').trim());
+        if (temDados) {
+          const ok = await confirmarExclusao();
+          if (!ok) return;
+        }
         estado.enderecos.splice(indiceOrdenado, 1);
         if (estado.indicadorEnderecoAtual === indiceOrdenado) {
           estado.indicadorEnderecoAtual = estado.enderecos.length > 0 ? 0 : null;
@@ -517,31 +585,51 @@
   });
 
   // Listeners delegados para remoções
-  liderancasContainer.addEventListener('click', (e) => {
+  liderancasContainer.addEventListener('click', async (e) => {
     const idx = e.target.getAttribute('data-remover-lideranca');
     if (idx !== null) {
-      estado.liderancas.splice(Number(idx), 1);
+      const i = Number(idx);
+      const temDados = String(estado.liderancas[i] || '').trim();
+      if (temDados) {
+        const ok = await confirmarExclusao();
+        if (!ok) return;
+      }
+      estado.liderancas.splice(i, 1);
       renderizarLiderancas();
     }
   });
 
-  telefonesContainer.addEventListener('click', (e) => {
+  telefonesContainer.addEventListener('click', async (e) => {
     const idx = e.target.getAttribute('data-remover-telefone');
     if (idx !== null) {
-      estado.telefones.splice(Number(idx), 1);
+      const i = Number(idx);
+      const temDados = String(estado.telefones[i] || '').trim();
+      if (temDados) {
+        const ok = await confirmarExclusao();
+        if (!ok) return;
+      }
+      estado.telefones.splice(i, 1);
       renderizarTelefones();
     }
   });
 
-  enderecosContainer.addEventListener('click', (e) => {
+  enderecosContainer.addEventListener('click', async (e) => {
     const idx = e.target.getAttribute('data-remover-endereco');
     if (idx !== null) {
-      estado.enderecos.splice(Number(idx), 1);
+      const i = Number(idx);
+      const eend = estado.enderecos[i] || {};
+      const temDados = [eend.uf, eend.logradouro, eend.bairro, eend.complemento, eend.cep, eend.latLong]
+        .some(v => String(v||'').trim());
+      if (temDados) {
+        const ok = await confirmarExclusao();
+        if (!ok) return;
+      }
+      estado.enderecos.splice(i, 1);
       renderizarEnderecos();
     }
   });
 
-  fotosAtuaisContainer.addEventListener('click', (e) => {
+  fotosAtuaisContainer.addEventListener('click', async (e) => {
     const abrirUrl = e.target.getAttribute('data-abrir-foto-url');
     if (abrirUrl) {
       try { window.open(abrirUrl, '_blank', 'noopener'); } catch {}
@@ -549,6 +637,8 @@
     }
     const fotoId = e.target.getAttribute('data-remover-foto');
     if (fotoId) {
+      const ok = await confirmarExclusao();
+      if (!ok) return;
       estado.fotosParaRemover.push(fotoId);
       estado.fotosAtuais = estado.fotosAtuais.filter((f) => f.id !== fotoId);
       renderizarFotosAtuais();
@@ -722,7 +812,8 @@
     }
 
     if (excluirId) {
-      if (!confirm('Deseja remover esta entidade?')) return;
+      const ok = await confirmarExclusao('Deseja remover esta entidade?');
+      if (!ok) return;
       try {
         const resposta = await fetchAutenticado(`${API_ENTIDADES}/${excluirId}`, { method: 'DELETE' });
         if (!resposta.ok) throw new Error('Falha ao remover entidade');
