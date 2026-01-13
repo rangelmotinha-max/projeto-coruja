@@ -1680,7 +1680,7 @@
         const actions = document.createElement('div');
         actions.style.marginTop = '0.35rem';
         actions.style.display = 'flex';
-        actions.style.gap = '0.35rem';
+        actions.style.gap = '0.25rem';
         actions.style.alignItems = 'center';
         actions.style.justifyContent = 'center';
         actions.style.width = '100%';
@@ -1691,6 +1691,12 @@
         btn.type = 'button';
         btn.className = 'button button--ghost';
         btn.textContent = 'Remover';
+        btn.style.flex = '0 0 auto';
+        btn.style.minWidth = 'auto';
+        btn.style.padding = '0.25rem 0.6rem';
+        btn.style.fontSize = '0.85rem';
+        btn.style.lineHeight = '1.2';
+        btn.style.fontWeight = '400';
         btn.addEventListener('click', async () => {
           const ok = await confirmarExclusao();
           if (!ok) return;
@@ -1705,6 +1711,12 @@
         abrirBtn.type = 'button';
         abrirBtn.className = 'button button--ghost';
         abrirBtn.textContent = 'Abrir';
+        abrirBtn.style.flex = '0 0 auto';
+        abrirBtn.style.minWidth = 'auto';
+        abrirBtn.style.padding = '0.25rem 0.6rem';
+        abrirBtn.style.fontSize = '0.85rem';
+        abrirBtn.style.lineHeight = '1.2';
+        abrirBtn.style.fontWeight = '400';
         abrirBtn.addEventListener('click', () => {
           const url = qrCodeSelecionado?.previewUrl;
           if (url) window.open(url, '_blank');
@@ -1762,6 +1774,7 @@
           btn.style.padding = '0.25rem 0.6rem';
           btn.style.fontSize = '0.85rem';
           btn.style.lineHeight = '1.2';
+          btn.style.fontWeight = '400';
           btn.addEventListener('click', async () => {
             const ok = await confirmarExclusao();
             if (!ok) return;
@@ -1781,6 +1794,7 @@
           abrirBtn.style.padding = '0.25rem 0.6rem';
           abrirBtn.style.fontSize = '0.85rem';
           abrirBtn.style.lineHeight = '1.2';
+          abrirBtn.style.fontWeight = '400';
           abrirBtn.addEventListener('click', () => {
             const url = item?.previewUrl;
             if (url) window.open(url, '_blank');
