@@ -5143,6 +5143,10 @@
               ul { margin: 6px 0 6px 18px; }
               .muted { color: #666; }
               .section { margin-bottom: 12px; }
+              /* Relatório: a coluna de rótulos da tabela de itens deve se ajustar ao maior texto (p.ex. "Data de Nascimento") */
+              table.items th { white-space: nowrap; }
+              /* Remover bordas da tabela de Identificação */
+              table.items th, table.items td { border: none; }
               @media print {
                 .section { page-break-inside: avoid; break-inside: avoid; }
               }
@@ -5165,7 +5169,8 @@
 
         if (selected.identificacao?.length) {
           sectionTitle('Identificação');
-          html += `<table>`;
+          // A primeira coluna (rótulos) usa um colgroup com largura mínima
+          html += `<table class="items"><colgroup><col style="width:1px" /><col /></colgroup>`;
           selected.identificacao.forEach((k) => {
             const label = buildRelatorioConfig().identificacao.find((a) => a.key === k)?.label || k;
             addRow(label, valores[k]);
@@ -5577,7 +5582,8 @@
 
         if (selected.identificacao?.length) {
           sectionTitle('Identificação');
-          out += `<table>`;
+          // A primeira coluna (rótulos) usa um colgroup com largura mínima
+          out += `<table class="items"><colgroup><col style="width:1px" /><col /></colgroup>`;
           selected.identificacao.forEach((k) => addRow(labelOf(cfg.identificacao, k), valores[k]));
           out += `</table>`;
         }
