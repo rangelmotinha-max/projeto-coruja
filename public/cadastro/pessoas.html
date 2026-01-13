@@ -2898,8 +2898,9 @@
 
         renderizarVinculosVeiculos();
         limparResultadosVeiculosBusca();
-        exibirMensagemVinculoVeiculo('Veículo vinculado com sucesso.', 'success');
-        if (vinculoVeiculoStatusEl) vinculoVeiculoStatusEl.textContent = 'Veículo vinculado à pessoa.';
+        // Limpa qualquer mensagem de busca após o vínculo e zera o status
+        exibirMensagemVinculoVeiculo('');
+        if (vinculoVeiculoStatusEl) vinculoVeiculoStatusEl.textContent = '';
         if (vinculoVeiculoPlacaInput) vinculoVeiculoPlacaInput.value = '';
       };
 
@@ -4350,7 +4351,8 @@
             console.info('Resumo das fotos persistidas:', resumoFotos);
 
             carregarFotosExistentes(fotosServidor);
-            exibirMensagemForm('Fotos confirmadas no servidor e galeria atualizada.', 'success');
+            // Silencia mensagem de sucesso após confirmação das fotos para evitar ruído na UI
+            exibirMensagemForm('', 'info');
           } else if (Array.isArray(fotosEsperadas) && fotosEsperadas.length > 0) {
             // Comentário: informa claramente que as imagens não foram encontradas após o salvamento
             exibirMensagemForm(
