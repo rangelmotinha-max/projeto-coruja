@@ -47,36 +47,12 @@ O comando aplica limpeza de números repetidos e insere os valores antigos na ta
 ## Executando a aplicação
 
 ```bash
-# Comentário: instale dependências, crie o banco e aplique as migrations antes de iniciar.
 npm install
 npm run db:init
 npm start
 ```
 
 A aplicação inicializa a conexão SQLite automaticamente ao utilizar os modelos.
-
-## Fluxo de deploy (produção)
-
-Antes de subir a aplicação, garanta que as migrations foram aplicadas no banco do ambiente:
-
-```bash
-# Comentário: execute migrations na imagem/host antes de expor o serviço.
-npm run db:init
-```
-
-Se preferir executar o script diretamente:
-
-```bash
-# Comentário: inicializa o banco SQLite e aplica migrations pendentes.
-node scripts/init-db.js
-```
-
-Como diagnóstico, você pode validar a coluna `obs` na tabela `enderecos`:
-
-```bash
-# Comentário: retorna as colunas da tabela enderecos.
-sqlite3 database/database.sqlite "PRAGMA table_info(enderecos);"
-```
 
 ## Configuração do Google Maps (Geocoding)
 
