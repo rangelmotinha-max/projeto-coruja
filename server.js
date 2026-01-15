@@ -6,6 +6,7 @@ const env = require('./config/env');
 const routes = require('./src/routes/index.routes');
 const errorHandler = require('./src/middlewares/errorHandler');
 const authMiddleware = require('./src/middlewares/auth');
+const { initDatabase } = require('./src/database/sqlite');
 
 const app = express();
 
@@ -90,8 +91,17 @@ app.get('/', (req, res) => {
 app.use(errorHandler);
 
 const PORT = env.port;
-const server = app.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`);
-});
 
-module.exports = server;
+initDatabase()
+  .then(() => {
+    const server = app.listen(PORT, () => {
+      console.log(`Server listening on port ${PORT}`);
+    });
+
+    module.exports = server;
+  })
+  .catch((err) => {
+    console.error('[server] Falha ao iniciar banco de dados.');
+    console.error(err.message);
+    process.exit(1);
+  });
