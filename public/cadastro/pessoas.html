@@ -2555,28 +2555,26 @@
           botoesDiv.style.flexDirection = isMobile ? 'column' : 'row';
           botoesDiv.style.gridColumn = isMobile ? '1' : '2';
           botoesDiv.style.marginTop = '0.15rem';
-
-          const btn = document.createElement('button');
-          btn.type = 'button';
-          btn.className = 'button button--ghost';
-          btn.textContent = 'Remover';
-          btn.style.padding = '0.25rem 0.6rem';
-          btn.style.fontSize = '0.85rem';
-          btn.style.lineHeight = '1.2';
+          const btnSim = document.createElement('button');
+          btnSim.type = 'button';
+          btnSim.className = 'button button--primary';
+          btnSim.textContent = 'Sim';
+          btnSim.style.padding = '0.25rem 0.6rem';
+          btnSim.style.fontSize = '0.85rem';
+          btnSim.style.lineHeight = '1.2';
           btnSim.addEventListener('click', () => {
             const tipoSelecionado = selectTipo.value === 'outro'
               ? (inputOutro.value || '').trim()
               : (selectTipo.value || '');
             confirmarVinculoPessoa(indice, true, tipoSelecionado);
           });
-
-          const abrirBtn = document.createElement('button');
-          abrirBtn.type = 'button';
-          abrirBtn.className = 'button button--ghost';
-          abrirBtn.textContent = 'Abrir';
-          abrirBtn.style.padding = '0.25rem 0.6rem';
-          abrirBtn.style.fontSize = '0.85rem';
-          abrirBtn.style.lineHeight = '1.2';
+          const btnNao = document.createElement('button');
+          btnNao.type = 'button';
+          btnNao.className = 'button button--ghost';
+          btnNao.textContent = 'Não';
+          btnNao.style.padding = '0.25rem 0.6rem';
+          btnNao.style.fontSize = '0.85rem';
+          btnNao.style.lineHeight = '1.2';
           btnNao.addEventListener('click', () => {
             // Não exibir mensagem; limpar campo de busca e resultados
             resultadosBuscaPessoas.splice(indice, 1);
