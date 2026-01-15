@@ -292,6 +292,8 @@ function validarEnderecos(enderecos) {
     cidade: normalizarOpcional(endereco.cidade),
     // Complemento agora é validado e normalizado para ser persistido corretamente.
     complemento: normalizarOpcional(endereco.complemento),
+    // Campo livre de observações
+    obs: normalizarOpcional(endereco.obs),
     // Permite salvar latitude/longitude em formato livre (ex: "-23.5, -46.6")
     latLong: normalizarOpcional(endereco.latLong),
     cep: normalizarOpcional(endereco.cep),

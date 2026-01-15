@@ -539,7 +539,7 @@ class PessoaModel {
     const db = dbArg || await initDatabase();
     return db.all(
       // Retorna lat/long com alias em camelCase para o frontend
-      'SELECT id, uf, logradouro, numero, bairro, cidade, complemento, cep, lat_long AS latLong FROM enderecos WHERE pessoa_id = ? ORDER BY criadoEm ASC',
+      'SELECT id, uf, logradouro, numero, bairro, cidade, complemento, obs, cep, lat_long AS latLong FROM enderecos WHERE pessoa_id = ? ORDER BY criadoEm ASC',
       [pessoaId]
     );
   }
@@ -559,6 +559,8 @@ class PessoaModel {
       cidade: endereco.cidade || null,
       // Complemento agora é salvo para permitir recuperar o campo na edição.
       complemento: endereco.complemento || null,
+      // Observações livres
+      obs: endereco.obs || null,
       // Armazena texto livre de latitude/longitude preenchido pelo usuário
       latLong: endereco.latLong || null,
       cep: endereco.cep || null,
@@ -567,8 +569,8 @@ class PessoaModel {
     };
 
     await db.run(
-      `INSERT INTO enderecos (id, pessoa_id, uf, logradouro, numero, bairro, cidade, complemento, lat_long, cep, criadoEm, atualizadoEm)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO enderecos (id, pessoa_id, uf, logradouro, numero, bairro, cidade, complemento, obs, lat_long, cep, criadoEm, atualizadoEm)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         novoEndereco.id,
         novoEndereco.pessoa_id,
@@ -578,6 +580,7 @@ class PessoaModel {
         novoEndereco.bairro,
         novoEndereco.cidade,
         novoEndereco.complemento,
+        novoEndereco.obs,
         novoEndereco.latLong,
         novoEndereco.cep,
         novoEndereco.criadoEm,
@@ -601,6 +604,7 @@ class PessoaModel {
       bairro: 'bairro',
       cidade: 'cidade',
       complemento: 'complemento',
+      obs: 'obs',
       cep: 'cep',
       // Mapeia propriedade camelCase para nome da coluna no banco
       latLong: 'lat_long',

@@ -3687,7 +3687,7 @@
           removerBtn.style.cssText = 'padding: 0.25rem 0.5rem; font-size: 0.75rem; min-width: fit-content;';
           removerBtn.addEventListener('click', async () => {
             const e = enderecos[indiceOrdenado] || {};
-            const temDados = [e.uf, e.logradouro, e.bairro, e.complemento, e.cep, e.latLong]
+            const temDados = [e.uf, e.logradouro, e.bairro, e.complemento, e.cep, e.latLong, e.obs]
               .some(v => String(v||'').trim());
             if (temDados) {
               const ok = await confirmarExclusao();
@@ -3738,6 +3738,10 @@
               <!-- Entrada livre para latitude e longitude informadas pelo usuário -->
               <input class="form__input endereco-latlong" type="text" data-index="${indiceOrdenado}" placeholder="-23.5, -46.6" />
             </label>
+            <label class="form__field form__field--wide">
+              <span class="form__label">Obs:</span>
+              <input class="form__input endereco-obs" type="text" data-index="${indiceOrdenado}" placeholder="Observações do endereço" />
+            </label>
           `;
 
           // Preencher valores salvos para manter sincronia com o formulário
@@ -3747,6 +3751,8 @@
           gridDiv.querySelector('.endereco-cep').value = endereco.cep || '';
           gridDiv.querySelector('.endereco-complemento').value = endereco.complemento || '';
           gridDiv.querySelector('.endereco-latlong').value = endereco.latLong || '';
+          const obsCampo = gridDiv.querySelector('.endereco-obs');
+          if (obsCampo) obsCampo.value = endereco.obs || '';
 
           // Adicionar listeners
           gridDiv.querySelector('.endereco-uf').addEventListener('change', (e) => {
@@ -3760,6 +3766,9 @@
           });
           gridDiv.querySelector('.endereco-complemento').addEventListener('input', (e) => {
             enderecos[indiceOrdenado].complemento = e.target.value;
+          });
+          gridDiv.querySelector('.endereco-obs').addEventListener('input', (e) => {
+            enderecos[indiceOrdenado].obs = e.target.value;
           });
 
           // Link dinâmico inline dentro do próprio campo
@@ -3888,7 +3897,9 @@
           cep: '',
           complemento: '',
           // Inicializa campo de latitude/longitude vazio
-          latLong: ''
+          latLong: '',
+          // Observações livres
+          obs: ''
         });
 
         if (indicadorEnderecoAtual === null && enderecos.length === 1) {
