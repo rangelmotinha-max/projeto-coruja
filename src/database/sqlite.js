@@ -122,6 +122,55 @@ async function applyPendingMigrations(db) {
   }
 }
 
+async function ensureEnderecosObsColumn(db) {
+  const tableInfo = await db.all('PRAGMA table_info(enderecos)');
+  if (!tableInfo.length) {
+    return;
+  }
+
+  const hasObsColumn = tableInfo.some((column) => column.name === 'obs');
+  if (hasObsColumn) {
+    return;
+  }
+
+  const migrationName = '017_add_enderecos_obs.sql';
+  const migrationPath = path.join(__dirname, '../../database/migrations', migrationName);
+  const sql = fs.readFileSync(migrationPath, 'utf-8');
+
+  const normalized = sql
+    .split(/\r?\n/)
+    .filter((line) => !line.trim().startsWith('--'))
+    .join('\n');
+
+  const statements = normalized
+    .split(/;\s*(?:\r?\n|$)/)
+    .map((sentence) => sentence.trim())
+    .filter(Boolean);
+
+  console.info(`[migrations] Aplicando defensivamente ${migrationName}`);
+
+  for (const statement of statements) {
+    try {
+      await db.run(statement);
+    } catch (err) {
+      const isDuplicateError =
+        err.message.includes('duplicate column name') || err.message.includes('already exists');
+
+      if (isDuplicateError) {
+        console.warn(`[migrations] Aviso em ${migrationName}: ${err.message}`);
+        continue;
+      }
+
+      throw err;
+    }
+  }
+
+  const alreadyApplied = await db.get('SELECT 1 FROM _migrations WHERE name = ?', [migrationName]);
+  if (!alreadyApplied) {
+    await db.run('INSERT INTO _migrations (name) VALUES (?)', [migrationName]);
+  }
+}
+
 async function initDatabase() {
   if (!dbPromise) {
     dbPromise = new Promise((resolve, reject) => {
@@ -134,6 +183,7 @@ async function initDatabase() {
       try {
         // Dispara executor de migrações baseado em arquivos numerados
         await applyPendingMigrations(db);
+        await ensureEnderecosObsColumn(db);
       } catch (err) {
         console.error('[database] Falha ao inicializar migrações SQLite');
         console.error(err.message);
