@@ -920,16 +920,7 @@
         }
         
         // Adiciona os endereços múltiplos ao payload
-        dados.enderecos = (enderecos || []).map((endereco) => ({
-          ...endereco,
-          uf: String(endereco?.uf || '').trim(),
-          logradouro: String(endereco?.logradouro || '').trim(),
-          bairro: String(endereco?.bairro || '').trim(),
-          complemento: String(endereco?.complemento || '').trim(),
-          cep: String(endereco?.cep || '').trim(),
-          latLong: String(endereco?.latLong || '').trim(),
-          obs: String(endereco?.obs || '').trim(),
-        }));
+        dados.enderecos = enderecos;
         dados.endereco_atual_index = indicadorEnderecoAtual;
         
         // Adiciona os telefones múltiplos ao payload
@@ -3749,7 +3740,7 @@
             </label>
             <label class="form__field form__field--wide">
               <span class="form__label">Obs:</span>
-              <input class="form__input endereco-obs" type="text" name="enderecos[${indiceOrdenado}][obs]" data-index="${indiceOrdenado}" placeholder="Observações do endereço" />
+              <input class="form__input endereco-obs" type="text" data-index="${indiceOrdenado}" placeholder="Observações do endereço" />
             </label>
           `;
 
