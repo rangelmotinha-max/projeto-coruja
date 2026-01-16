@@ -45,8 +45,8 @@ class VeiculoModel {
 
     await db.run(
       `INSERT INTO veiculos (
-        id, nomeProprietario, cpf, placa, marcaModelo, cor, anoModelo, criadoEm, atualizadoEm
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        id, nomeProprietario, cpf, placa, marcaModelo, cor, anoModelo, obs, criadoEm, atualizadoEm
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         dados.nomeProprietario,
@@ -55,6 +55,7 @@ class VeiculoModel {
         dados.marcaModelo || null,
         dados.cor || null,
         dados.anoModelo ?? null,
+        dados.obs ?? null,
         agora,
         agora,
       ],
@@ -98,7 +99,7 @@ class VeiculoModel {
     const where = clausulas.length ? `WHERE ${clausulas.join(' AND ')}` : '';
 
     return db.all(
-      `SELECT placa, marcaModelo, nomeProprietario, cpf, cor, anoModelo FROM veiculos ${where} ORDER BY atualizadoEm DESC`,
+      `SELECT placa, marcaModelo, nomeProprietario, cpf, cor, anoModelo, obs FROM veiculos ${where} ORDER BY atualizadoEm DESC`,
       valores,
     );
   }
@@ -159,7 +160,7 @@ class VeiculoModel {
     const campos = [];
     const valores = [];
 
-    const permitidos = ['nomeProprietario', 'cpf', 'placa', 'marcaModelo', 'cor', 'anoModelo'];
+    const permitidos = ['nomeProprietario', 'cpf', 'placa', 'marcaModelo', 'cor', 'anoModelo', 'obs'];
     permitidos.forEach((campo) => {
       if (updates[campo] !== undefined) {
         campos.push(`${campo} = ?`);
