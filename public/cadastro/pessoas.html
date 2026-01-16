@@ -2797,7 +2797,6 @@
               <th style="text-align:left; padding: 0.35rem;">Marca/Modelo</th>
               <th style="text-align:left; padding: 0.35rem;">Cor</th>
               <th style="text-align:left; padding: 0.35rem;">Ano</th>
-              <th style="text-align:left; padding: 0.35rem;">Obs</th>
               <th style="text-align:left; padding: 0.35rem;">Proprietário</th>
               <th style="text-align:left; padding: 0.35rem;">CPF</th>
               <th style="text-align:center; padding: 0.35rem;">Ações</th>
@@ -2827,10 +2826,6 @@
           const tdAno = document.createElement('td');
           tdAno.style.padding = '0.35rem';
           tdAno.textContent = (veiculo.anoModelo ?? '') || '';
-
-          const tdObs = document.createElement('td');
-          tdObs.style.padding = '0.35rem';
-          tdObs.textContent = veiculo.obs || '';
 
           const tdProprietario = document.createElement('td');
           tdProprietario.style.padding = '0.35rem';
@@ -2866,11 +2861,22 @@
           linha.appendChild(tdMarcaModelo);
           linha.appendChild(tdCor);
           linha.appendChild(tdAno);
-          linha.appendChild(tdObs);
           linha.appendChild(tdProprietario);
           linha.appendChild(tdCpf);
           linha.appendChild(tdAcoes);
           corpo.appendChild(linha);
+
+          // Linha extra para exibir Observações abaixo do veículo vinculado
+          const linhaObs = document.createElement('tr');
+          linhaObs.style.borderBottom = '1px solid var(--border)';
+          const tdLinhaObs = document.createElement('td');
+          tdLinhaObs.style.padding = '0.35rem';
+          tdLinhaObs.colSpan = 7; // Placa, Marca/Modelo, Cor, Ano, Proprietário, CPF, Ações
+          const obsTexto = String(veiculo.obs || '').trim();
+          tdLinhaObs.textContent = obsTexto ? `Obs: ${obsTexto}` : 'Obs:';
+          tdLinhaObs.style.color = 'var(--muted)';
+          linhaObs.appendChild(tdLinhaObs);
+          corpo.appendChild(linhaObs);
         });
 
         painel.appendChild(tabela);
@@ -3119,6 +3125,7 @@
             nome: (veiculo.nomeProprietario || veiculo.nome || '').trim(),
             cpf: normalizarCpfSomenteDigitos(veiculo.cpf || ''),
             nomeProprietario: veiculo.nomeProprietario || veiculo.nome || '',
+            obs: (veiculo.obs || veiculo.observacoes || '').trim(),
           }));
 
           exibirMensagemVinculoVeiculo('');
