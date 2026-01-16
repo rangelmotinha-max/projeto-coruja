@@ -59,6 +59,8 @@ function normalizarRetornoVeiculo(veiculo) {
     anoModelo: veiculo?.anoModelo ?? null,
     nomeProprietario: veiculo?.nomeProprietario || null,
     cpf: veiculo?.cpf ? String(veiculo.cpf).replace(/\D/g, '') : null,
+    // Comentário: mantém observações quando disponíveis nas consultas combinadas
+    obs: veiculo?.obs || null,
   };
 }
 

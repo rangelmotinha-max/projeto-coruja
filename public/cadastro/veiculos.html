@@ -103,6 +103,12 @@
                 <input class="form__input" type="number" name="anoModelo" id="campo-ano" min="1900" max="2100" placeholder="2024" />
               </label>
             </div>
+            <div class="form__grid form__grid--2">
+              <label class="form__field form__field--wide">
+                <span class="form__label">Obs</span>
+                <textarea class="form__input" name="obs" id="campo-obs" rows="3" placeholder="Observações adicionais"></textarea>
+              </label>
+            </div>
             <!-- Endereços do veículo -->
             <div class="form__section" aria-label="Endereços do veículo">
               <div class="form__section-header" style="display:flex; justify-content: space-between; align-items: center;">
@@ -304,6 +310,7 @@
           marcaModelo: dados.marcaModelo?.trim(),
           cor: dados.cor?.trim(),
           anoModelo: dados.anoModelo?.trim(),
+          obs: dados.obs?.trim() || null,
           enderecos: enderecosVeiculo.map((e) => ({
             uf: String(e.uf||'').trim() || null,
             logradouro: String(e.logradouro||'').trim() || null,
@@ -515,6 +522,7 @@
             <th>Cor</th>
             <th>Nome</th>
             <th>CPF</th>
+            <th>Obs</th>
             <th>Ações</th>
           </tr>
         `;
@@ -530,6 +538,7 @@
             <td>${veiculo.cor || '—'}</td>
             <td>${veiculo.nomeProprietario || '—'}</td>
             <td>${veiculo.cpf || '—'}</td>
+            <td>${veiculo.obs || '—'}</td>
             <td>
               <button class="button button--ghost" data-editar="${veiculo.id}">Editar</button>
               <button class="button button--danger" data-remover="${veiculo.id}">Excluir</button>
@@ -560,7 +569,7 @@
       const aplicarFiltro = () => {
         const termo = (campoBusca.value || '').toLowerCase();
         const filtrados = veiculosCache.filter((v) => {
-          return [v.nomeProprietario, v.placa, v.marcaModelo, v.cor]
+          return [v.nomeProprietario, v.placa, v.marcaModelo, v.cor, v.obs]
             .some((campo) => String(campo || '').toLowerCase().includes(termo));
         });
         renderizarLista(filtrados);
@@ -575,6 +584,7 @@
         form.marcaModelo.value = veiculo.marcaModelo || '';
         form.cor.value = veiculo.cor || '';
         form.anoModelo.value = veiculo.anoModelo || '';
+        form.obs.value = veiculo.obs || '';
         // Buscar detalhes completos (inclui enderecos)
         fetchAutenticado(`${API_VEICULOS}/${veiculo.id}`)
           .then((r) => r.json())

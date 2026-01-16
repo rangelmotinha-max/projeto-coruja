@@ -687,6 +687,8 @@ function validarCadastroVeiculo(payload) {
     marcaModelo: normalizarOpcional(payload.marcaModelo),
     cor: normalizarOpcional(payload.cor),
     anoModelo: validarAnoModelo(payload.anoModelo),
+    // Comentário: campo opcional de observações do veículo
+    obs: normalizarOpcional(payload.obs),
   };
 }
 
@@ -711,6 +713,10 @@ function validarAtualizacaoVeiculo(payload) {
   }
   if (payload.anoModelo !== undefined) {
     atualizacoes.anoModelo = validarAnoModelo(payload.anoModelo);
+  }
+  if (payload.obs !== undefined) {
+    // Comentário: normaliza observações para evitar strings vazias
+    atualizacoes.obs = normalizarOpcional(payload.obs);
   }
 
   if (Object.keys(atualizacoes).length === 0) {
