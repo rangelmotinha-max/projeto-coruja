@@ -950,6 +950,7 @@
             marcaModelo: String(veiculo.marcaModelo || '').trim(),
             cor: String(veiculo.cor || '').trim(),
             anoModelo: anoModeloAjustado,
+            obs: String(veiculo.obs || '').trim(),
             nomeProprietario: String(veiculo.nomeProprietario || dados.nomeCompleto || '').trim(),
             cpf: String(veiculo.cpf || dados.cpf || '').trim(),
           };
@@ -976,12 +977,13 @@
             const marcaModelo = String(v?.marcaModelo || '').trim();
             const cor = String(v?.cor || '').trim();
             const anoModelo = (v?.anoModelo ?? v?.ano) ?? undefined;
+            const obs = String(v?.obs || '').trim();
             const nome = String(v?.nome || '').trim();
             const cpf = String(v?.cpf || '').replace(/\D/g, '');
-            const contemDados = [placa, marcaModelo, cor, (anoModelo ?? ''), nome, cpf]
+            const contemDados = [placa, marcaModelo, cor, (anoModelo ?? ''), obs, nome, cpf]
               .some((val) => String(val ?? '').trim().length > 0);
             return contemDados
-              ? { placa, marcaModelo, cor, anoModelo, nome, cpf }
+              ? { placa, marcaModelo, cor, anoModelo, obs, nome, cpf }
               : null;
           })
           .filter(Boolean);
@@ -2285,6 +2287,21 @@
 
           wrapper.appendChild(gridSecundario);
 
+          // Campo de observações logo abaixo da linha "Ano/Modelo"
+          const campoObs = document.createElement('label');
+          campoObs.className = 'form__field';
+          campoObs.innerHTML = `<span class="form__label">Obs:</span>`;
+          const inputObs = document.createElement('textarea');
+          inputObs.className = 'form__input';
+          inputObs.rows = 2;
+          inputObs.placeholder = 'Observações do veículo';
+          inputObs.value = veiculo.obs || '';
+          inputObs.addEventListener('input', (e) => {
+            veiculos[indice].obs = e.target.value;
+          });
+          campoObs.appendChild(inputObs);
+          wrapper.appendChild(campoObs);
+
           listaVeiculosEl.appendChild(wrapper);
         });
       };
@@ -2780,6 +2797,7 @@
               <th style="text-align:left; padding: 0.35rem;">Marca/Modelo</th>
               <th style="text-align:left; padding: 0.35rem;">Cor</th>
               <th style="text-align:left; padding: 0.35rem;">Ano</th>
+              <th style="text-align:left; padding: 0.35rem;">Obs</th>
               <th style="text-align:left; padding: 0.35rem;">Proprietário</th>
               <th style="text-align:left; padding: 0.35rem;">CPF</th>
               <th style="text-align:center; padding: 0.35rem;">Ações</th>
@@ -2809,6 +2827,10 @@
           const tdAno = document.createElement('td');
           tdAno.style.padding = '0.35rem';
           tdAno.textContent = (veiculo.anoModelo ?? '') || '';
+
+          const tdObs = document.createElement('td');
+          tdObs.style.padding = '0.35rem';
+          tdObs.textContent = veiculo.obs || '';
 
           const tdProprietario = document.createElement('td');
           tdProprietario.style.padding = '0.35rem';
@@ -2844,6 +2866,7 @@
           linha.appendChild(tdMarcaModelo);
           linha.appendChild(tdCor);
           linha.appendChild(tdAno);
+          linha.appendChild(tdObs);
           linha.appendChild(tdProprietario);
           linha.appendChild(tdCpf);
           linha.appendChild(tdAcoes);
@@ -2963,6 +2986,7 @@
           marcaModelo: veiculoSelecionado.marcaModelo || '',
           cor: veiculoSelecionado.cor || '',
           anoModelo: veiculoSelecionado.anoModelo ?? undefined,
+          obs: (veiculoSelecionado.obs || veiculoSelecionado.observacoes || '').trim?.() || (veiculoSelecionado.obs || veiculoSelecionado.observacoes || ''),
           nome: (veiculoSelecionado.nomeProprietario || veiculoSelecionado.nome || '').trim(),
           cpf: normalizarCpfSomenteDigitos(veiculoSelecionado.cpf || ''),
         });
@@ -4094,6 +4118,7 @@
             marcaModelo: String(v?.marcaModelo || '').trim(),
             cor: String(v?.cor || '').trim(),
             anoModelo: (v?.anoModelo ?? v?.ano) ?? undefined,
+            obs: String(v?.obs || v?.observacoes || '').trim(),
             nome: String(v?.nome || v?.nomeProprietario || '').trim(),
             cpf: String(v?.cpf || '').trim(),
           }));

@@ -381,9 +381,10 @@ function validarVinculos(vinculos) {
       const anoModelo = validarAnoModelo(anoEntrada);
       const nome = normalizarOpcional(veiculo?.nome || veiculo?.nomeProprietario);
       const cpf = normalizarOpcional((veiculo?.cpf || '').replace(/\D/g, ''));
-      const possuiDados = placa || marcaModelo || cor || (anoModelo !== null) || nome || cpf;
+      const obs = normalizarOpcional(veiculo?.obs || veiculo?.observacoes);
+      const possuiDados = placa || marcaModelo || cor || (anoModelo !== null) || obs || nome || cpf;
       if (!possuiDados) return null;
-      return { placa, marcaModelo, cor, anoModelo, nome, cpf };
+      return { placa, marcaModelo, cor, anoModelo, obs, nome, cpf };
     })
     .filter(Boolean)
     : [];
