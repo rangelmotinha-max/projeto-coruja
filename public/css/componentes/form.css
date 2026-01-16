@@ -63,3 +63,8 @@
   opacity: 0.7;
   cursor: not-allowed;
 }
+
+/* Centraliza o texto de "Projeto Coruja" no formulário de login */
+#login-form .card__eyebrow {
+  text-align: center;
+}
