@@ -1702,10 +1702,28 @@
         btn.addEventListener('click', async () => {
           const ok = await confirmarExclusao();
           if (!ok) return;
-          if (qrCodeSelecionado?.existing && qrCodeSelecionado.referencia) {
-            removerQrCode = true; // marca para exclusão no backend
+          // Se imagem já existe no backend, remove imediatamente
+          if (qrCodeSelecionado?.existing && qrCodeSelecionado.referencia && pessoaEmEdicao) {
+            try {
+              const resp = await fetchAutenticado(`${API_PESSOAS_URL}/${pessoaEmEdicao}` , {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ removerQrCode: true }),
+              });
+              if (!resp.ok) throw new Error('Falha ao remover QR-CODE');
+              removerQrCode = true;
+              exibirMensagemForm('QR-CODE removido.', 'success');
+            } catch (_) {
+              exibirMensagemForm('Não foi possível remover o QR-CODE.', 'error');
+              return;
+            }
+          } else if (qrCodeSelecionado?.file) {
+            // Apenas limpa a seleção local
+            if (qrCodeSelecionado?.previewUrl) try { URL.revokeObjectURL(qrCodeSelecionado.previewUrl); } catch {}
+            removerQrCode = false;
+          } else {
+            removerQrCode = true;
           }
-          if (qrCodeSelecionado?.previewUrl && qrCodeSelecionado.file) URL.revokeObjectURL(qrCodeSelecionado.previewUrl);
           qrCodeSelecionado = null;
           renderizarQrCode();
         });
@@ -2091,6 +2109,7 @@
         try {
           const resp = await fetchAutenticado(`${API_PESSOAS_URL}/${pessoaEmEdicao}` , {
             method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ redesPerfisParaRemover: [imagemId] }),
           });
           if (!resp.ok) {
