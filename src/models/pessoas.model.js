@@ -198,12 +198,9 @@ class PessoaModel {
       }
 
       // Salvar redes sociais se fornecidas
+      let redesSociaisCriadas = [];
       if (dados.redesSociais && Array.isArray(dados.redesSociais)) {
-        for (const perfil of dados.redesSociais) {
-          if (perfil.trim()) {
-            await this.adicionarRedeSocial(pessoa.id, perfil, db);
-          }
-        }
+        redesSociaisCriadas = await this.sincronizarRedesSociais(pessoa.id, dados.redesSociais, db);
       }
 
       // Salvar empresa e sócios se fornecidos
@@ -229,22 +226,25 @@ class PessoaModel {
 
       // Salvar QR-CODE (único) se enviado no cadastro
       if (dados.qrCode) {
-        await this.setQrCode(pessoa.id, dados.qrCode, db);
+        const redePrimeira = redesSociaisCriadas[0]?.id || null;
+        await this.setQrCode(pessoa.id, dados.qrCode, redePrimeira, db);
       }
       // Salvar imagens de Perfil (múltiplas)
       if (dados.imagensPerfil && Array.isArray(dados.imagensPerfil)) {
+        const redePrimeira = redesSociaisCriadas[0]?.id || null;
         for (const img of dados.imagensPerfil) {
-          await this.adicionarImagemRede(pessoa.id, img, 'perfil', db);
+          await this.adicionarImagemRede(pessoa.id, img, 'perfil', redePrimeira, db);
         }
       }
-
-      // Salvar QR-CODE e imagens de Perfil (redes sociais)
-      if (dados.qrCode) {
-        await this.setQrCode(pessoa.id, dados.qrCode, db);
-      }
-      if (dados.imagensPerfil && Array.isArray(dados.imagensPerfil)) {
-        for (const img of dados.imagensPerfil) {
-          await this.adicionarImagemRede(pessoa.id, img, 'perfil', db);
+      // Salvar imagens de redes sociais com vínculo explícito por rede
+      if (dados.redesImagensUploads && typeof dados.redesImagensUploads === 'object') {
+        for (const item of dados.redesImagensUploads.qrCodes || []) {
+          const redeId = redesSociaisCriadas[item.redeIndex]?.id || null;
+          await this.setQrCode(pessoa.id, item.arquivo, redeId, db);
+        }
+        for (const item of dados.redesImagensUploads.perfis || []) {
+          const redeId = redesSociaisCriadas[item.redeIndex]?.id || null;
+          await this.adicionarImagemRede(pessoa.id, item.arquivo, 'perfil', redeId, db);
         }
       }
 
@@ -307,13 +307,12 @@ class PessoaModel {
     pessoa.enderecos = await this.obterEnderecosPorPessoa(pessoa.id);
     pessoa.telefones = (await this.obterTelefonesPorPessoa(pessoa.id)).map(t => t.numero);
     pessoa.emails = (await this.obterEmailsPorPessoa(pessoa.id)).map(e => e.email);
-    pessoa.redesSociais = (await this.obterRedesPorPessoa(pessoa.id)).map(r => r.perfil);
+    const redes = await this.obterRedesPorPessoa(pessoa.id);
+    pessoa.redesSociais = redes.map(r => r.perfil);
     pessoa.fotos = await this.obterFotosPorPessoa(pessoa.id);
     // Hidratar imagens de redes sociais
-    pessoa.redesImagens = await this.obterImagensRedesPorPessoa(pessoa.id);
+    pessoa.redesImagens = await this.obterImagensRedesPorPessoa(pessoa.id, redes);
     pessoa.empresa = await this.obterEmpresaPorPessoa(pessoa.id);
-    // Imagens de redes sociais (QR e Perfil)
-    pessoa.redesImagens = await this.obterImagensRedesPorPessoa(pessoa.id);
     // Inclui veículos associados por CPF ou nome para facilitar edição
     pessoa.veiculos = await localizarVeiculosAssociados(pessoa);
     pessoa.veiculo = pessoa.veiculos[0] || null;
@@ -724,6 +723,48 @@ class PessoaModel {
     );
   }
 
+  static async sincronizarRedesSociais(pessoaId, redesSociais, dbArg) {
+    const db = dbArg || await initDatabase();
+    const agora = new Date().toISOString();
+    const existentes = await db.all(
+      'SELECT id, perfil FROM redes_sociais WHERE pessoa_id = ? ORDER BY criadoEm ASC',
+      [pessoaId]
+    );
+    const usados = new Set();
+    const resultado = [];
+
+    for (const perfil of redesSociais) {
+      const texto = String(perfil || '').trim();
+      if (!texto) continue;
+      const encontrado = existentes.find((r) => r.perfil === texto && !usados.has(r.id));
+      if (encontrado) {
+        usados.add(encontrado.id);
+        resultado.push({ id: encontrado.id, perfil: encontrado.perfil });
+      } else {
+        const novo = {
+          id: randomUUID(),
+          pessoa_id: pessoaId,
+          perfil: texto,
+          criadoEm: agora,
+          atualizadoEm: agora,
+        };
+        await db.run(
+          `INSERT INTO redes_sociais (id, pessoa_id, perfil, criadoEm, atualizadoEm) VALUES (?, ?, ?, ?, ?)` ,
+          [novo.id, novo.pessoa_id, novo.perfil, novo.criadoEm, novo.atualizadoEm]
+        );
+        resultado.push({ id: novo.id, perfil: novo.perfil });
+      }
+    }
+
+    for (const existente of existentes) {
+      if (!usados.has(existente.id)) {
+        await db.run('DELETE FROM redes_sociais WHERE id = ?', [existente.id]);
+      }
+    }
+
+    return resultado;
+  }
+
   static async adicionarRedeSocial(pessoaId, perfil, dbArg) {
     const db = dbArg || await initDatabase();
     const agora = new Date().toISOString();
@@ -764,10 +805,12 @@ class PessoaModel {
   }
 
   // Imagens de redes sociais: QR (único) e Perfil (múltiplas)
-  static async obterImagensRedesPorPessoa(pessoaId, dbArg) {
+  static async obterImagensRedesPorPessoa(pessoaId, redesArg, dbArg) {
     const db = dbArg || await initDatabase();
+    const redes = Array.isArray(redesArg) ? redesArg : await this.obterRedesPorPessoa(pessoaId, db);
+    const mapaIndices = new Map(redes.map((r, index) => [r.id, index]));
     const registros = await db.all(
-      'SELECT id, pessoa_id as pessoaId, tipo, nome_arquivo AS nomeArquivo, caminho, mime_type AS mimeType, tamanho, criadoEm, atualizadoEm FROM pessoas_redes_imagens WHERE pessoa_id = ? ORDER BY criadoEm ASC',
+      'SELECT id, pessoa_id as pessoaId, rede_social_id as redeSocialId, tipo, nome_arquivo AS nomeArquivo, caminho, mime_type AS mimeType, tamanho, criadoEm, atualizadoEm FROM pessoas_redes_imagens WHERE pessoa_id = ? ORDER BY criadoEm ASC',
       [pessoaId]
     );
     const mapeados = registros.map((r) => ({
@@ -776,17 +819,46 @@ class PessoaModel {
       nome_arquivo: r.nomeArquivo,
       mime_type: r.mimeType,
     }));
-    const qrCode = mapeados.find((i) => i.tipo === 'qr') || null;
-    const perfis = mapeados.filter((i) => i.tipo === 'perfil');
-    return { qrCode, perfis };
+    const grupos = new Map();
+
+    for (const item of mapeados) {
+      const redeSocialId = item.redeSocialId || null;
+      const key = redeSocialId || '__sem_rede__';
+      if (!grupos.has(key)) {
+        const redeInfo = redeSocialId ? redes.find((r) => r.id === redeSocialId) : null;
+        const perfilTexto = redeInfo?.perfil || '';
+        const [tipoRede, perfil] = perfilTexto.split('|').map((t) => t.trim());
+        grupos.set(key, {
+          index: redeSocialId ? (mapaIndices.get(redeSocialId) ?? null) : null,
+          redeSocialId,
+          tipoRede: tipoRede || null,
+          perfil: perfil || null,
+          qrCode: null,
+          perfis: [],
+        });
+      }
+      const grupo = grupos.get(key);
+      if (item.tipo === 'qr') {
+        grupo.qrCode = item;
+      } else if (item.tipo === 'perfil') {
+        grupo.perfis.push(item);
+      }
+    }
+
+    return Array.from(grupos.values()).sort((a, b) => {
+      const idxA = Number.isInteger(a.index) ? a.index : Number.MAX_SAFE_INTEGER;
+      const idxB = Number.isInteger(b.index) ? b.index : Number.MAX_SAFE_INTEGER;
+      return idxA - idxB;
+    });
   }
 
-  static async adicionarImagemRede(pessoaId, img, tipo, dbArg) {
+  static async adicionarImagemRede(pessoaId, img, tipo, redeSocialId, dbArg) {
     const db = dbArg || await initDatabase();
     const agora = new Date().toISOString();
     const registro = {
       id: randomUUID(),
       pessoa_id: pessoaId,
+      rede_social_id: redeSocialId || null,
       tipo,
       nome_arquivo: img.nomeOriginal || null,
       caminho: img.caminho,
@@ -796,22 +868,65 @@ class PessoaModel {
       atualizadoEm: agora,
     };
     await db.run(
-      `INSERT INTO pessoas_redes_imagens (id, pessoa_id, tipo, nome_arquivo, caminho, mime_type, tamanho, criadoEm, atualizadoEm)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [registro.id, registro.pessoa_id, registro.tipo, registro.nome_arquivo, registro.caminho, registro.mime_type, registro.tamanho, registro.criadoEm, registro.atualizadoEm]
+      `INSERT INTO pessoas_redes_imagens (id, pessoa_id, rede_social_id, tipo, nome_arquivo, caminho, mime_type, tamanho, criadoEm, atualizadoEm)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [registro.id, registro.pessoa_id, registro.rede_social_id, registro.tipo, registro.nome_arquivo, registro.caminho, registro.mime_type, registro.tamanho, registro.criadoEm, registro.atualizadoEm]
     );
     return { ...registro, nomeArquivo: registro.nome_arquivo, mimeType: registro.mime_type, url: gerarUrlPublica(registro.caminho) };
   }
 
-  static async setQrCode(pessoaId, img, dbArg) {
+  static async setQrCode(pessoaId, img, redeSocialId, dbArg) {
     const db = dbArg || await initDatabase();
-    // Remove QR anterior (se existir)
-    const atual = await db.get('SELECT id, caminho FROM pessoas_redes_imagens WHERE pessoa_id = ? AND tipo = ? LIMIT 1', [pessoaId, 'qr']);
+    // Remove QR anterior (se existir) para a mesma rede
+    const { sql, params } = (() => {
+      if (redeSocialId) {
+        return {
+          sql: 'SELECT id, caminho FROM pessoas_redes_imagens WHERE pessoa_id = ? AND tipo = ? AND rede_social_id = ? LIMIT 1',
+          params: [pessoaId, 'qr', redeSocialId],
+        };
+      }
+      return {
+        sql: 'SELECT id, caminho FROM pessoas_redes_imagens WHERE pessoa_id = ? AND tipo = ? AND rede_social_id IS NULL LIMIT 1',
+        params: [pessoaId, 'qr'],
+      };
+    })();
+    const atual = await db.get(sql, params);
     if (atual) {
       await db.run('DELETE FROM pessoas_redes_imagens WHERE id = ?', [atual.id]);
       removerArquivoFisico(atual.caminho);
     }
-    return this.adicionarImagemRede(pessoaId, img, 'qr', db);
+    return this.adicionarImagemRede(pessoaId, img, 'qr', redeSocialId, db);
+  }
+
+  static async removerQrCodePorRede(pessoaId, redeSocialId, dbArg) {
+    const db = dbArg || await initDatabase();
+    // Comentário: remove QR-CODE vinculado à rede específica
+    const { sql, params } = (() => {
+      if (redeSocialId) {
+        return {
+          sql: 'SELECT id, caminho FROM pessoas_redes_imagens WHERE pessoa_id = ? AND tipo = ? AND rede_social_id = ? LIMIT 1',
+          params: [pessoaId, 'qr', redeSocialId],
+        };
+      }
+      return {
+        sql: 'SELECT id, caminho FROM pessoas_redes_imagens WHERE pessoa_id = ? AND tipo = ? AND rede_social_id IS NULL LIMIT 1',
+        params: [pessoaId, 'qr'],
+      };
+    })();
+    const atual = await db.get(sql, params);
+    if (!atual) return false;
+    await db.run('DELETE FROM pessoas_redes_imagens WHERE id = ?', [atual.id]);
+    removerArquivoFisico(atual.caminho);
+    return true;
+  }
+
+  static async atualizarVinculoRedeImagem(imagemId, redeSocialId, dbArg) {
+    const db = dbArg || await initDatabase();
+    const resultado = await db.run(
+      'UPDATE pessoas_redes_imagens SET rede_social_id = ?, atualizadoEm = ? WHERE id = ?',
+      [redeSocialId || null, new Date().toISOString(), imagemId]
+    );
+    return resultado.changes > 0;
   }
 
   static async removerImagemRede(imagemId, dbArg) {
@@ -828,6 +943,23 @@ class PessoaModel {
     const todas = await db.all('SELECT id FROM pessoas_redes_imagens WHERE pessoa_id = ?', [pessoaId]);
     for (const r of todas) {
       await this.removerImagemRede(r.id, db);
+    }
+  }
+
+  static async removerImagensRedesPorPessoaForaDeRedes(pessoaId, redeIds, dbArg) {
+    const db = dbArg || await initDatabase();
+    if (!Array.isArray(redeIds)) return;
+    if (!redeIds.length) {
+      await this.removerImagensRedesPorPessoa(pessoaId, db);
+      return;
+    }
+    const placeholders = redeIds.map(() => '?').join(', ');
+    const registros = await db.all(
+      `SELECT id FROM pessoas_redes_imagens WHERE pessoa_id = ? AND (rede_social_id IS NULL OR rede_social_id NOT IN (${placeholders}))`,
+      [pessoaId, ...redeIds]
+    );
+    for (const registro of registros) {
+      await this.removerImagemRede(registro.id, db);
     }
   }
 

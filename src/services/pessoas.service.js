@@ -112,6 +112,9 @@ async function atualizar(id, payload, arquivos = []) {
     imagensPerfil = [],
     redesPerfisParaRemover = [],
     removerQrCode = false,
+    redesImagens = [],
+    redesImagensParaRemover = [],
+    redesImagensUploads = {},
     vinculos,
     ocorrencias,
     veiculo,
@@ -180,16 +183,11 @@ async function atualizar(id, payload, arquivos = []) {
     }
   }
 
-  // Processar redes sociais validadas garantindo limpeza antes de regravar.
+  // Processar redes sociais validadas garantindo sincronização antes de usar imagens
   const redesValidadas = Array.isArray(redesSociais) ? redesSociais.filter(Boolean) : null;
+  let redesSincronizadas = null;
   if (redesValidadas) {
-    const redesAtuais = await PessoaModel.obterRedesPorPessoa(id);
-    for (const redeAtual of redesAtuais) {
-      await PessoaModel.removerRedeSocial(redeAtual.id);
-    }
-    for (const perfil of redesValidadas) {
-      await PessoaModel.adicionarRedeSocial(id, perfil);
-    }
+    redesSincronizadas = await PessoaModel.sincronizarRedesSociais(id, redesValidadas);
   }
 
   // Empresa removida do cadastro de Pessoas; nenhum processamento aqui
@@ -222,21 +220,70 @@ async function atualizar(id, payload, arquivos = []) {
   }
 
   // Atualizar imagens de redes sociais
-  // Remover perfis solicitados
+  const redesAtuais = redesSincronizadas || await PessoaModel.obterRedesPorPessoa(id);
+  const redePrimeiraId = redesAtuais[0]?.id || null;
+  const resolverRedeSocialId = (item) => {
+    if (item?.redeSocialId) return item.redeSocialId;
+    const index = Number.isInteger(item?.index)
+      ? item.index
+      : (Number.isInteger(item?.redeIndex) ? item.redeIndex : null);
+    return Number.isInteger(index) && redesAtuais[index] ? redesAtuais[index].id : null;
+  };
+
+  if (redesValidadas) {
+    await PessoaModel.removerImagensRedesPorPessoaForaDeRedes(id, redesAtuais.map((rede) => rede.id));
+  }
+
+  // Comentário: garante que imagens existentes sejam associadas à rede correta
+  for (const item of Array.isArray(redesImagens) ? redesImagens : []) {
+    const redeId = resolverRedeSocialId(item);
+    if (item?.qrCode?.referencia) {
+      await PessoaModel.atualizarVinculoRedeImagem(item.qrCode.referencia, redeId);
+    }
+    const perfis = Array.isArray(item?.perfilImagens) ? item.perfilImagens : [];
+    for (const perfilImg of perfis) {
+      if (perfilImg?.referencia) {
+        await PessoaModel.atualizarVinculoRedeImagem(perfilImg.referencia, redeId);
+      }
+    }
+  }
+
+  // Remover QR-CODE e perfis solicitados por rede
+  for (const remocao of Array.isArray(redesImagensParaRemover) ? redesImagensParaRemover : []) {
+    const redeId = resolverRedeSocialId(remocao);
+    if (remocao.removerQrCode) {
+      await PessoaModel.removerQrCodePorRede(id, redeId);
+    }
+    for (const imgId of remocao.perfisParaRemover || []) {
+      await PessoaModel.removerImagemRede(imgId);
+    }
+  }
+
+  // Uploads por rede (QR e Perfil)
+  for (const item of redesImagensUploads.qrCodes || []) {
+    const redeId = Number.isInteger(item?.redeIndex) && redesAtuais[item.redeIndex]
+      ? redesAtuais[item.redeIndex].id
+      : null;
+    await PessoaModel.setQrCode(id, item.arquivo, redeId);
+  }
+  for (const item of redesImagensUploads.perfis || []) {
+    const redeId = Number.isInteger(item?.redeIndex) && redesAtuais[item.redeIndex]
+      ? redesAtuais[item.redeIndex].id
+      : null;
+    await PessoaModel.adicionarImagemRede(id, item.arquivo, 'perfil', redeId);
+  }
+
+  // Compatibilidade: remover e incluir imagens globais (sem rede)
   for (const imgId of redesPerfisParaRemover) {
     await PessoaModel.removerImagemRede(imgId);
   }
-  // Substituir QR-CODE se enviado novo
   if (qrCode) {
-    await PessoaModel.setQrCode(id, qrCode);
+    await PessoaModel.setQrCode(id, qrCode, redePrimeiraId);
   } else if (removerQrCode) {
-    // Remover QR atual se solicitado explicitamente
-    const atual = await PessoaModel.obterImagensRedesPorPessoa(id);
-    if (atual?.qrCode?.id) await PessoaModel.removerImagemRede(atual.qrCode.id);
+    await PessoaModel.removerQrCodePorRede(id, redePrimeiraId);
   }
-  // Adicionar novas imagens de perfil
   for (const img of imagensPerfil) {
-    await PessoaModel.adicionarImagemRede(id, img, 'perfil');
+    await PessoaModel.adicionarImagemRede(id, img, 'perfil', redePrimeiraId);
   }
 
   // Atualizar dados da pessoa e índice do endereço atual validados.

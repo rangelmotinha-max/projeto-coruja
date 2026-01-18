@@ -22,6 +22,8 @@ const conditionalUploadPessoaArquivos = (req, res, next) => {
     { name: 'imagensMonitoramento', maxCount: 60 },
     { name: 'qrCode', maxCount: 1 },
     { name: 'imagensPerfil', maxCount: 30 },
+    { name: 'redesQrCode', maxCount: 30 },
+    { name: 'redesPerfilImagens', maxCount: 60 },
   ]);
 
   return uploadFields(req, res, next);
