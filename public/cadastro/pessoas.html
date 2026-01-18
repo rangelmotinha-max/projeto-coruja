@@ -5207,7 +5207,7 @@
       const relatorioLimparBtn = document.getElementById('relatorio-limpar');
       const relatorioGerarBtn = document.getElementById('relatorio-gerar');
 
-      function buildRelatorioConfig() {
+      function buildRelatorioConfig(pessoa = {}) {
         const redesSociais = Array.isArray(pessoa?.redesSociais)
           ? pessoa.redesSociais.map((rede) => {
               if (typeof rede === 'string') return rede;
@@ -5454,7 +5454,7 @@
           // A primeira coluna (rótulos) usa um colgroup com largura mínima
           html += `<table class="items"><colgroup><col style="width:1px" /><col /></colgroup>`;
           selected.identificacao.forEach((k) => {
-            const label = buildRelatorioConfig().identificacao.find((a) => a.key === k)?.label || k;
+            const label = buildRelatorioConfig(pessoaEmEdicao || {}).identificacao.find((a) => a.key === k)?.label || k;
             addRow(label, valores[k]);
           });
           html += `</table>`;
@@ -5530,7 +5530,7 @@
           if (!lista.length) {
             html += `<ul><li>N/I</li></ul>`;
           } else {
-            const cfgV = buildRelatorioConfig().veiculos;
+            const cfgV = buildRelatorioConfig(pessoaEmEdicao || {}).veiculos;
             const labelOf = (key) => cfgV.find((a) => a.key === key)?.label || key;
             lista.forEach((v, idx) => {
               const linha1Parts = [];
@@ -5855,7 +5855,7 @@
       // Constrói as seções do relatório dadas as seleções e um objeto valores
       function construirSecoesHTML(selected, valores) {
         let out = '';
-        const cfg = buildRelatorioConfig();
+        const cfg = buildRelatorioConfig(pessoaEmEdicao || {});
         const labelOf = (arr, k) => arr.find(a => a.key === k)?.label || k;
 
         function sectionTitle(t) {
@@ -6083,7 +6083,7 @@
       }
 
       // Inicializa UI do relatório
-      const relConfig = buildRelatorioConfig();
+      const relConfig = buildRelatorioConfig(pessoaEmEdicao || {});
       renderRelatorioSelecoes(relConfig);
       relatorioSelecionarTudoBtn?.addEventListener('click', () => {
         relatorioSelecoesEl.querySelectorAll('.rel-section, .rel-attr').forEach((el) => { el.checked = true; });
