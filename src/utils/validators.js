@@ -160,6 +160,78 @@ function extrairArquivosCampo(arquivos, campo) {
   return [];
 }
 
+function normalizarIndiceRede(valor) {
+  // Comentário: garante que o índice de rede seja um número inteiro válido
+  if (valor === undefined || valor === null || valor === '') return null;
+  const numero = Number.parseInt(valor, 10);
+  return Number.isNaN(numero) ? null : numero;
+}
+
+function normalizarRedesImagens(lista) {
+  // Comentário: valida estrutura enviada pelo frontend com metadados das redes e imagens existentes
+  if (!lista) return [];
+  if (!Array.isArray(lista)) {
+    throw criarErro('O campo redesImagens deve ser um array', 400);
+  }
+  return lista.map((item) => {
+    const redeSocialId = normalizarOpcional(item?.redeSocialId || item?.rede_social_id);
+    const index = normalizarIndiceRede(item?.index ?? item?.redeIndex);
+    const tipoRede = normalizarOpcional(item?.tipoRede || item?.tipo);
+    const perfil = normalizarOpcional(item?.perfil || item?.url);
+    const qr = item?.qrCode || item?.qrcode;
+    const qrCode = qr
+      ? {
+          referencia: normalizarOpcional(qr?.referencia || qr?.id),
+          nome: normalizarOpcional(qr?.nome || qr?.nomeArquivo),
+        }
+      : null;
+    const perfis = Array.isArray(item?.perfilImagens || item?.perfis)
+      ? (item.perfilImagens || item.perfis)
+          .map((img) => ({
+            referencia: normalizarOpcional(img?.referencia || img?.id),
+            nome: normalizarOpcional(img?.nome || img?.nomeArquivo),
+          }))
+          .filter((img) => img.referencia || img.nome)
+      : [];
+    return {
+      index,
+      redeSocialId,
+      tipoRede,
+      perfil,
+      qrCode,
+      perfilImagens: perfis,
+    };
+  }).filter((item) => item.index !== null || item.redeSocialId || item.tipoRede || item.perfil || item.qrCode || item.perfilImagens.length);
+}
+
+function normalizarRemocoesRedesImagens(lista) {
+  // Comentário: valida pedidos de remoção por rede
+  if (!lista) return [];
+  if (!Array.isArray(lista)) {
+    throw criarErro('O campo redesImagensParaRemover deve ser um array', 400);
+  }
+  return lista.map((item) => ({
+    index: normalizarIndiceRede(item?.index ?? item?.redeIndex),
+    redeSocialId: normalizarOpcional(item?.redeSocialId || item?.rede_social_id),
+    removerQrCode: Boolean(item?.removerQrCode),
+    perfisParaRemover: Array.isArray(item?.perfisParaRemover)
+      ? item.perfisParaRemover.map((id) => String(id || '').trim()).filter(Boolean)
+      : [],
+  })).filter((item) => item.removerQrCode || item.perfisParaRemover.length || item.index !== null || item.redeSocialId);
+}
+
+function mapearUploadsRedes(metaLista, arquivos) {
+  // Comentário: associa índices enviados no payload aos arquivos recebidos via multer
+  if (!Array.isArray(metaLista) || !metaLista.length) return [];
+  return metaLista.map((meta) => {
+    const redeIndex = normalizarIndiceRede(meta?.redeIndex ?? meta?.index);
+    const arquivoIndex = normalizarIndiceRede(meta?.arquivoIndex);
+    const arquivo = Number.isInteger(arquivoIndex) ? arquivos[arquivoIndex] : null;
+    if (!arquivo) return null;
+    return { redeIndex, arquivoIndex, arquivo };
+  }).filter(Boolean);
+}
+
 // Validação de criação de pessoa com campos obrigatórios e opcionais.
 function limparListaStrings(lista, transform = (v) => v) {
   if (!lista) return [];
@@ -207,6 +279,14 @@ function validarCadastroPessoa(payload, arquivos = []) {
   // Novos campos de imagens em Contatos: QR-CODE (único) e Perfil (múltiplas)
   const qrCodeUpload = validarFotosUpload(extrairArquivosCampo(arquivos, 'qrCode')).slice(0, 1);
   const imagensPerfilUpload = validarFotosUpload(extrairArquivosCampo(arquivos, 'imagensPerfil'));
+  // Comentário: uploads de imagens por rede social (QR e Perfil) com meta de índice
+  const redesQrCodeUpload = validarFotosUpload(extrairArquivosCampo(arquivos, 'redesQrCode'));
+  const redesPerfilUpload = validarFotosUpload(extrairArquivosCampo(arquivos, 'redesPerfilImagens'));
+  const redesImagensMeta = payload.redesImagensUploadMeta && typeof payload.redesImagensUploadMeta === 'object'
+    ? payload.redesImagensUploadMeta
+    : {};
+  const redesQrCodeMeta = mapearUploadsRedes(redesImagensMeta.qrCodes, redesQrCodeUpload);
+  const redesPerfilMeta = mapearUploadsRedes(redesImagensMeta.perfis, redesPerfilUpload);
   // Veículo associado ao cadastro de pessoa pode herdar dados do titular
   // Somente valida veículo se houver dados relevantes (ex.: placa ou proprietário)
   const veiculoTemDados = (() => {
@@ -268,6 +348,12 @@ function validarCadastroPessoa(payload, arquivos = []) {
     fotos: fotosUpload,
     qrCode: qrCodeUpload[0] || undefined,
     imagensPerfil: imagensPerfilUpload,
+    redesImagens: normalizarRedesImagens(payload.redesImagens),
+    redesImagensParaRemover: normalizarRemocoesRedesImagens(payload.redesImagensParaRemover),
+    redesImagensUploads: {
+      qrCodes: redesQrCodeMeta,
+      perfis: redesPerfilMeta,
+    },
     veiculo,
     veiculos: validarListaVeiculos(payload.veiculos, payload.nomeCompleto, payload.cpf),
   };
@@ -577,12 +663,26 @@ function validarAtualizacaoPessoa(payload, arquivos = []) {
   const imagensPerfilUpload = validarFotosUpload(extrairArquivosCampo(arquivos, 'imagensPerfil'));
   atualizacoes.qrCode = qrCodeUpload[0] || undefined;
   atualizacoes.imagensPerfil = imagensPerfilUpload;
+  // Comentário: processa uploads e metadados das imagens por rede
+  const redesQrCodeUpload = validarFotosUpload(extrairArquivosCampo(arquivos, 'redesQrCode'));
+  const redesPerfilUpload = validarFotosUpload(extrairArquivosCampo(arquivos, 'redesPerfilImagens'));
+  const redesImagensMeta = payload.redesImagensUploadMeta && typeof payload.redesImagensUploadMeta === 'object'
+    ? payload.redesImagensUploadMeta
+    : {};
+  const redesQrCodeMeta = mapearUploadsRedes(redesImagensMeta.qrCodes, redesQrCodeUpload);
+  const redesPerfilMeta = mapearUploadsRedes(redesImagensMeta.perfis, redesPerfilUpload);
   // Remoções
   atualizacoes.redesPerfisParaRemover = normalizarListaIds(payload.redesPerfisParaRemover);
   if (payload.removerQrCode !== undefined) {
     const val = String(payload.removerQrCode).toLowerCase();
     atualizacoes.removerQrCode = (val === 'true' || val === '1');
   }
+  atualizacoes.redesImagens = normalizarRedesImagens(payload.redesImagens);
+  atualizacoes.redesImagensParaRemover = normalizarRemocoesRedesImagens(payload.redesImagensParaRemover);
+  atualizacoes.redesImagensUploads = {
+    qrCodes: redesQrCodeMeta,
+    perfis: redesPerfilMeta,
+  };
   // Empresa removida do cadastro de Pessoas; ignorar atualizações
   if (payload.vinculos !== undefined) {
     atualizacoes.vinculos = validarVinculos(payload.vinculos);
