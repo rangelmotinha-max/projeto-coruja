@@ -328,25 +328,6 @@
                     <button class="button button--secondary" id="adicionar-rede" type="button" aria-label="Adicionar rede social" title="Adicionar">+</button>
                   </div>
                   <div id="lista-redes" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
-                  <!-- Linha de imagens de redes: QR-CODE (único) e Perfil (múltiplas) -->
-                  <div class="form__grid form__grid--2" style="margin-top: 0.75rem; gap: 0.75rem;">
-                    <div>
-                      <label class="form__field">
-                        <span class="form__label" style="text-align:center; display:block;">QR-CODE</span>
-                        <input type="file" id="qr-code-input" accept="image/*" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;" />
-                        <button type="button" class="button button--secondary" id="qr-code-select">Selecionar imagem</button>
-                      </label>
-                      <div id="qr-code-preview" style="margin-top:0.5rem; display:flex; flex-direction:column; align-items:center;"></div>
-                    </div>
-                    <div>
-                      <label class="form__field">
-                        <span class="form__label" style="text-align:center; display:block;">Perfil</span>
-                        <input type="file" id="perfil-imagens-input" accept="image/*" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;" />
-                        <button type="button" class="button button--secondary" id="perfil-imagens-select">Selecionar imagem</button>
-                      </label>
-                      <div id="perfil-imagens-preview" style="margin-top:0.5rem; display:grid; grid-template-columns:repeat(auto-fit,minmax(var(--perfilWidth, 120px),1fr)); gap:0.5rem; justify-items:center; justify-content:center;"></div>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
@@ -927,11 +908,35 @@
         dados.telefones = telefones.filter(tel => tel.trim() !== '');
         // Adiciona emails e redes sociais múltiplos ao payload
         dados.emails = emails.filter(e => e.trim() !== '');
-        dados.redesSociais = redes.filter(r => r.trim() !== '');
+        dados.redesSociais = montarResumoRedesSociais();
 
-        // Flags de imagens de redes sociais
-        if (removerQrCode) dados.removerQrCode = true;
-        if (perfilImagensParaRemover.length) dados.redesPerfisParaRemover = Array.from(new Set(perfilImagensParaRemover));
+        // Comentário: monta imagens por rede para enviar ao backend com identificação do índice
+        const redesImagens = (redes || []).map((rede, index) => {
+          const qrExistente = rede?.qrCode?.existing && rede.qrCode.referencia
+            ? { referencia: rede.qrCode.referencia, nome: rede.qrCode.nome || 'QR-CODE' }
+            : null;
+          const perfisExistentes = Array.isArray(rede?.perfilImagens)
+            ? rede.perfilImagens
+              .filter((img) => img?.existing && img.referencia)
+              .map((img) => ({ referencia: img.referencia, nome: img.nome || 'Perfil' }))
+            : [];
+          return {
+            index,
+            tipoRede: String(rede?.tipoRede || ''),
+            perfil: String(rede?.perfil || ''),
+            qrCode: qrExistente,
+            perfilImagens: perfisExistentes,
+          };
+        }).filter((item) => item.tipoRede || item.perfil || item.qrCode || (item.perfilImagens || []).length);
+
+        const redesImagensParaRemover = (redes || []).map((rede, index) => {
+          const removerQr = Boolean(rede?.removerQrCode);
+          const perfis = Array.isArray(rede?.perfilImagensParaRemover) ? Array.from(new Set(rede.perfilImagensParaRemover)) : [];
+          return removerQr || perfis.length ? { index, removerQrCode: removerQr, perfisParaRemover: perfis } : null;
+        }).filter(Boolean);
+
+        if (redesImagens.length) dados.redesImagens = redesImagens;
+        if (redesImagensParaRemover.length) dados.redesImagensParaRemover = redesImagensParaRemover;
 
         const faccaoId = (faccaoIdInput?.value || '').trim();
         const faccaoNomeDigitada = (faccaoInput?.value || '').trim();
@@ -1157,24 +1162,25 @@
           }
         });
 
-        // Anexa QR-CODE se houver arquivo novo
-        if (qrCodeSelecionado?.file) {
-          const nome = qrCodeSelecionado.file.name || 'qr-code.jpg';
-          formDataEnvio.append('qrCode', qrCodeSelecionado.file, nome);
-        }
-        // Marca remoção do QR existente quando solicitado
-        if (removerQrCode) {
-          formDataEnvio.append('removerQrCode', 'true');
-        }
-        // Anexa imagens de perfil novas
-        perfilImagensSelecionadas.forEach((item, idx) => {
-          if (item.file) {
-            const nome = item.file.name || `perfil-${idx + 1}.jpg`;
-            formDataEnvio.append('imagensPerfil', item.file, nome);
+        // Comentário: anexa imagens de redes sociais por índice da rede
+        const redesImagensUploadMeta = { qrCodes: [], perfis: [] };
+        (redes || []).forEach((rede, redeIndex) => {
+          if (rede?.qrCode?.file) {
+            const nome = rede.qrCode.file.name || `qr-code-${redeIndex + 1}.jpg`;
+            const arquivoIndex = redesImagensUploadMeta.qrCodes.length;
+            formDataEnvio.append('redesQrCode', rede.qrCode.file, nome);
+            redesImagensUploadMeta.qrCodes.push({ redeIndex, arquivoIndex, nome });
           }
+          (rede?.perfilImagens || []).forEach((item) => {
+            if (!item?.file) return;
+            const nome = item.file.name || `perfil-${redeIndex + 1}.jpg`;
+            const arquivoIndex = redesImagensUploadMeta.perfis.length;
+            formDataEnvio.append('redesPerfilImagens', item.file, nome);
+            redesImagensUploadMeta.perfis.push({ redeIndex, arquivoIndex, nome });
+          });
         });
-        if (perfilImagensParaRemover.length) {
-          formDataEnvio.append('redesPerfisParaRemover', JSON.stringify(Array.from(new Set(perfilImagensParaRemover))));
+        if (redesImagensUploadMeta.qrCodes.length || redesImagensUploadMeta.perfis.length) {
+          formDataEnvio.append('redesImagensUploadMeta', JSON.stringify(redesImagensUploadMeta));
         }
 
         return formDataEnvio;
@@ -1508,11 +1514,15 @@
       let emails = [];
       let redes = [];
       let veiculos = [];
-      // Novos estados: imagens de Redes Sociais
-      let qrCodeSelecionado = null; // { file?, previewUrl, existing?, referencia? }
-      let removerQrCode = false;
-      let perfilImagensSelecionadas = []; // [{file?, previewUrl, existing?, referencia?, nome?}]
-      let perfilImagensParaRemover = [];
+      // Comentário: cada rede social mantém seu próprio estado de imagens (QR e perfil)
+      const criarEstadoRede = (dados = {}) => ({
+        tipoRede: dados.tipoRede || '',
+        perfil: dados.perfil || '',
+        qrCode: dados.qrCode || null,
+        removerQrCode: Boolean(dados.removerQrCode),
+        perfilImagens: Array.isArray(dados.perfilImagens) ? dados.perfilImagens : [],
+        perfilImagensParaRemover: Array.isArray(dados.perfilImagensParaRemover) ? dados.perfilImagensParaRemover : [],
+      });
       // Comentário: armazenamos os resultados da busca de pessoas para renderizar múltiplas opções
       let resultadosBuscaPessoas = [];
       // Comentário: controlamos resultados de veículos para permitir que o usuário escolha qual vincular
@@ -1666,19 +1676,24 @@
         });
       };
 
-      const renderizarQrCode = () => {
-        const cont = document.getElementById('qr-code-preview');
+      const renderizarQrCodeRede = (redeIndex, container = null) => {
+        const cont = container || document.getElementById(`qr-code-preview-${redeIndex}`);
         if (!cont) return;
+        const rede = redes[redeIndex];
+        if (!rede) return;
         cont.innerHTML = '';
-        if (!qrCodeSelecionado || removerQrCode) return;
+        if (!rede.qrCode || rede.removerQrCode) return;
+
+        // Comentário: exibe preview do QR-CODE vinculado à rede selecionada
         const img = document.createElement('img');
-        img.src = qrCodeSelecionado.previewUrl;
+        img.src = rede.qrCode.previewUrl;
         img.alt = 'QR-CODE';
         img.style.width = '140px';
         img.style.height = '140px';
         img.style.objectFit = 'cover';
         img.style.border = '1px solid var(--border)';
         img.style.borderRadius = '0.35rem';
+
         const actions = document.createElement('div');
         actions.style.marginTop = '0.35rem';
         actions.style.display = 'flex';
@@ -1702,31 +1717,34 @@
         btn.addEventListener('click', async () => {
           const ok = await confirmarExclusao();
           if (!ok) return;
-          // Se imagem já existe no backend, remove imediatamente
-          if (qrCodeSelecionado?.existing && qrCodeSelecionado.referencia && pessoaEmEdicao) {
+          const atual = redes[redeIndex];
+          if (!atual) return;
+          // Comentário: remove no backend quando a imagem é persistida
+          if (atual.qrCode?.existing && atual.qrCode.referencia && pessoaEmEdicao) {
             try {
               const resp = await fetchAutenticado(`${API_PESSOAS_URL}/${pessoaEmEdicao}` , {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ removerQrCode: true }),
+                body: JSON.stringify({ removerQrCode: true, redeIndex }),
               });
               if (!resp.ok) throw new Error('Falha ao remover QR-CODE');
-              removerQrCode = true;
+              atual.removerQrCode = true;
               exibirMensagemForm('QR-CODE removido.', 'success');
             } catch (_) {
               exibirMensagemForm('Não foi possível remover o QR-CODE.', 'error');
               return;
             }
-          } else if (qrCodeSelecionado?.file) {
-            // Apenas limpa a seleção local
-            if (qrCodeSelecionado?.previewUrl) try { URL.revokeObjectURL(qrCodeSelecionado.previewUrl); } catch {}
-            removerQrCode = false;
+          } else if (atual.qrCode?.file) {
+            // Comentário: remove apenas seleção local
+            if (atual.qrCode.previewUrl) try { URL.revokeObjectURL(atual.qrCode.previewUrl); } catch {}
+            atual.removerQrCode = false;
           } else {
-            removerQrCode = true;
+            atual.removerQrCode = true;
           }
-          qrCodeSelecionado = null;
-          renderizarQrCode();
+          atual.qrCode = null;
+          renderizarQrCodeRede(redeIndex);
         });
+
         const abrirBtn = document.createElement('button');
         abrirBtn.type = 'button';
         abrirBtn.className = 'button button--ghost';
@@ -1738,7 +1756,7 @@
         abrirBtn.style.lineHeight = '1.2';
         abrirBtn.style.fontWeight = '400';
         abrirBtn.addEventListener('click', () => {
-          const url = qrCodeSelecionado?.previewUrl;
+          const url = redes[redeIndex]?.qrCode?.previewUrl;
           if (url) window.open(url, '_blank');
         });
 
@@ -1748,12 +1766,15 @@
         cont.appendChild(actions);
       };
 
-      const renderizarPerfilImagens = () => {
-        const cont = document.getElementById('perfil-imagens-preview');
+      const renderizarPerfilImagensRede = (redeIndex, container = null) => {
+        const cont = container || document.getElementById(`perfil-imagens-preview-${redeIndex}`);
         if (!cont) return;
+        const rede = redes[redeIndex];
+        if (!rede) return;
         cont.innerHTML = '';
-        if (!perfilImagensSelecionadas.length) return;
-        perfilImagensSelecionadas.forEach((item, idx) => {
+        if (!rede.perfilImagens.length) return;
+
+        rede.perfilImagens.forEach((item, idx) => {
           const wrap = document.createElement('div');
           wrap.style.padding = '0.25rem';
           wrap.style.width = 'var(--perfilWidth, 120px)';
@@ -1775,6 +1796,7 @@
           img.style.height = '100%';
           img.style.objectFit = 'cover';
           frame.appendChild(img);
+
           const actions = document.createElement('div');
           actions.style.marginTop = '0.25rem';
           actions.style.display = 'flex';
@@ -1798,13 +1820,16 @@
           btn.addEventListener('click', async () => {
             const ok = await confirmarExclusao();
             if (!ok) return;
-            const [rem] = perfilImagensSelecionadas.splice(idx, 1);
-            if (rem?.existing && rem.referencia) perfilImagensParaRemover.push(rem.referencia);
-            // Persistir remoção imediatamente quando estiver editando um cadastro
-            if (rem?.existing && rem.referencia) persistirRemocaoImagemPerfil(rem.referencia);
+            const alvo = redes[redeIndex];
+            if (!alvo) return;
+            const [rem] = alvo.perfilImagens.splice(idx, 1);
+            if (rem?.existing && rem.referencia) alvo.perfilImagensParaRemover.push(rem.referencia);
+            // Comentário: persistir remoção imediatamente quando estiver editando um cadastro
+            if (rem?.existing && rem.referencia) persistirRemocaoImagemPerfil(redeIndex, rem.referencia);
             if (rem?.previewUrl && rem.file) URL.revokeObjectURL(rem.previewUrl);
-            renderizarPerfilImagens();
+            renderizarPerfilImagensRede(redeIndex);
           });
+
           const abrirBtn = document.createElement('button');
           abrirBtn.type = 'button';
           abrirBtn.className = 'button button--ghost';
@@ -2012,6 +2037,59 @@
         renderizarEmails();
       };
 
+      const normalizarRedeTexto = (valor = '') => {
+        // Comentário: converte string "tipo|perfil" em objeto com campos separados
+        if (valor && typeof valor === 'object') {
+          return criarEstadoRede({
+            tipoRede: String(valor?.tipoRede || valor?.tipo || ''),
+            perfil: String(valor?.perfil || valor?.url || ''),
+          });
+        }
+        const partes = String(valor).split('|');
+        const tipoRede = (partes[0] || '').trim();
+        const perfil = (partes[1] || '').trim();
+        return criarEstadoRede({ tipoRede, perfil });
+      };
+
+      const montarResumoRedesSociais = () => {
+        // Comentário: formata redes para o payload e relatórios mantendo compatibilidade do backend
+        return (redes || []).map((rede) => {
+          if (typeof rede === 'string') {
+            const texto = String(rede || '').trim();
+            return texto ? texto : null;
+          }
+          const tipo = String(rede?.tipoRede || '').trim();
+          const perfil = String(rede?.perfil || '').trim();
+          return tipo || perfil ? `${tipo}|${perfil}`.trim() : null;
+        }).filter(Boolean);
+      };
+
+      const limparPreviewRede = (rede) => {
+        // Comentário: libera URLs criadas localmente ao remover uma rede
+        if (!rede) return;
+        if (rede.qrCode?.previewUrl && rede.qrCode.file) {
+          try { URL.revokeObjectURL(rede.qrCode.previewUrl); } catch {}
+        }
+        (rede.perfilImagens || []).forEach((img) => {
+          if (img?.previewUrl && img.file) {
+            try { URL.revokeObjectURL(img.previewUrl); } catch {}
+          }
+        });
+      };
+
+      const atualizarLarguraPerfis = () => {
+        // Comentário: ajusta a largura das miniaturas com base no botão de cada rede
+        document.querySelectorAll('[data-perfil-select]').forEach((btn) => {
+          const index = btn.dataset.redeIndex;
+          const cont = document.getElementById(`perfil-imagens-preview-${index}`);
+          if (!cont) return;
+          const largura = btn.offsetWidth || 120;
+          cont.style.setProperty('--perfilWidth', `${largura}px`);
+        });
+      };
+      window.addEventListener('load', atualizarLarguraPerfis);
+      window.addEventListener('resize', atualizarLarguraPerfis);
+
       const renderizarRedes = () => {
         const listaRedesEl = document.getElementById('lista-redes');
         if (!listaRedesEl) return;
@@ -2023,14 +2101,18 @@
         }
 
         redes.forEach((rede, indice) => {
+          const atual = typeof rede === 'string' ? normalizarRedeTexto(rede) : criarEstadoRede(rede);
+          redes[indice] = atual;
+
+          const bloco = document.createElement('div');
+          bloco.style.display = 'flex';
+          bloco.style.flexDirection = 'column';
+          bloco.style.gap = '0.5rem';
+
           const linha = document.createElement('div');
           linha.style.display = 'flex';
           linha.style.gap = '0.5rem';
           linha.style.alignItems = 'center';
-
-          const partes = String(rede).split('|');
-          const valorTipo = (partes[0] || '').trim();
-          const valorPerfil = (partes[1] || '').trim();
 
           const select = document.createElement('select');
           select.className = 'form__input';
@@ -2047,25 +2129,16 @@
             <option value="website">Website</option>
             <option value="outro">Outro</option>
           `;
-          select.value = valorTipo;
+          select.value = atual.tipoRede;
           linha.appendChild(select);
 
           const input = document.createElement('input');
           input.type = 'text';
           input.className = 'form__input';
           input.placeholder = 'URL ou @usuario';
-          input.value = valorPerfil;
+          input.value = atual.perfil;
           input.style.flex = '1';
           linha.appendChild(input);
-
-          const atualizarValor = () => {
-            const tipo = select.value || '';
-            const perfil = input.value || '';
-            redes[indice] = `${tipo}|${perfil}`;
-          };
-
-          select.addEventListener('change', atualizarValor);
-          input.addEventListener('input', atualizarValor);
 
           const btnRemover = document.createElement('button');
           btnRemover.type = 'button';
@@ -2077,102 +2150,192 @@
           btnRemover.style.fontSize = '0.75rem';
           btnRemover.style.minWidth = 'fit-content';
           btnRemover.addEventListener('click', async () => {
-            const valor = redes[indice] || '';
-            const [tipo = '', perfil = ''] = valor.split('|');
-            const temDados = tipo.trim() !== '' || perfil.trim() !== '';
+            const tipo = String(redes[indice]?.tipoRede || '').trim();
+            const perfil = String(redes[indice]?.perfil || '').trim();
+            const temDados = tipo !== '' || perfil !== '';
             if (!temDados) {
-              redes.splice(indice, 1);
+              const [removida] = redes.splice(indice, 1);
+              limparPreviewRede(removida);
               renderizarRedes();
               return;
             }
             const ok = await confirmarExclusao();
             if (ok) {
-              redes.splice(indice, 1);
+              const [removida] = redes.splice(indice, 1);
+              limparPreviewRede(removida);
               renderizarRedes();
             }
           });
           linha.appendChild(btnRemover);
 
-          listaRedesEl.appendChild(linha);
+          const subarea = document.createElement('div');
+          subarea.className = 'form__grid form__grid--2';
+          subarea.style.marginTop = '0.5rem';
+          subarea.style.gap = '0.75rem';
+          subarea.style.display = atual.tipoRede ? 'grid' : 'none';
+
+          // Comentário: inputs e previews por rede (QR-CODE + Perfil)
+          const qrWrapper = document.createElement('div');
+          const qrLabel = document.createElement('label');
+          qrLabel.className = 'form__field';
+          const qrSpan = document.createElement('span');
+          qrSpan.className = 'form__label';
+          qrSpan.textContent = 'QR-CODE';
+          qrSpan.style.textAlign = 'center';
+          qrSpan.style.display = 'block';
+          const qrInput = document.createElement('input');
+          qrInput.type = 'file';
+          qrInput.accept = 'image/*';
+          qrInput.id = `qr-code-input-${indice}`;
+          qrInput.style.position = 'absolute';
+          qrInput.style.width = '1px';
+          qrInput.style.height = '1px';
+          qrInput.style.opacity = '0';
+          qrInput.style.pointerEvents = 'none';
+          const qrBtn = document.createElement('button');
+          qrBtn.type = 'button';
+          qrBtn.className = 'button button--secondary';
+          qrBtn.textContent = 'Selecionar imagem';
+          qrBtn.addEventListener('click', () => qrInput.click());
+          const qrPreview = document.createElement('div');
+          qrPreview.id = `qr-code-preview-${indice}`;
+          qrPreview.style.marginTop = '0.5rem';
+          qrPreview.style.display = 'flex';
+          qrPreview.style.flexDirection = 'column';
+          qrPreview.style.alignItems = 'center';
+
+          qrInput.addEventListener('change', (e) => {
+            const file = e.target.files && e.target.files[0];
+            if (!file) return;
+            const redeAtual = redes[indice];
+            if (!redeAtual) return;
+            if (redeAtual.qrCode?.previewUrl && redeAtual.qrCode.file) {
+              try { URL.revokeObjectURL(redeAtual.qrCode.previewUrl); } catch {}
+            }
+            redeAtual.removerQrCode = false;
+            redeAtual.qrCode = { file, previewUrl: URL.createObjectURL(file), nome: file.name };
+            renderizarQrCodeRede(indice);
+          });
+
+          qrLabel.appendChild(qrSpan);
+          qrLabel.appendChild(qrInput);
+          qrLabel.appendChild(qrBtn);
+          qrWrapper.appendChild(qrLabel);
+          qrWrapper.appendChild(qrPreview);
+
+          const perfilWrapper = document.createElement('div');
+          const perfilLabel = document.createElement('label');
+          perfilLabel.className = 'form__field';
+          const perfilSpan = document.createElement('span');
+          perfilSpan.className = 'form__label';
+          perfilSpan.textContent = 'Perfil';
+          perfilSpan.style.textAlign = 'center';
+          perfilSpan.style.display = 'block';
+          const perfilInput = document.createElement('input');
+          perfilInput.type = 'file';
+          perfilInput.accept = 'image/*';
+          perfilInput.id = `perfil-imagens-input-${indice}`;
+          perfilInput.style.position = 'absolute';
+          perfilInput.style.width = '1px';
+          perfilInput.style.height = '1px';
+          perfilInput.style.opacity = '0';
+          perfilInput.style.pointerEvents = 'none';
+          const perfilBtn = document.createElement('button');
+          perfilBtn.type = 'button';
+          perfilBtn.className = 'button button--secondary';
+          perfilBtn.textContent = 'Selecionar imagem';
+          perfilBtn.dataset.perfilSelect = 'true';
+          perfilBtn.dataset.redeIndex = String(indice);
+          perfilBtn.addEventListener('click', () => perfilInput.click());
+          const perfilPreview = document.createElement('div');
+          perfilPreview.id = `perfil-imagens-preview-${indice}`;
+          perfilPreview.style.marginTop = '0.5rem';
+          perfilPreview.style.display = 'grid';
+          perfilPreview.style.gridTemplateColumns = 'repeat(auto-fit,minmax(var(--perfilWidth, 120px),1fr))';
+          perfilPreview.style.gap = '0.5rem';
+          perfilPreview.style.justifyItems = 'center';
+          perfilPreview.style.justifyContent = 'center';
+
+          perfilInput.addEventListener('change', (e) => {
+            const files = Array.from(e.target.files || []).filter((f) => f.type?.startsWith('image/'));
+            const file = files[0];
+            if (!file) return;
+            const redeAtual = redes[indice];
+            if (!redeAtual) return;
+            // Comentário: substitui a imagem anterior da rede, mantendo controle de remoção
+            if (redeAtual.perfilImagens.length) {
+              const atualImg = redeAtual.perfilImagens[0];
+              if (atualImg?.existing && atualImg.referencia) {
+                redeAtual.perfilImagensParaRemover.push(atualImg.referencia);
+              }
+              if (atualImg?.previewUrl && atualImg.file) {
+                try { URL.revokeObjectURL(atualImg.previewUrl); } catch {}
+              }
+            }
+            redeAtual.perfilImagens = [{ file, previewUrl: URL.createObjectURL(file), nome: file.name }];
+            atualizarLarguraPerfis();
+            renderizarPerfilImagensRede(indice);
+          });
+
+          perfilLabel.appendChild(perfilSpan);
+          perfilLabel.appendChild(perfilInput);
+          perfilLabel.appendChild(perfilBtn);
+          perfilWrapper.appendChild(perfilLabel);
+          perfilWrapper.appendChild(perfilPreview);
+
+          subarea.appendChild(qrWrapper);
+          subarea.appendChild(perfilWrapper);
+
+          const atualizarValor = () => {
+            const redeAtual = redes[indice];
+            if (!redeAtual) return;
+            redeAtual.tipoRede = select.value || '';
+            redeAtual.perfil = input.value || '';
+            subarea.style.display = redeAtual.tipoRede ? 'grid' : 'none';
+          };
+
+          select.addEventListener('change', atualizarValor);
+          input.addEventListener('input', atualizarValor);
+
+          bloco.appendChild(linha);
+          bloco.appendChild(subarea);
+          listaRedesEl.appendChild(bloco);
+
+          renderizarQrCodeRede(indice, qrPreview);
+          renderizarPerfilImagensRede(indice, perfilPreview);
         });
+
+        atualizarLarguraPerfis();
       };
 
       const adicionarRede = () => {
-        redes.push('|');
+        // Comentário: adiciona um novo bloco de rede com estado próprio
+        redes.push(criarEstadoRede());
         renderizarRedes();
       };
 
-      // Handlers dos inputs de QR-CODE e Perfil
-      // Persistência imediata: remove imagem de Perfil existente diretamente no backend
-      const persistirRemocaoImagemPerfil = async (imagemId) => {
+      // Comentário: persistência imediata das imagens de perfil por rede
+      const persistirRemocaoImagemPerfil = async (redeIndex, imagemId) => {
         if (!pessoaEmEdicao || !imagemId) return;
         try {
           const resp = await fetchAutenticado(`${API_PESSOAS_URL}/${pessoaEmEdicao}` , {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ redesPerfisParaRemover: [imagemId] }),
+            body: JSON.stringify({ redesPerfisParaRemover: [{ imagemId, redeIndex }] }),
           });
           if (!resp.ok) {
             throw new Error('Falha ao remover imagem de Perfil');
           }
           // Evita reenvio duplicado no salvar
-          perfilImagensParaRemover = perfilImagensParaRemover.filter((id) => id !== imagemId);
+          const alvo = redes[redeIndex];
+          if (alvo) {
+            alvo.perfilImagensParaRemover = alvo.perfilImagensParaRemover.filter((id) => id !== imagemId);
+          }
           exibirMensagemForm('Imagem de Perfil removida.', 'success');
         } catch (err) {
           exibirMensagemForm('Não foi possível remover a imagem de Perfil.', 'error');
         }
       };
-
-      const qrCodeInput = document.getElementById('qr-code-input');
-      const qrCodeSelectBtn = document.getElementById('qr-code-select');
-      qrCodeSelectBtn?.addEventListener('click', () => qrCodeInput?.click());
-      qrCodeInput?.addEventListener('change', (e) => {
-        const file = e.target.files && e.target.files[0];
-        if (!file) return;
-        if (qrCodeSelecionado?.previewUrl && qrCodeSelecionado.file) URL.revokeObjectURL(qrCodeSelecionado.previewUrl);
-        removerQrCode = false; // usuário selecionou um novo QR, não remover
-        qrCodeSelecionado = { file, previewUrl: URL.createObjectURL(file), nome: file.name };
-        renderizarQrCode();
-      });
-
-      const perfilInput = document.getElementById('perfil-imagens-input');
-      const perfilSelectBtn = document.getElementById('perfil-imagens-select');
-
-      // Responsivo: sincroniza a largura das prévias com o botão "Selecionar imagens"
-      const syncPerfilWidth = () => {
-        const btn = document.getElementById('perfil-imagens-select');
-        if (!btn) return;
-        const width = btn.offsetWidth; // inclui padding e border
-        if (width > 0) document.documentElement.style.setProperty('--perfilWidth', `${width}px`);
-      };
-      // Atualiza em load, resize e quando o botão mudar de tamanho
-      window.addEventListener('load', syncPerfilWidth);
-      window.addEventListener('resize', syncPerfilWidth);
-      if (window.ResizeObserver && perfilSelectBtn) {
-        const ro = new ResizeObserver(syncPerfilWidth);
-        ro.observe(perfilSelectBtn);
-      }
-
-      perfilSelectBtn?.addEventListener('click', () => perfilInput?.click());
-      perfilInput?.addEventListener('change', (e) => {
-        const files = Array.from(e.target.files || []).filter(f => f.type?.startsWith('image/'));
-        const file = files[0];
-        if (!file) return;
-        // Se já existir uma imagem (nova ou persistida), substitui por esta
-        if (perfilImagensSelecionadas.length) {
-          const atual = perfilImagensSelecionadas[0];
-          if (atual?.existing && atual.referencia) {
-            // Agenda remoção da antiga no salvar
-            perfilImagensParaRemover.push(atual.referencia);
-          }
-          if (atual?.previewUrl && atual.file) {
-            URL.revokeObjectURL(atual.previewUrl);
-          }
-        }
-        perfilImagensSelecionadas = [{ file, previewUrl: URL.createObjectURL(file), nome: file.name }];
-        syncPerfilWidth();
-        renderizarPerfilImagens();
-      });
 
       // Renderiza cards de veículos permitindo múltiplas entradas
       const renderizarVeiculos = () => {
@@ -4085,36 +4248,64 @@
 
         // Carrega redes sociais se existirem
         if (pessoa.redesSociais && Array.isArray(pessoa.redesSociais)) {
-          redes = JSON.parse(JSON.stringify(pessoa.redesSociais));
+          redes = pessoa.redesSociais.map((rede) => normalizarRedeTexto(rede));
         } else {
           redes = [];
         }
-        renderizarRedes();
 
-        // Carregar imagens de redes sociais (QR e Perfil)
-        removerQrCode = false;
-        const qr = pessoa?.redesImagens?.qrCode;
-        if (qr) {
-          qrCodeSelecionado = {
-            existing: true,
-            referencia: qr.id,
-            previewUrl: qr.url || qr.caminho,
-            nome: qr.nomeArquivo || 'QR-CODE',
-          };
-        } else {
-          qrCodeSelecionado = null;
+        // Carregar imagens de redes sociais por rede (QR e Perfil)
+        const imagensRedes = pessoa?.redesImagens;
+        if (Array.isArray(imagensRedes)) {
+          imagensRedes.forEach((item, index) => {
+            const alvoIndex = item?.index ?? item?.redeIndex ?? index;
+            while (redes.length <= alvoIndex) redes.push(criarEstadoRede());
+            const alvo = redes[alvoIndex];
+            if (!alvo) return;
+            alvo.removerQrCode = false;
+            alvo.perfilImagensParaRemover = [];
+            const qr = item?.qrCode || item?.qrcode;
+            if (qr) {
+              alvo.qrCode = {
+                existing: true,
+                referencia: qr.id || qr.referencia,
+                previewUrl: qr.url || qr.caminho,
+                nome: qr.nomeArquivo || 'QR-CODE',
+              };
+            }
+            const perfis = Array.isArray(item?.perfis || item?.perfilImagens) ? (item.perfis || item.perfilImagens) : [];
+            alvo.perfilImagens = perfis.map((img, idx) => ({
+              existing: true,
+              referencia: img.id || img.referencia,
+              nome: img.nomeArquivo || `Perfil ${idx + 1}`,
+              previewUrl: img.url || img.caminho,
+            }));
+          });
+        } else if (imagensRedes && typeof imagensRedes === 'object') {
+          const qr = imagensRedes?.qrCode;
+          const perfis = Array.isArray(imagensRedes?.perfis) ? imagensRedes.perfis : [];
+          if (qr || perfis.length) {
+            if (!redes.length) redes.push(criarEstadoRede());
+            const alvo = redes[0];
+            alvo.removerQrCode = false;
+            alvo.perfilImagensParaRemover = [];
+            if (qr) {
+              alvo.qrCode = {
+                existing: true,
+                referencia: qr.id || qr.referencia,
+                previewUrl: qr.url || qr.caminho,
+                nome: qr.nomeArquivo || 'QR-CODE',
+              };
+            }
+            alvo.perfilImagens = perfis.map((img, idx) => ({
+              existing: true,
+              referencia: img.id || img.referencia,
+              nome: img.nomeArquivo || `Perfil ${idx + 1}`,
+              previewUrl: img.url || img.caminho,
+            }));
+          }
         }
-        const perfis = Array.isArray(pessoa?.redesImagens?.perfis) ? pessoa.redesImagens.perfis.slice(0,1) : [];
-        perfilImagensParaRemover = [];
-        perfilImagensSelecionadas = perfis.map((img, index) => ({
-          existing: true,
-          referencia: img.id,
-          nome: img.nomeArquivo || `Perfil ${index + 1}`,
-          previewUrl: img.url || img.caminho,
-        }));
-        renderizarQrCode();
-        syncPerfilWidth();
-        renderizarPerfilImagens();
+
+        renderizarRedes();
 
         // Preenche lista de veículos ou inicia vazia para permitir múltiplos registros
         const veiculosHidratados = Array.isArray(pessoa.veiculos)
@@ -4556,8 +4747,8 @@
           const hasDocsOcorrencia = Array.isArray(ocorrenciasPoliciais) && ocorrenciasPoliciais.some((o) => !!o.arquivo);
           const hasImgsMonitoramento = Array.isArray(monitoramentos)
             && monitoramentos.some((m) => Array.isArray(m.imagensSelecionadas) && m.imagensSelecionadas.length > 0);
-          const hasQr = !!(qrCodeSelecionado && qrCodeSelecionado.file);
-          const hasPerfilImgs = Array.isArray(perfilImagensSelecionadas) && perfilImagensSelecionadas.some((i) => !!i.file);
+          const hasQr = (redes || []).some((rede) => !!rede?.qrCode?.file);
+          const hasPerfilImgs = (redes || []).some((rede) => Array.isArray(rede?.perfilImagens) && rede.perfilImagens.some((i) => !!i?.file));
           const hasFiles = hasFotosNovas || hasDocsOcorrencia || hasFotosSelecionadas || hasImgsMonitoramento || hasQr || hasPerfilImgs;
           const body = hasFiles ? montarFormDataEnvio(payload) : JSON.stringify(payload);
 
@@ -4682,6 +4873,7 @@
           renderizarTelefones();
           emails = [];
           renderizarEmails();
+          (redes || []).forEach((rede) => limparPreviewRede(rede));
           redes = [];
           renderizarRedes();
           limparSelecaoFaccao();
@@ -5016,6 +5208,15 @@
       const relatorioGerarBtn = document.getElementById('relatorio-gerar');
 
       function buildRelatorioConfig() {
+        const redesSociais = Array.isArray(pessoa?.redesSociais)
+          ? pessoa.redesSociais.map((rede) => {
+              if (typeof rede === 'string') return rede;
+              const tipo = String(rede?.tipoRede || rede?.tipo || '').trim();
+              const perfil = String(rede?.perfil || rede?.url || '').trim();
+              return tipo || perfil ? `${tipo}|${perfil}` : null;
+            }).filter(Boolean)
+          : [];
+
         return {
           imagens: [
             { key: 'fotosCadastro', label: 'Fotos do cadastro' },
@@ -5167,6 +5368,22 @@
         `;
       }
 
+      const coletarQrCodesRedes = () => {
+        // Comentário: agrega todos os QR-CODES das redes para relatório e pré-visualização
+        return (redes || [])
+          .map((rede) => rede?.qrCode?.previewUrl || rede?.qrCode?.url || rede?.qrCode?.caminho || rede?.qrCode?.referencia)
+          .filter(Boolean);
+      };
+
+      const coletarPerfisRedes = () => {
+        // Comentário: agrega todas as imagens de perfil das redes para relatório e pré-visualização
+        return (redes || [])
+          .flatMap((rede) => Array.isArray(rede?.perfilImagens)
+            ? rede.perfilImagens.map((img) => img?.previewUrl || img?.url || img?.caminho || img?.referencia)
+            : [])
+          .filter(Boolean);
+      };
+
       function generateReportHTML(selected) {
         const f = pessoaForm;
         const valores = {
@@ -5182,7 +5399,7 @@
           sinais: f.elements['sinais']?.value,
           faccao: faccaoSelecionada ? formatarNomeFaccao(faccaoSelecionada) : (document.getElementById('faccao-input')?.value || ''),
           emails,
-          redesSociais: redes,
+          redesSociais: montarResumoRedesSociais(),
           telefones,
           enderecos,
           veiculos,
@@ -5190,8 +5407,8 @@
           ocorrencias: { policiais: ocorrenciasPoliciais, processos, abordagens, prisoes, monitoramentos },
           fotosCadastro: (fotosSelecionadas || []).map((f) => f?.previewUrl || f?.url || f?.referencia).filter(Boolean),
           imagensMonitoramento: (monitoramentos || []).flatMap((m) => Array.isArray(m?.imagens) ? m.imagens.map((img) => img?.caminho).filter(Boolean) : []),
-          qrCode: (!removerQrCode && qrCodeSelecionado && (qrCodeSelecionado.previewUrl || qrCodeSelecionado.url || qrCodeSelecionado.caminho || qrCodeSelecionado.referencia)) || null,
-          perfilRedes: (perfilImagensSelecionadas || []).map((i) => i?.previewUrl || i?.url || i?.caminho || i?.referencia).filter(Boolean),
+          qrCode: coletarQrCodesRedes(),
+          perfilRedes: coletarPerfisRedes(),
         };
 
         let html = `
@@ -5254,13 +5471,13 @@
             html += `<div class="section"><strong>Redes Sociais</strong><ul>${redes.length ? redes.map((r) => `<li>${safeText(r)}</li>`).join('') : '<li>N/I</li>'}</ul></div>`;
           }
           // Imagens de redes (QR-CODE e Perfil) devem aparecer lado a lado acima de Telefones
-          const showQR = selected.imagens?.includes('qrCode') && valores.qrCode;
+          const showQR = selected.imagens?.includes('qrCode') && Array.isArray(valores.qrCode) && valores.qrCode.length;
           const showPerfil = selected.contatos?.includes('perfilRedes') && (valores.perfilRedes?.length);
           if (showQR || showPerfil) {
             html += `<div class=\"section\">`;
             html += `<div style=\"display:grid; grid-template-columns: repeat(${(showQR && showPerfil) ? 2 : 1}, minmax(220px, 1fr)); gap:10px; align-items:start;\">`;
             if (showQR) {
-              html += `<div><strong>QR-CODE</strong>${imgGrid([valores.qrCode])}</div>`;
+              html += `<div><strong>QR-CODE</strong>${imgGrid(valores.qrCode)}</div>`;
             }
               if (showPerfil) {
               html += `<div><strong>Foto de Perfil</strong>${imgGrid(valores.perfilRedes, { scale: 2.4 })}</div>`;
@@ -5580,12 +5797,20 @@
         const fotosCadastro = Array.isArray(pessoa?.fotos)
           ? pessoa.fotos.map(f => f.url || f.caminho || f.referencia).filter(Boolean)
           : [];
-        const qrCode = pessoa?.redesImagens?.qrCode
-          ? (pessoa.redesImagens.qrCode.url || pessoa.redesImagens.qrCode.caminho)
-          : null;
-        const perfilRedes = Array.isArray(pessoa?.redesImagens?.perfis)
-          ? pessoa.redesImagens.perfis.map(i => i.url || i.caminho).filter(Boolean)
-          : [];
+        const imagensRedes = pessoa?.redesImagens;
+        const qrCode = Array.isArray(imagensRedes)
+          ? imagensRedes
+            .map((item) => item?.qrCode ? (item.qrCode.url || item.qrCode.caminho) : null)
+            .filter(Boolean)
+          : (imagensRedes?.qrCode ? [imagensRedes.qrCode.url || imagensRedes.qrCode.caminho].filter(Boolean) : []);
+        const perfilRedes = Array.isArray(imagensRedes)
+          ? imagensRedes
+            .flatMap((item) => Array.isArray(item?.perfis || item?.perfilImagens)
+              ? (item.perfis || item.perfilImagens).map(i => i.url || i.caminho).filter(Boolean)
+              : [])
+          : (Array.isArray(imagensRedes?.perfis)
+            ? imagensRedes.perfis.map(i => i.url || i.caminho).filter(Boolean)
+            : []);
         const imgsMonitor = Array.isArray(pessoa?.ocorrencias?.monitoramentos)
           ? pessoa.ocorrencias.monitoramentos.flatMap(m => Array.isArray(m?.imagens) ? m.imagens.map(img => img?.caminho).filter(Boolean) : [])
           : [];
@@ -5603,7 +5828,7 @@
           sinais: pessoa?.sinais,
           faccao: pessoa?.faccao ? formatarNomeFaccao(pessoa.faccao) : '',
           emails: Array.isArray(pessoa?.emails) ? pessoa.emails : [],
-          redesSociais: Array.isArray(pessoa?.redesSociais) ? pessoa.redesSociais : [],
+          redesSociais,
           telefones: Array.isArray(pessoa?.telefones) ? pessoa.telefones : [],
           enderecos: Array.isArray(pessoa?.enderecos) ? pessoa.enderecos : [],
           veiculos: Array.isArray(pessoa?.veiculos) ? pessoa.veiculos : (pessoa?.veiculo ? [pessoa.veiculo] : []),
@@ -5661,11 +5886,11 @@
           if (selected.contatos.includes('redesSociais')) {
             out += `<div class="section"><strong>Redes Sociais</strong><ul>${(valores.redesSociais || []).map((r) => `<li>${safeText(r)}</li>`).join('')}</ul></div>`;
           }
-          const showQR = selected.imagens?.includes('qrCode') && valores.qrCode;
+          const showQR = selected.imagens?.includes('qrCode') && Array.isArray(valores.qrCode) && valores.qrCode.length;
           const showPerfil = selected.contatos?.includes('perfilRedes') && (valores.perfilRedes?.length);
           if (showQR || showPerfil) {
             out += `<div class="section"><div style="display:grid; grid-template-columns: repeat(${(showQR && showPerfil) ? 2 : 1}, minmax(220px, 1fr)); gap:10px; align-items:start;">`;
-            if (showQR) out += `<div><strong>QR-CODE</strong>${imgGrid([valores.qrCode])}</div>`;
+            if (showQR) out += `<div><strong>QR-CODE</strong>${imgGrid(valores.qrCode)}</div>`;
             if (showPerfil) out += `<div><strong>Foto de Perfil</strong>${imgGrid(valores.perfilRedes, { scale: 2.4 })}</div>`;
             out += `</div></div>`;
           }
