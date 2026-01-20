@@ -455,7 +455,7 @@
           const tbody = document.createElement('tbody');
           const tr = document.createElement('tr');
           const td = document.createElement('td');
-          td.colSpan = 6;
+          td.colSpan = 5;
           td.textContent = 'Nenhuma empresa encontrada.';
           tr.appendChild(td);
           tbody.appendChild(tr);
@@ -470,11 +470,11 @@
 
         const thead = document.createElement('thead');
         const headRow = document.createElement('tr');
-        const ths = ['CNPJ', 'Razão Social', 'Nome Fantasia', 'Situação Cadastral', 'Observações', 'Ações'];
+        const ths = ['CNPJ', 'Razão Social', 'Nome Fantasia', 'Situação Cadastral', 'Ações'];
         ths.forEach(t => {
           const th = document.createElement('th');
           th.textContent = t;
-          th.style.textAlign = 'left';
+          th.style.textAlign = (t === 'Ações') ? 'center' : 'left';
           th.style.padding = '0.5rem';
           headRow.appendChild(th);
         });
@@ -501,15 +501,15 @@
           tdSituacao.textContent = e.situacaoCadastral || '—';
           tdSituacao.style.padding = '0.5rem';
 
-          const tdObs = document.createElement('td');
-          tdObs.textContent = e.obs || '—';
-          tdObs.style.padding = '0.5rem';
-
           const tdAcoes = document.createElement('td');
           tdAcoes.style.padding = '0.5rem';
+          tdAcoes.style.textAlign = 'center';
+          tdAcoes.style.verticalAlign = 'middle';
           const actions = document.createElement('div');
           actions.style.display = 'flex';
           actions.style.gap = '0.5rem';
+          actions.style.justifyContent = 'center';
+          actions.style.width = '100%';
           const btnEditar = document.createElement('button');
           btnEditar.className = 'button';
           btnEditar.type = 'button';
@@ -528,7 +528,6 @@
           tr.appendChild(tdRazao);
           tr.appendChild(tdFantasia);
           tr.appendChild(tdSituacao);
-          tr.appendChild(tdObs);
           tr.appendChild(tdAcoes);
 
           tbody.appendChild(tr);
