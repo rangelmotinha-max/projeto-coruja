@@ -4,10 +4,12 @@ const { criarErro } = require('../utils/helpers');
 function sanitizeEmpresa(payload, options = {}) {
   // Comentário: permite preservar ausência de "veiculos" em payloads de atualização.
   const preservarVeiculosAusentes = options.preservarVeiculosAusentes === true;
+  const possuiObs = Object.prototype.hasOwnProperty.call(payload, 'obs');
   const cnpjDigits = String(payload.cnpj || '').replace(/\D/g, '');
   const telefone = String(payload.telefone || '').trim();
   const razaoSocial = payload.razaoSocial ? String(payload.razaoSocial).trim() : '';
   const nomeFantasia = payload.nomeFantasia ? String(payload.nomeFantasia).trim() : '';
+  const obs = payload.obs ? String(payload.obs).trim() : '';
   const socios = Array.isArray(payload.socios)
     ? payload.socios.map((s) => ({
         nome: String(s?.nome || '').trim(),
@@ -47,6 +49,10 @@ function sanitizeEmpresa(payload, options = {}) {
     socios,
   };
 
+  if (possuiObs) {
+    resultado.obs = obs || null;
+  }
+
   // Comentário: só inclui "veiculos" quando o payload realmente enviou essa seção.
   if (!preservarVeiculosAusentes || temVeiculos) {
     resultado.veiculos = veiculosNormalizados;
@@ -74,14 +80,16 @@ async function listar(filtros = {}) {
   const filtroSocioDigitos = somenteDigitos(filtros.socio);
   const filtroEnderecoTexto = normalizarTexto(filtros.endereco);
   const filtroCep = somenteDigitos(filtros.cep);
+  const filtroObs = normalizarTexto(filtros.obs);
 
-  const temFiltro = filtroCnpj || filtroRazao || filtroSocioTexto || filtroSocioDigitos || filtroEnderecoTexto || filtroCep;
+  const temFiltro = filtroCnpj || filtroRazao || filtroSocioTexto || filtroSocioDigitos || filtroEnderecoTexto || filtroCep || filtroObs;
   if (!temFiltro) return empresas;
 
   return empresas.filter((empresa) => {
     const cnpjEmpresa = somenteDigitos(empresa.cnpj);
     const razao = normalizarTexto(empresa.razaoSocial);
     const fantasia = normalizarTexto(empresa.nomeFantasia);
+    const obs = normalizarTexto(empresa.obs);
 
     const cnpjAtende = filtroCnpj ? cnpjEmpresa.includes(filtroCnpj) : true;
     const razaoAtende = filtroRazao ? (razao.includes(filtroRazao) || fantasia.includes(filtroRazao)) : true;
@@ -118,7 +126,9 @@ async function listar(filtros = {}) {
       ? enderecosArr.some((e) => somenteDigitos(e.cep).includes(filtroCep))
       : true;
 
-    return cnpjAtende && razaoAtende && socioAtende && enderecoTextoAtende && cepAtende;
+    const obsAtende = filtroObs ? obs.includes(filtroObs) : true;
+
+    return cnpjAtende && razaoAtende && socioAtende && enderecoTextoAtende && cepAtende && obsAtende;
   });
 }
 

@@ -122,6 +122,13 @@
               </label>
             </div>
 
+            <div class="form__grid form__grid--1">
+              <label class="form__field">
+                <span class="form__label">Obs:</span>
+                <textarea name="obs" class="form__input" rows="3"></textarea>
+              </label>
+            </div>
+
             <!-- Endereços da empresa -->
             <div class="form__section" aria-label="Endereços da empresa">
               <div class="form__section-header" style="display:flex; justify-content: space-between; align-items: center;">
@@ -318,6 +325,7 @@
         const dados = Object.fromEntries(fd.entries());
         dados.cnpj = aplicarMascaraCnpj(dados.cnpj).replace(/\D/g, '');
         dados.telefone = aplicarMascaraTelefone(dados.telefone);
+        dados.obs = String(dados.obs || '').trim() || null;
         const razao = String(dados.razaoSocial||'').trim();
         const nomeProprietarioDefault = razao || null;
         const cnpjEmpresa = dados.cnpj || null;
@@ -517,6 +525,7 @@
             const fantasia = norm(e.nomeFantasia);
             const situacao = norm(e.situacaoCadastral);
             const natureza = norm(e.naturezaJuridica);
+            const obs = norm(e.obs);
             const endereco = norm(e.endereco);
             const dataInicio = norm(e.dataInicioAtividade);
             const cepDigits = onlyDigits(e.cep);
@@ -528,6 +537,7 @@
               fantasia.includes(q) ||
               situacao.includes(q) ||
               natureza.includes(q) ||
+              obs.includes(q) ||
               endereco.includes(q) ||
               dataInicio.includes(q)
             );
@@ -584,6 +594,7 @@
         empresaForm.dataInicioAtividade.value = e.dataInicioAtividade || '';
         empresaForm.situacaoCadastral.value = e.situacaoCadastral || '';
         empresaForm.telefone.value = aplicarMascaraTelefone(e.telefone || '');
+        empresaForm.obs.value = e.obs || '';
         socios = Array.isArray(e.socios) ? e.socios.map(s=>({ nome: s.nome||'', cpf: s.cpf||'' })) : [];
         enderecosEmpresa = Array.isArray(e.enderecos) ? e.enderecos.map(x=>({ uf:x.uf||'', logradouro:x.logradouro||'', bairro:x.bairro||'', complemento:x.complemento||'', cep: x.cep||'', latLong: x.latLong||'' })) : [];
         veiculosEmpresa = Array.isArray(e.veiculos)

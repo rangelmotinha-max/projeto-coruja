@@ -85,6 +85,7 @@ class EmpresaCatalogoModel {
       endereco: dados.endereco || null,
       cep: dados.cep || null,
       telefone: dados.telefone || null,
+      obs: dados.obs || null,
       criadoEm: agora,
       atualizadoEm: agora,
     };
@@ -92,8 +93,8 @@ class EmpresaCatalogoModel {
     await db.run(
       `INSERT INTO empresas_cadastro (
         id, cnpj, razaoSocial, nomeFantasia, naturezaJuridica, dataInicioAtividade,
-        situacaoCadastral, endereco, cep, telefone, criadoEm, atualizadoEm
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        situacaoCadastral, endereco, cep, telefone, obs, criadoEm, atualizadoEm
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         empresa.id,
         empresa.cnpj,
@@ -105,6 +106,7 @@ class EmpresaCatalogoModel {
         empresa.endereco,
         empresa.cep,
         empresa.telefone,
+        empresa.obs,
         empresa.criadoEm,
         empresa.atualizadoEm,
       ]
@@ -159,7 +161,7 @@ class EmpresaCatalogoModel {
     const valores = [];
     const permitidas = [
       'cnpj','razaoSocial','nomeFantasia','naturezaJuridica','dataInicioAtividade',
-      'situacaoCadastral','endereco','cep','telefone'
+      'situacaoCadastral','endereco','cep','telefone','obs'
     ];
     permitidas.forEach((c) => {
       if (updates[c] !== undefined) { campos.push(`${c} = ?`); valores.push(updates[c]); }
