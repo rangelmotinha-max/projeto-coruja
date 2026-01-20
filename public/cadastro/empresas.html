@@ -125,7 +125,7 @@
             <div class="form__grid form__grid--1">
               <label class="form__field">
                 <span class="form__label">Obs:</span>
-                <textarea name="obs" class="form__input" rows="3"></textarea>
+                <textarea id="empresa-obs" name="obs" class="form__input" rows="3" placeholder="Inclua observações relevantes sobre a empresa"></textarea>
               </label>
             </div>
 
@@ -195,6 +195,7 @@
       const submitBtn = document.getElementById('submit-empresa');
       const listarBtn = document.getElementById('listar-empresas');
       const campoConsulta = document.getElementById('campo-consulta');
+      const obsTextarea = document.getElementById('empresa-obs');
       let todasEmpresas = [];
       let empresasFiltradas = [];
       let termoBusca = '';
@@ -325,7 +326,8 @@
         const dados = Object.fromEntries(fd.entries());
         dados.cnpj = aplicarMascaraCnpj(dados.cnpj).replace(/\D/g, '');
         dados.telefone = aplicarMascaraTelefone(dados.telefone);
-        dados.obs = String(dados.obs || '').trim() || null;
+        // Comentário: usa o id explícito do textarea para evitar dependência do atributo name.
+        dados.obs = String(obsTextarea?.value || '').trim() || null;
         const razao = String(dados.razaoSocial||'').trim();
         const nomeProprietarioDefault = razao || null;
         const cnpjEmpresa = dados.cnpj || null;
@@ -392,6 +394,24 @@
             const msg = data?.mensagem || data?.message || 'Não foi possível salvar a empresa.';
             throw new Error(msg);
           }
+          const empresaRetornada = data?.data || data;
+          // Comentário: mantém observações persistidas na UI quando a API retorna o campo.
+          if (empresaRetornada && typeof empresaRetornada === 'object') {
+            const obsPersistida = Object.prototype.hasOwnProperty.call(empresaRetornada, 'obs')
+              ? empresaRetornada.obs
+              : payload.obs;
+            empresaRetornada.obs = obsPersistida;
+            if (empresaRetornada.id) {
+              const idx = todasEmpresas.findIndex((empresa) => empresa.id === empresaRetornada.id);
+              if (idx >= 0) {
+                todasEmpresas[idx] = { ...todasEmpresas[idx], ...empresaRetornada };
+              } else {
+                todasEmpresas.unshift(empresaRetornada);
+              }
+              empresasFiltradas = [...todasEmpresas];
+              filtrarEmpresas(termoBusca);
+            }
+          }
           // Mensagens conforme contexto de operação
           if (!empresaEmEdicao) {
             const sucessoMsg = 'Empresa cadastrada com sucesso!';
@@ -435,7 +455,7 @@
           const tbody = document.createElement('tbody');
           const tr = document.createElement('tr');
           const td = document.createElement('td');
-          td.colSpan = 5;
+          td.colSpan = 6;
           td.textContent = 'Nenhuma empresa encontrada.';
           tr.appendChild(td);
           tbody.appendChild(tr);
@@ -450,7 +470,7 @@
 
         const thead = document.createElement('thead');
         const headRow = document.createElement('tr');
-        const ths = ['CNPJ', 'Razão Social', 'Nome Fantasia', 'Situação Cadastral', 'Ações'];
+        const ths = ['CNPJ', 'Razão Social', 'Nome Fantasia', 'Situação Cadastral', 'Observações', 'Ações'];
         ths.forEach(t => {
           const th = document.createElement('th');
           th.textContent = t;
@@ -481,6 +501,10 @@
           tdSituacao.textContent = e.situacaoCadastral || '—';
           tdSituacao.style.padding = '0.5rem';
 
+          const tdObs = document.createElement('td');
+          tdObs.textContent = e.obs || '—';
+          tdObs.style.padding = '0.5rem';
+
           const tdAcoes = document.createElement('td');
           tdAcoes.style.padding = '0.5rem';
           const actions = document.createElement('div');
@@ -504,6 +528,7 @@
           tr.appendChild(tdRazao);
           tr.appendChild(tdFantasia);
           tr.appendChild(tdSituacao);
+          tr.appendChild(tdObs);
           tr.appendChild(tdAcoes);
 
           tbody.appendChild(tr);
@@ -594,7 +619,9 @@
         empresaForm.dataInicioAtividade.value = e.dataInicioAtividade || '';
         empresaForm.situacaoCadastral.value = e.situacaoCadastral || '';
         empresaForm.telefone.value = aplicarMascaraTelefone(e.telefone || '');
-        empresaForm.obs.value = e.obs || '';
+        if (obsTextarea) {
+          obsTextarea.value = e.obs || '';
+        }
         socios = Array.isArray(e.socios) ? e.socios.map(s=>({ nome: s.nome||'', cpf: s.cpf||'' })) : [];
         enderecosEmpresa = Array.isArray(e.enderecos) ? e.enderecos.map(x=>({ uf:x.uf||'', logradouro:x.logradouro||'', bairro:x.bairro||'', complemento:x.complemento||'', cep: x.cep||'', latLong: x.latLong||'' })) : [];
         veiculosEmpresa = Array.isArray(e.veiculos)
