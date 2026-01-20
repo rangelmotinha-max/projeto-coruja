@@ -4,6 +4,7 @@
   const form = document.querySelector('[data-empresas-form]');
   const resultsMessage = document.querySelector('[data-results-message]');
   const resultsContainer = document.querySelector('[data-results-container]');
+  // Pesquisa Geral é realizada via submit, semelhante à página de pessoas.
 
   // Recupera token armazenado localmente ou em cookie para compor o header Authorization.
   const getCookie = (name) => {
@@ -44,6 +45,7 @@
       socio: formData.get('socio'),
       endereco: formData.get('endereco'),
       cep: formData.get('cep'),
+      pesquisaGeral: formData.get('pesquisaGeral'),
     };
 
     Object.entries(filtros).forEach(([chave, valor]) => {
@@ -54,6 +56,93 @@
     });
 
     return params;
+  };
+
+  // Utilidades para normalização e comparação
+  const onlyDigits = (s) => String(s || '').replace(/\D+/g, '');
+  const norm = (s) => String(s || '').toLowerCase();
+
+  // Pesquisa geral em todos os campos do cadastro de empresas
+  const filterByGlobalTerm = (empresas, termo) => {
+    const q = norm(termo || '').trim();
+    const qDigits = onlyDigits(q);
+    if (!q) return [...empresas];
+
+    const matchEnderecoArray = (enderecos) => {
+      if (!Array.isArray(enderecos)) return false;
+      return enderecos.some((e) => {
+        const uf = norm(e.uf);
+        const logradouro = norm(e.logradouro);
+        const bairro = norm(e.bairro);
+        const complemento = norm(e.complemento);
+        const latLong = norm(e.latLong);
+        const cep = onlyDigits(e.cep);
+        return (
+          uf.includes(q) ||
+          logradouro.includes(q) ||
+          bairro.includes(q) ||
+          complemento.includes(q) ||
+          latLong.includes(q) ||
+          (qDigits && cep.includes(qDigits))
+        );
+      });
+    };
+
+    const matchSociosArray = (socios) => {
+      if (!Array.isArray(socios)) return false;
+      return socios.some((s) => {
+        const nome = norm(s.nome);
+        const cpfDigits = onlyDigits(s.cpf);
+        return nome.includes(q) || (qDigits && cpfDigits.includes(qDigits));
+      });
+    };
+
+    const matchVeiculosArray = (veiculos) => {
+      if (!Array.isArray(veiculos)) return false;
+      return veiculos.some((v) => {
+        const placa = norm(v.placa);
+        const marcaModelo = norm(v.marcaModelo);
+        const cor = norm(v.cor);
+        const anoModelo = String(v.anoModelo || '').toLowerCase();
+        return (
+          placa.includes(q) ||
+          marcaModelo.includes(q) ||
+          cor.includes(q) ||
+          (!!anoModelo && anoModelo.includes(q))
+        );
+      });
+    };
+
+    return empresas.filter((e) => {
+      const razao = norm(e.razaoSocial);
+      const fantasia = norm(e.nomeFantasia);
+      const situacao = norm(e.situacaoCadastral);
+      const natureza = norm(e.naturezaJuridica);
+      const obs = norm(e.obs);
+      const dataInicio = norm(e.dataInicioAtividade);
+      const telefoneDigits = onlyDigits(e.telefone);
+      const cnpjDigits = onlyDigits(e.cnpj);
+
+      const textoMatch = (
+        razao.includes(q) ||
+        fantasia.includes(q) ||
+        situacao.includes(q) ||
+        natureza.includes(q) ||
+        obs.includes(q) ||
+        dataInicio.includes(q)
+      );
+
+      const digitosMatch = (
+        (qDigits && cnpjDigits.includes(qDigits)) ||
+        (qDigits && telefoneDigits.includes(qDigits))
+      );
+
+      const sociosMatch = matchSociosArray(e.socios);
+      const enderecosMatch = matchEnderecoArray(e.enderecos);
+      const veiculosMatch = matchVeiculosArray(e.veiculos);
+
+      return textoMatch || digitosMatch || sociosMatch || enderecosMatch || veiculosMatch;
+    });
   };
 
   // Monta célula de tabela com fallback e classe opcional para reutilizar na renderização.
@@ -109,6 +198,7 @@
     ['Razão Social', 'CNPJ', 'Telefone', 'Endereços', 'Sócios', 'Veículos', 'Ações'].forEach((heading) => {
       const th = document.createElement('th');
       th.textContent = heading;
+      if (heading === 'Ações') th.style.textAlign = 'center';
       headerRow.appendChild(th);
     });
     header.appendChild(headerRow);
@@ -127,6 +217,7 @@
       // Coluna de ações: abrir cadastro da empresa em nova aba
       const actionsCell = document.createElement('td');
       actionsCell.className = 'table__actions';
+      actionsCell.style.textAlign = 'center';
       const empresaId = empresa.id || empresa._id || '';
       if (empresaId) {
         const openLink = document.createElement('a');
@@ -136,7 +227,12 @@
         openLink.rel = 'noopener noreferrer';
         openLink.className = 'button button--secondary';
         openLink.title = 'Abrir cadastro em nova aba';
-        actionsCell.appendChild(openLink);
+        const wrapper = document.createElement('div');
+        wrapper.style.display = 'inline-flex';
+        wrapper.style.justifyContent = 'center';
+        wrapper.style.gap = '0.5rem';
+        wrapper.appendChild(openLink);
+        actionsCell.appendChild(wrapper);
       } else {
         actionsCell.textContent = '—';
       }
@@ -179,8 +275,14 @@
         setMessage(message, 'error');
         return;
       }
-
-      renderResults(data);
+      const termoGeral = (formData.get('pesquisaGeral') || '').trim();
+      if (termoGeral) {
+        const filtradas = filterByGlobalTerm(Array.isArray(data) ? data : (data?.data || []), termoGeral);
+        renderResults(filtradas);
+        setMessage(`Exibindo ${filtradas.length} resultado(s) para "${termoGeral}".`, 'success');
+      } else {
+        renderResults(data);
+      }
     } catch (error) {
       // Mensagem resiliente para falhas de rede ou parsing inesperado.
       setMessage('Erro de comunicação com a API. Tente novamente em instantes.', 'error');
@@ -196,4 +298,6 @@
     form.addEventListener('submit', handleSubmit);
     form.addEventListener('reset', handleReset);
   }
+
+  // Pesquisa geral é acionada via submissão do formulário.
 })();

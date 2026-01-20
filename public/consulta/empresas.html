@@ -77,8 +77,6 @@
           <div class="panel__header">
             <div>
               
-              <!-- Comentário sobre o objetivo dos campos de busca -->
-              
             </div>
           </div>
           <form class="form" aria-label="Filtros de consulta de empresas" data-empresas-form>
@@ -104,6 +102,13 @@
               <label class="form__field">
                 <span class="form__label">CEP</span>
                 <input class="form__input" type="text" name="cep" placeholder="00000-000" inputmode="numeric" />
+              </label>
+            </div>
+            <div class="form__grid form__grid--1">
+              <label class="form__field">
+                <span class="form__label">Pesquisa Geral</span>
+                <!-- Campo abrangente: busca em todos os dados cadastrados de empresas -->
+                <input class="form__input" type="text" name="pesquisaGeral" placeholder="Buscar em todos os campos do cadastro" />
               </label>
             </div>
             <div class="form__actions">
