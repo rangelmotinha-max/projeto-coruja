@@ -5208,15 +5208,6 @@
       const relatorioGerarBtn = document.getElementById('relatorio-gerar');
 
       function buildRelatorioConfig() {
-        const redesSociais = Array.isArray(pessoa?.redesSociais)
-          ? pessoa.redesSociais.map((rede) => {
-              if (typeof rede === 'string') return rede;
-              const tipo = String(rede?.tipoRede || rede?.tipo || '').trim();
-              const perfil = String(rede?.perfil || rede?.url || '').trim();
-              return tipo || perfil ? `${tipo}|${perfil}` : null;
-            }).filter(Boolean)
-          : [];
-
         return {
           imagens: [
             { key: 'fotosCadastro', label: 'Fotos do cadastro' },
