@@ -4,12 +4,16 @@ const { criarErro } = require('../utils/helpers');
 function sanitizeEmpresa(payload, options = {}) {
   // Comentário: permite preservar ausência de "veiculos" em payloads de atualização.
   const preservarVeiculosAusentes = options.preservarVeiculosAusentes === true;
-  const possuiObs = Object.prototype.hasOwnProperty.call(payload, 'obs');
+  // Comentário: aceita chaves alternativas para observações e garante inclusão em updates parciais.
+  const chavesObs = ['obs', 'observacoes', 'observacao'];
+  const chaveObsEncontrada = chavesObs.find((chave) => Object.prototype.hasOwnProperty.call(payload, chave));
+  const possuiObs = Boolean(chaveObsEncontrada);
   const cnpjDigits = String(payload.cnpj || '').replace(/\D/g, '');
   const telefone = String(payload.telefone || '').trim();
   const razaoSocial = payload.razaoSocial ? String(payload.razaoSocial).trim() : '';
   const nomeFantasia = payload.nomeFantasia ? String(payload.nomeFantasia).trim() : '';
-  const obs = payload.obs ? String(payload.obs).trim() : '';
+  const obsBruta = possuiObs ? payload[chaveObsEncontrada] : '';
+  const obs = obsBruta ? String(obsBruta).trim() : '';
   const socios = Array.isArray(payload.socios)
     ? payload.socios.map((s) => ({
         nome: String(s?.nome || '').trim(),
