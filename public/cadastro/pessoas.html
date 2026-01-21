@@ -5247,13 +5247,14 @@
             { key: 'marcaModelo', label: 'Marca/Modelo' },
             { key: 'cor', label: 'Cor' },
             { key: 'anoModelo', label: 'Ano' },
-            { key: 'nomeProprietario', label: 'Proprietário' },
+            { key: 'nomeProprietario', label: 'Nome Completo' },
             { key: 'cpf', label: 'CPF' },
           ],
           vinculos: [
             { key: 'pessoas', label: 'Pessoas' },
             { key: 'empresas', label: 'Empresas' },
-            { key: 'veiculos', label: 'Veículos da Empresa' },
+            { key: 'veiculos', label: 'Veículos Vinculados' },
+            { key: 'veiculosEmpresas', label: 'Veículos das Empresas vinculadas' },
             { key: 'empregaticio', label: 'Empregatício' },
           ],
           ocorrencias: [
@@ -5375,6 +5376,8 @@
           .filter(Boolean);
       };
 
+      let veiculosEmpresasVinculadas = [];
+
       function generateReportHTML(selected) {
         const f = pessoaForm;
         const valores = {
@@ -5394,7 +5397,7 @@
           telefones,
           enderecos,
           veiculos,
-          vinculos: { pessoas: vinculosPessoas, empresas: empresasVinculadas, veiculos: vinculosVeiculos, empregaticio: vinculosEmpregaticio },
+          vinculos: { pessoas: vinculosPessoas, empresas: empresasVinculadas, veiculos: vinculosVeiculos, veiculosEmpresas: veiculosEmpresasVinculadas, empregaticio: vinculosEmpregaticio },
           ocorrencias: { policiais: ocorrenciasPoliciais, processos, abordagens, prisoes, monitoramentos },
           fotosCadastro: (fotosSelecionadas || []).map((f) => f?.previewUrl || f?.url || f?.referencia).filter(Boolean),
           imagensMonitoramento: (monitoramentos || []).flatMap((m) => Array.isArray(m?.imagens) ? m.imagens.map((img) => img?.caminho).filter(Boolean) : []),
@@ -5585,9 +5588,32 @@
             }
             html += `</ul></div>`;
           }
+          if (selected.vinculos.includes('veiculosEmpresas')) {
+            const arr = Array.isArray(valores.vinculos.veiculosEmpresas) ? valores.vinculos.veiculosEmpresas : [];
+            html += `<div class="section"><strong>Veículos das Empresas vinculadas</strong><ul>`;
+            if (!arr.length) {
+              html += `<li>N/I</li>`;
+            } else {
+              arr.forEach((v) => {
+                const linha1 = [];
+                if (safeText(v?.placa)) linha1.push(`Placa: ${safeText(v?.placa)}`);
+                if (safeText(v?.marcaModelo)) linha1.push(`Marca/Modelo: ${safeText(v?.marcaModelo)}`);
+                linha1.push(`Cor: ${safeText(v?.cor)}`);
+                linha1.push(`Ano: ${safeText(v?.anoModelo ?? v?.ano)}`);
+                const linha2 = [];
+                if (safeText(v?.nomeProprietario || v?.nome)) linha2.push(`Nome Completo: ${safeText(v?.nomeProprietario || v?.nome)}`);
+                if (safeText(v?.cpf)) linha2.push(`CPF: ${safeText(v?.cpf)}`);
+                html += `<li>` +
+                  (linha1.length ? `<div>${linha1.join(', ')}</div>` : '') +
+                  (linha2.length ? `<div>${linha2.join(', ')}</div>` : '') +
+                `</li>`;
+              });
+            }
+            html += `</ul></div>`;
+          }
           if (selected.vinculos.includes('veiculos')) {
             const veiculosLookup = new Map((valores.veiculos || []).map((vv) => [normalizarPlaca(vv?.placa || ''), vv]));
-            html += `<div class="section"><strong>Veículos da Empresa</strong><ul>`;
+            html += `<div class="section"><strong>Veículos Vinculados</strong><ul>`;
             const arr = Array.isArray(valores.vinculos.veiculos) ? valores.vinculos.veiculos : [];
             if (!arr.length) {
               html += `<li>N/I</li>`;
@@ -5607,7 +5633,7 @@
               const linha2Parts = [];
               const pNome = safeText(v?.nome);
               const pCpf = safeText(v?.cpf);
-              if (pNome) linha2Parts.push(`Proprietário: ${pNome}`);
+              if (pNome) linha2Parts.push(`Nome Completo: ${pNome}`);
               if (pCpf) linha2Parts.push(`CPF: ${pCpf}`);
               html += `<li>` +
                 (linha1Parts.length ? `<div>${linha1Parts.join(', ')}</div>` : '') +
@@ -5989,9 +6015,30 @@
             const arr = Array.isArray(valores.vinculos.empresas) ? valores.vinculos.empresas : [];
             out += `<div class="section"><strong>Empresas</strong><ul>${arr.length ? arr.map((e) => `<li>${safeText(e?.nome || e?.razaoSocial || '')}</li>`).join('') : '<li>N/I</li>'}</ul></div>`;
           }
+          if (selected.vinculos.includes('veiculosEmpresas')) {
+            const arr = Array.isArray(valores.vinculos.veiculosEmpresas) ? valores.vinculos.veiculosEmpresas : [];
+            out += `<div class="section"><strong>Veículos das Empresas vinculadas</strong><ul>` +
+              (arr.length
+                ? arr.map((v) => {
+                    const linha1 = [];
+                    if (safeText(v?.placa)) linha1.push(`Placa: ${safeText(v?.placa)}`);
+                    if (safeText(v?.marcaModelo)) linha1.push(`Marca/Modelo: ${safeText(v?.marcaModelo)}`);
+                    linha1.push(`Cor: ${safeText(v?.cor)}`);
+                    linha1.push(`Ano: ${safeText(v?.anoModelo ?? v?.ano)}`);
+                    const linha2 = [];
+                    if (safeText(v?.nomeProprietario || v?.nome)) linha2.push(`Nome Completo: ${safeText(v?.nomeProprietario || v?.nome)}`);
+                    if (safeText(v?.cpf)) linha2.push(`CPF: ${safeText(v?.cpf)}`);
+                    return `<li>` +
+                      (linha1.length ? `<div>${linha1.join(', ')}</div>` : '') +
+                      (linha2.length ? `<div>${linha2.join(', ')}</div>` : '') +
+                    `</li>`;
+                  }).join('')
+                : '<li>N/I</li>') +
+              `</ul></div>`;
+          }
           if (selected.vinculos.includes('veiculos')) {
             const arr = Array.isArray(valores.vinculos.veiculos) ? valores.vinculos.veiculos : [];
-            out += `<div class="section"><strong>Veículos da Empresa</strong><ul>${arr.length ? arr.map((v) => `<li>${safeText(v?.placa || '')}${v?.marcaModelo ? ' - ' + safeText(v.marcaModelo) : ''}</li>`).join('') : '<li>N/I</li>'}</ul></div>`;
+            out += `<div class="section"><strong>Veículos Vinculados</strong><ul>${arr.length ? arr.map((v) => `<li>${safeText(v?.placa || '')}${v?.marcaModelo ? ' - ' + safeText(v.marcaModelo) : ''}</li>`).join('') : '<li>N/I</li>'}</ul></div>`;
           }
           if (selected.vinculos.includes('empregaticio')) {
             const arr = Array.isArray(valores.vinculos.empregaticio) ? valores.vinculos.empregaticio : [];
@@ -6077,6 +6124,26 @@
 
       // Apenas gera o HTML principal; não anexa relatórios de vínculos ao final
       async function generateReportHTMLComAnexos(selected) {
+        // Pré-carrega veículos de empresas vinculadas (quando houver id)
+        try {
+          const empresas = Array.isArray(empresasVinculadas) ? empresasVinculadas : [];
+          const ids = empresas.map((e) => e.id).filter((id) => id !== undefined && id !== null);
+          const agregados = [];
+          for (const id of ids) {
+            try {
+              const resp = await fetchAutenticado(`${API_EMPRESAS_URL}/${id}`);
+              const dados = await resp.json().catch(() => ({}));
+              if (resp.ok) {
+                const emp = dados?.data || dados;
+                const veics = Array.isArray(emp?.veiculos) ? emp.veiculos : [];
+                agregados.push(...veics);
+              }
+            } catch {}
+          }
+          veiculosEmpresasVinculadas = agregados;
+        } catch {
+          veiculosEmpresasVinculadas = [];
+        }
         return generateReportHTML(selected);
       }
 
