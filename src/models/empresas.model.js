@@ -1,5 +1,18 @@
+const fs = require('fs');
+const path = require('path');
 const { randomUUID } = require('crypto');
 const { initDatabase } = require('../database/sqlite');
+
+// Diretório público onde as fotos de empresas ficam acessíveis via servidor estático
+const publicDir = path.join(__dirname, '../../public');
+
+// Remove o arquivo físico, mas não interrompe o fluxo se algo falhar.
+function removerArquivoFisico(caminhoRelativo) {
+  if (!caminhoRelativo) return;
+  // Comentário: usa caminho relativo salvo no banco para montar o absoluto.
+  const absoluto = path.join(publicDir, caminhoRelativo);
+  fs.promises.unlink(absoluto).catch(() => {});
+}
 
 class EmpresaCatalogoModel {
   static async _listarFotos(db, empresaId) {
@@ -36,7 +49,12 @@ class EmpresaCatalogoModel {
   }
 
   static async _removerFotos(db, empresaId) {
+    const fotos = await db.all('SELECT caminho FROM fotos_empresas WHERE empresa_id = ?', [empresaId]);
     await db.run('DELETE FROM fotos_empresas WHERE empresa_id = ?', [empresaId]);
+    for (const foto of fotos) {
+      // Comentário: remove o arquivo físico órfão após excluir o registro.
+      removerArquivoFisico(foto.caminho);
+    }
   }
   static async _listarVeiculos(db, empresaId) {
     return db.all(
