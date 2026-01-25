@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Cadastro de Empresas | Projeto Coruja</title>
     <link rel="stylesheet" href="/css/main.css" />
+    <style>
+      /* Oculta o texto padrão do input file em Fotos do cadastro */
+      #empresa-fotos { font-size: 0; }
+      #empresa-fotos::file-selector-button { font-size: 0.875rem; }
+    </style>
   </head>
   <body class="theme-dark">
     <div class="app">
@@ -157,12 +162,10 @@
               </label>
             </div>
 
-            <div class="form__section" aria-label="Fotos da empresa">
-              <div class="form__section-header">
-                <span class="form__label">Fotos</span>
-              </div>
+            <div class="form__section" aria-label="Fotos do cadastro">
               <div class="form__subsection" style="margin-bottom: 1rem;">
                 <div class="form__field">
+                  <span class="form__label">Fotos do cadastro</span>
                   <input
                     class="form__input"
                     type="file"
@@ -228,6 +231,7 @@
       let listenersVeiculosEmpresaConfigurados = false;
       let fotosEmpresaSelecionadas = [];
       let fotosEmpresaParaRemover = [];
+      let preservarFotosNoReset = false;
 
       // Diálogo de confirmação reutilizável (consistente com pessoas.html)
       const confirmarExclusao = (mensagem = 'Deseja realmente excluir esse registro?') => {
@@ -355,7 +359,10 @@
         if (!container) return;
         container.innerHTML = '';
 
-        if (!fotosEmpresaSelecionadas.length) return;
+        if (!fotosEmpresaSelecionadas.length) {
+          container.innerHTML = '';
+          return;
+        }
 
         fotosEmpresaSelecionadas.forEach((foto, index) => {
           const wrapper = document.createElement('div');
@@ -420,20 +427,7 @@
           removerBtn.style.padding = '0.25rem 0.6rem';
           removerBtn.style.fontSize = '0.85rem';
           removerBtn.style.lineHeight = '1.2';
-          removerBtn.addEventListener('click', async () => {
-            const fotoSel = fotosEmpresaSelecionadas[index];
-            if (!fotoSel) return;
-            const ok = await confirmarExclusao();
-            if (!ok) return;
-            const [removida] = fotosEmpresaSelecionadas.splice(index, 1);
-            if (removida?.existing && removida.referencia) {
-              fotosEmpresaParaRemover.push(removida.referencia);
-            }
-            if (removida?.previewUrl && removida.file) {
-              URL.revokeObjectURL(removida.previewUrl);
-            }
-            renderizarFotosEmpresa();
-          });
+          removerBtn.addEventListener('click', () => removerFoto(index));
 
           wrapper.appendChild(img);
           wrapper.appendChild(legend);
@@ -456,6 +450,21 @@
         renderizarFotosEmpresa();
       };
 
+      const removerFoto = async (index) => {
+        const foto = fotosEmpresaSelecionadas[index];
+        if (!foto) return;
+        const ok = await confirmarExclusao();
+        if (!ok) return;
+        const [removida] = fotosEmpresaSelecionadas.splice(index, 1);
+        if (removida?.existing && removida.referencia) {
+          fotosEmpresaParaRemover.push(removida.referencia);
+        }
+        if (removida?.previewUrl && removida.file) {
+          URL.revokeObjectURL(removida.previewUrl);
+        }
+        renderizarFotosEmpresa();
+      };
+
       const carregarFotosEmpresaExistentes = (fotos = []) => {
         if (!Array.isArray(fotos)) {
           fotosEmpresaSelecionadas = [];
@@ -471,10 +480,55 @@
             existing: true,
             referencia,
             nome,
-            previewUrl: foto?.url || foto?.caminho || referencia,
+            previewUrl: foto?.url || foto?.previewUrl || referencia,
           };
         });
         renderizarFotosEmpresa();
+      };
+
+      const validarFotosPersistidas = async (empresaId, fotosEsperadas = []) => {
+        if (!empresaId) {
+          return [];
+        }
+
+        try {
+          exibirMensagemForm('Validando fotos salvas...', 'info');
+
+          const response = await fetchAutenticado(`${API_EMPRESAS}/${empresaId}`);
+          const data = await response.json().catch(() => ({}));
+
+          if (!response.ok) {
+            const erro = data?.mensagem || data?.message || 'Erro ao confirmar fotos salvas.';
+            throw new Error(erro);
+          }
+
+          const fotosServidor = (data?.fotos || data?.imagens || []).filter(Boolean);
+          const existemFotosServidor = Array.isArray(fotosServidor) && fotosServidor.length > 0;
+
+          if (existemFotosServidor) {
+            const resumoFotos = fotosServidor.map((foto, index) => ({
+              id: foto?.id || foto?.url || foto,
+              url: foto?.url || foto?.previewUrl || foto?.id || foto,
+              ordem: index + 1,
+            }));
+            console.info('Resumo das fotos persistidas:', resumoFotos);
+
+            carregarFotosEmpresaExistentes(fotosServidor);
+            exibirMensagemForm('', 'info');
+          } else if (Array.isArray(fotosEsperadas) && fotosEsperadas.length > 0) {
+            exibirMensagemForm(
+              'Atenção: as fotos não foram localizadas após salvar. Reenvie as imagens se necessário.',
+              'error'
+            );
+          } else {
+            exibirMensagemForm('Nenhuma foto foi localizada para este cadastro.', 'warning');
+          }
+
+          return fotosServidor;
+        } catch (error) {
+          exibirMensagemForm(error?.message || 'Erro ao validar fotos salvas.', 'error');
+          return [];
+        }
       };
 
       const obterDadosFormulario = () => {
@@ -629,6 +683,12 @@
               alert('Alterações realizadas com sucesso');
             }
           }
+          const fotosPersistidas = (data?.fotos || data?.imagens || []).filter(Boolean);
+          const existeGaleriaPersistida = Array.isArray(fotosPersistidas) && fotosPersistidas.length > 0;
+          const empresaIdResposta =
+            data?.id || data?._id || data?.empresa?.id || data?.empresa?._id || empresaEmEdicao || null;
+
+          preservarFotosNoReset = existeGaleriaPersistida;
           empresaForm.reset();
           socios = [];
           renderizarSocios();
@@ -637,10 +697,17 @@
           veiculosEmpresaOriginal = [];
           veiculosEditados = false;
           renderizarVeiculosEmpresa();
-          fotosEmpresaSelecionadas = [];
-          fotosEmpresaParaRemover = [];
-          renderizarFotosEmpresa();
-          empresaEmEdicao = null;
+          if (existeGaleriaPersistida) {
+            carregarFotosEmpresaExistentes(fotosPersistidas);
+          }
+
+          if (empresaIdResposta) {
+            await validarFotosPersistidas(empresaIdResposta, fotosPersistidas);
+          } else if (existeGaleriaPersistida) {
+            exibirMensagemForm('Não foi possível validar as fotos porque o ID não foi retornado.', 'warning');
+          }
+
+          empresaEmEdicao = empresaIdResposta || null;
           atualizarRotuloSubmit();
         } catch (err) {
           exibirMensagemForm(err?.message || 'Erro ao salvar empresa.', 'error');
@@ -887,14 +954,18 @@
         });
         empresaForm.addEventListener('submit', salvarEmpresa);
         empresaForm.addEventListener('reset', () => {
+          const devePreservarGaleria = preservarFotosNoReset && fotosEmpresaSelecionadas.length > 0;
           // Comentário: garante que o reset do formulário também limpe os veículos.
           veiculosEmpresa = [];
           veiculosEditados = false;
           renderizarVeiculosEmpresa();
           // Comentário: limpa as fotos selecionadas/removidas e zera o preview.
-          fotosEmpresaSelecionadas = [];
           fotosEmpresaParaRemover = [];
+          if (!devePreservarGaleria) {
+            fotosEmpresaSelecionadas = [];
+          }
           renderizarFotosEmpresa();
+          preservarFotosNoReset = false;
         });
         listarBtn?.addEventListener('click', listarEmpresas);
         campoConsulta?.addEventListener('input', (e) => { termoBusca = e.target.value || ''; filtrarEmpresas(termoBusca); });
