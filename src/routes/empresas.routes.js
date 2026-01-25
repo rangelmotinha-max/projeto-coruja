@@ -14,7 +14,7 @@ const conditionalUploadEmpresaFotos = (req, res, next) => {
 	const isMultipart = contentType.includes('multipart/form-data');
 	if (!isMultipart) return next();
 	const uploadFields = uploadEmpresaFotos.fields([
-		{ name: 'fotos', maxCount: 20 },
+		{ name: 'fotos', maxCount: 10 },
 	]);
 	return uploadFields(req, res, next);
 };

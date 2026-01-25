@@ -232,6 +232,7 @@
       let fotosEmpresaSelecionadas = [];
       let fotosEmpresaParaRemover = [];
       let preservarFotosNoReset = false;
+      const LIMITE_FOTOS_EMPRESA = 10;
 
       // Diálogo de confirmação reutilizável (consistente com pessoas.html)
       const confirmarExclusao = (mensagem = 'Deseja realmente excluir esse registro?') => {
@@ -440,7 +441,20 @@
 
       const adicionarFotosEmpresa = (arquivos = []) => {
         const arquivosValidos = Array.from(arquivos).filter((arquivo) => arquivo.type?.startsWith('image/'));
-        arquivosValidos.forEach((arquivo) => {
+        const espacosDisponiveis = Math.max(LIMITE_FOTOS_EMPRESA - fotosEmpresaSelecionadas.length, 0);
+
+        if (!espacosDisponiveis) {
+          // Comentário: comunica ao usuário que o limite já foi alcançado.
+          exibirMensagemForm(`Limite máximo de ${LIMITE_FOTOS_EMPRESA} fotos atingido. Remova alguma para adicionar novas.`, 'warning');
+          return;
+        }
+
+        if (arquivosValidos.length > espacosDisponiveis) {
+          // Comentário: mantém apenas a quantidade permitida e informa o excesso.
+          exibirMensagemForm(`Você selecionou mais de ${LIMITE_FOTOS_EMPRESA} fotos. Apenas ${espacosDisponiveis} serão adicionadas.`, 'warning');
+        }
+
+        arquivosValidos.slice(0, espacosDisponiveis).forEach((arquivo) => {
           fotosEmpresaSelecionadas.push({
             file: arquivo,
             nome: arquivo.name,
