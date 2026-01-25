@@ -122,6 +122,25 @@
               </label>
             </div>
 
+            <div class="form__section" aria-label="Fotos da empresa">
+              <div class="form__section-header">
+                <span class="form__label">Fotos</span>
+              </div>
+              <div class="form__subsection" style="margin-bottom: 1rem;">
+                <div class="form__field">
+                  <input
+                    class="form__input"
+                    type="file"
+                    id="empresa-fotos"
+                    name="fotos"
+                    accept="image/*"
+                    multiple
+                  />
+                </div>
+                <div id="lista-fotos-empresa" style="display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));"></div>
+              </div>
+            </div>
+
 
             <!-- Endereços da empresa -->
             <div class="form__section" aria-label="Endereços da empresa">
@@ -208,6 +227,8 @@
       let veiculosEmpresaOriginal = [];
       let veiculosEditados = false;
       let listenersVeiculosEmpresaConfigurados = false;
+      let fotosEmpresaSelecionadas = [];
+      let fotosEmpresaParaRemover = [];
 
       // Diálogo de confirmação reutilizável (consistente com pessoas.html)
       const confirmarExclusao = (mensagem = 'Deseja realmente excluir esse registro?') => {
@@ -270,7 +291,14 @@
       const obterToken = () => localStorage.getItem('authToken') || getCookie('authToken');
       const fetchAutenticado = (url, options = {}) => {
         const token = obterToken();
-        const headers = { 'Content-Type': 'application/json', ...(options.headers||{}), ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+        const headers = { ...(options.headers || {}) };
+        // Só força JSON quando não for FormData e o header ainda não tiver sido definido
+        if (!(options.body instanceof FormData) && !headers['Content-Type']) {
+          headers['Content-Type'] = 'application/json';
+        }
+        if (token) {
+          headers.Authorization = `Bearer ${token}`;
+        }
         return fetch(url, { ...options, headers });
       };
 
@@ -323,6 +351,133 @@
         });
       };
       const adicionarSocio = () => { socios.push({ nome:'', cpf:'' }); renderizarSocios(); };
+      const renderizarFotosEmpresa = () => {
+        const container = document.getElementById('lista-fotos-empresa');
+        if (!container) return;
+        container.innerHTML = '';
+
+        if (!fotosEmpresaSelecionadas.length) return;
+
+        fotosEmpresaSelecionadas.forEach((foto, index) => {
+          const wrapper = document.createElement('div');
+          wrapper.style.border = '1px solid var(--border)';
+          wrapper.style.padding = '0.5rem';
+          wrapper.style.borderRadius = '0.5rem';
+          wrapper.style.background = 'var(--surface)';
+          wrapper.style.display = 'flex';
+          wrapper.style.flexDirection = 'column';
+          wrapper.style.gap = '0.5rem';
+          wrapper.style.position = 'relative';
+          wrapper.style.overflow = 'hidden';
+
+          const img = document.createElement('img');
+          img.src = foto.previewUrl;
+          img.alt = foto.nome || 'Foto selecionada';
+          img.style.width = '100%';
+          img.style.height = '140px';
+          img.style.objectFit = 'cover';
+          img.style.borderRadius = '0.35rem';
+
+          const legend = document.createElement('div');
+          legend.textContent = foto.nome || 'Foto';
+          legend.style.fontSize = '0.9rem';
+          legend.style.fontWeight = '600';
+          legend.style.textAlign = 'center';
+          legend.style.alignSelf = 'center';
+          legend.style.marginTop = '0.25rem';
+
+          const actions = document.createElement('div');
+          actions.style.display = 'flex';
+          actions.style.gap = '0.35rem';
+          actions.style.alignItems = 'center';
+          actions.style.alignSelf = 'stretch';
+          actions.style.justifyContent = 'flex-start';
+          actions.style.marginTop = '0.25rem';
+          actions.style.padding = '0';
+          actions.style.width = '100%';
+          actions.style.flexWrap = 'nowrap';
+          actions.style.whiteSpace = 'nowrap';
+
+          const abrirBtn = document.createElement('button');
+          abrirBtn.type = 'button';
+          abrirBtn.className = 'button button--ghost';
+          abrirBtn.textContent = 'Abrir';
+          abrirBtn.style.flex = '0 0 auto';
+          abrirBtn.style.minWidth = 'auto';
+          abrirBtn.style.padding = '0.25rem 0.6rem';
+          abrirBtn.style.fontSize = '0.85rem';
+          abrirBtn.style.lineHeight = '1.2';
+          abrirBtn.addEventListener('click', () => {
+            const url = foto?.previewUrl;
+            if (url) window.open(url, '_blank');
+          });
+
+          const removerBtn = document.createElement('button');
+          removerBtn.type = 'button';
+          removerBtn.className = 'button button--ghost';
+          removerBtn.textContent = 'Remover';
+          removerBtn.style.flex = '0 0 auto';
+          removerBtn.style.minWidth = 'auto';
+          removerBtn.style.padding = '0.25rem 0.6rem';
+          removerBtn.style.fontSize = '0.85rem';
+          removerBtn.style.lineHeight = '1.2';
+          removerBtn.addEventListener('click', async () => {
+            const fotoSel = fotosEmpresaSelecionadas[index];
+            if (!fotoSel) return;
+            const ok = await confirmarExclusao();
+            if (!ok) return;
+            const [removida] = fotosEmpresaSelecionadas.splice(index, 1);
+            if (removida?.existing && removida.referencia) {
+              fotosEmpresaParaRemover.push(removida.referencia);
+            }
+            if (removida?.previewUrl && removida.file) {
+              URL.revokeObjectURL(removida.previewUrl);
+            }
+            renderizarFotosEmpresa();
+          });
+
+          wrapper.appendChild(img);
+          wrapper.appendChild(legend);
+          actions.appendChild(abrirBtn);
+          actions.appendChild(removerBtn);
+          wrapper.appendChild(actions);
+          container.appendChild(wrapper);
+        });
+      };
+
+      const adicionarFotosEmpresa = (arquivos = []) => {
+        const arquivosValidos = Array.from(arquivos).filter((arquivo) => arquivo.type?.startsWith('image/'));
+        arquivosValidos.forEach((arquivo) => {
+          fotosEmpresaSelecionadas.push({
+            file: arquivo,
+            nome: arquivo.name,
+            previewUrl: URL.createObjectURL(arquivo),
+          });
+        });
+        renderizarFotosEmpresa();
+      };
+
+      const carregarFotosEmpresaExistentes = (fotos = []) => {
+        if (!Array.isArray(fotos)) {
+          fotosEmpresaSelecionadas = [];
+          fotosEmpresaParaRemover = [];
+          renderizarFotosEmpresa();
+          return;
+        }
+        fotosEmpresaParaRemover = [];
+        fotosEmpresaSelecionadas = fotos.map((foto, index) => {
+          const referencia = foto?.id || foto?.url || foto;
+          const nome = foto?.nomeArquivo || foto?.nome_arquivo || foto?.nome || `Foto ${index + 1}`;
+          return {
+            existing: true,
+            referencia,
+            nome,
+            previewUrl: foto?.url || foto?.caminho || referencia,
+          };
+        });
+        renderizarFotosEmpresa();
+      };
+
       const obterDadosFormulario = () => {
         const fd = new FormData(empresaForm);
         const dados = Object.fromEntries(fd.entries());
@@ -361,9 +516,41 @@
             })
             .filter(v => (v.placa || v.marcaModelo || v.cor || v.anoModelo));
         }
+
+        dados.fotosExistentes = fotosEmpresaSelecionadas
+          .filter((foto) => foto.existing)
+          .map((foto) => ({ referencia: foto.referencia, nome: foto.nome }));
+
+        dados.fotosParaRemover = Array.from(new Set(fotosEmpresaParaRemover));
+
         return dados;
       };
       const atualizarRotuloSubmit = () => { submitBtn.textContent = empresaEmEdicao ? 'Salvar' : 'Incluir'; };
+      const montarFormDataEmpresa = (dados) => {
+        const formDataEnvio = new FormData();
+        const dadosEnvio = { ...dados };
+
+        Object.entries(dadosEnvio || {}).forEach(([chave, valor]) => {
+          if (valor === undefined || valor === null || chave === 'fotosExistentes') return;
+          const precisaJson = typeof valor === 'object';
+          formDataEnvio.append(chave, precisaJson ? JSON.stringify(valor) : valor);
+        });
+
+        fotosEmpresaSelecionadas.forEach((foto, index) => {
+          if (foto.file) {
+            formDataEnvio.append('fotos', foto.file, foto.nome || foto.file.name || `foto-${index + 1}.jpg`);
+          } else if (foto.existing && foto.referencia) {
+            formDataEnvio.append('fotosExistentes[]', foto.referencia);
+          }
+        });
+
+        if (Array.isArray(dados?.fotosExistentes)) {
+          formDataEnvio.append('fotosExistentes', JSON.stringify(dados.fotosExistentes));
+        }
+
+        return formDataEnvio;
+      };
+
       const salvarEmpresa = async (e) => {
         e.preventDefault();
         const payload = obterDadosFormulario();
@@ -390,7 +577,10 @@
           // Removido: não exibir mensagem de carregamento ao salvar
           const metodo = empresaEmEdicao ? 'PUT' : 'POST';
           const url = empresaEmEdicao ? `${API_EMPRESAS}/${empresaEmEdicao}` : API_EMPRESAS;
-          const resp = await fetchAutenticado(url, { method: metodo, body: JSON.stringify(payload) });
+          const usarFormData = fotosEmpresaSelecionadas.some((f) => f.file);
+          const body = usarFormData ? montarFormDataEmpresa(payload) : JSON.stringify(payload);
+          const headers = usarFormData ? {} : { 'Content-Type': 'application/json' };
+          const resp = await fetchAutenticado(url, { method: metodo, body, headers });
           const data = await resp.json().catch(() => ({}));
           if (!resp.ok) {
             const msg = data?.mensagem || data?.message || 'Não foi possível salvar a empresa.';
@@ -443,9 +633,11 @@
           veiculosEmpresaOriginal = [];
           veiculosEditados = false;
           renderizarVeiculosEmpresa();
+          fotosEmpresaSelecionadas = [];
+          fotosEmpresaParaRemover = [];
+          renderizarFotosEmpresa();
           empresaEmEdicao = null;
           atualizarRotuloSubmit();
-          listarEmpresas();
         } catch (err) {
           exibirMensagemForm(err?.message || 'Erro ao salvar empresa.', 'error');
         }
@@ -637,6 +829,7 @@
           : [];
         // snapshot para detectar inclusões/edições de veículos durante a edição
         veiculosEmpresaOriginal = veiculosEmpresa.map(v => ({ ...v }));
+        carregarFotosEmpresaExistentes(Array.isArray(e.fotos) ? e.fotos : []);
         renderizarSocios();
         renderizarEnderecosEmpresa();
         renderizarVeiculosEmpresa();
@@ -672,7 +865,6 @@
             veiculosEditados = false;
             renderizarVeiculosEmpresa();
           }
-          listarEmpresas();
         } catch (err) {
           exibirMensagem(err?.message || 'Erro ao excluir empresa.', 'error');
         }
@@ -684,6 +876,7 @@
         document.getElementById('adicionar-socio')?.addEventListener('click', adicionarSocio);
         document.getElementById('adicionar-endereco-empresa')?.addEventListener('click', adicionarEnderecoEmpresa);
         document.getElementById('adicionar-veiculo-empresa')?.addEventListener('click', adicionarVeiculoEmpresa);
+        document.getElementById('empresa-fotos')?.addEventListener('change', (e) => adicionarFotosEmpresa(e.target.files || []));
         empresaForm.addEventListener('submit', salvarEmpresa);
         empresaForm.addEventListener('reset', () => {
           // Comentário: garante que o reset do formulário também limpe os veículos.
@@ -696,7 +889,6 @@
         renderizarSocios();
         renderizarEnderecosEmpresa();
         renderizarVeiculosEmpresa();
-        listarEmpresas();
       };
       document.addEventListener('DOMContentLoaded', inicializar);
 

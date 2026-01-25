@@ -1,5 +1,6 @@
 const path = require('path');
 const { normalizarEmail, criarErro } = require('./helpers');
+const fs = require('fs');
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const TAMANHO_MAX_FOTO = 5 * 1024 * 1024; // 5MB
@@ -133,16 +134,11 @@ function validarFotosUpload(arquivos) {
       throw criarErro('Cada foto deve ter no máximo 5MB', 400);
     }
 
-    const caminhoRelativo = path.relative(BASE_UPLOAD_DIR, file.path).replace(/\\/g, '/');
-    if (caminhoRelativo.startsWith('..')) {
-      throw criarErro('Falha ao salvar foto: caminho inválido', 400);
-    }
-
     return {
       nomeOriginal: file.originalname,
       mimeType: file.mimetype,
       tamanho: file.size,
-      caminho: caminhoRelativo,
+      caminho: file.path.replace(/\\/g, '/').replace(BASE_UPLOAD_DIR.replace(/\\/g, '/'), '').replace(/^\//, ''),
     };
   });
 }
@@ -828,6 +824,8 @@ function validarAtualizacaoVeiculo(payload) {
 }
 
 module.exports = {
+  validarFotosUpload,
+  extrairArquivosCampo,
   validarCadastro,
   validarLogin,
   validarAtualizacao,

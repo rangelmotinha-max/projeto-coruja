@@ -2,6 +2,42 @@ const { randomUUID } = require('crypto');
 const { initDatabase } = require('../database/sqlite');
 
 class EmpresaCatalogoModel {
+  static async _listarFotos(db, empresaId) {
+    const registros = await db.all(
+      'SELECT id, nome_arquivo AS nomeArquivo, caminho, mime_type AS mimeType, tamanho FROM fotos_empresas WHERE empresa_id = ? ORDER BY criadoEm ASC',
+      [empresaId]
+    );
+    return registros.map((foto) => ({
+      ...foto,
+      url: `/${String(foto.caminho || '').replace(/^\//, '')}`,
+    }));
+  }
+
+  static async _salvarFotos(db, empresaId, fotos) {
+    if (!Array.isArray(fotos) || fotos.length === 0) return;
+    const agora = new Date().toISOString();
+    for (const f of fotos) {
+      const id = f.id || randomUUID();
+      await db.run(
+        `INSERT INTO fotos_empresas (id, empresa_id, nome_arquivo, caminho, mime_type, tamanho, criadoEm, atualizadoEm)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          id,
+          empresaId,
+          f.nomeArquivo || f.nome_arquivo || null,
+          f.caminho,
+          f.mimeType || f.mime_type || null,
+          f.tamanho || null,
+          agora,
+          agora,
+        ]
+      );
+    }
+  }
+
+  static async _removerFotos(db, empresaId) {
+    await db.run('DELETE FROM fotos_empresas WHERE empresa_id = ?', [empresaId]);
+  }
   static async _listarVeiculos(db, empresaId) {
     return db.all(
       'SELECT id, nomeProprietario, cnpj, placa, marcaModelo, cor, anoModelo, criadoEm, atualizadoEm FROM veiculos_empresas WHERE empresa_id = ? ORDER BY atualizadoEm DESC',
@@ -131,6 +167,10 @@ class EmpresaCatalogoModel {
       await this._salvarVeiculos(db, empresa.id, dados.veiculos);
     }
 
+    if (Array.isArray(dados.fotos) && dados.fotos.length) {
+      await this._salvarFotos(db, empresa.id, dados.fotos);
+    }
+
     return this.findById(id);
   }
 
@@ -141,6 +181,7 @@ class EmpresaCatalogoModel {
       e.socios = await db.all('SELECT id, nome, cpf FROM socios_cadastro WHERE empresa_id = ? ORDER BY criadoEm ASC', [e.id]);
       e.enderecos = await this._listarEnderecos(db, e.id);
       e.veiculos = await this._listarVeiculos(db, e.id);
+      e.fotos = await this._listarFotos(db, e.id);
     }
     return empresas;
   }
@@ -152,6 +193,7 @@ class EmpresaCatalogoModel {
     e.socios = await db.all('SELECT id, nome, cpf FROM socios_cadastro WHERE empresa_id = ? ORDER BY criadoEm ASC', [id]);
     e.enderecos = await this._listarEnderecos(db, id);
     e.veiculos = await this._listarVeiculos(db, id);
+    e.fotos = await this._listarFotos(db, id);
     return e;
   }
 
@@ -199,6 +241,13 @@ class EmpresaCatalogoModel {
       await this._salvarVeiculos(db, id, veiculos);
     }
 
+    const atualizaFotos = Object.prototype.hasOwnProperty.call(updates, 'fotos');
+    if (atualizaFotos) {
+      const fotos = Array.isArray(updates.fotos) ? updates.fotos : [];
+      await this._removerFotos(db, id);
+      await this._salvarFotos(db, id, fotos);
+    }
+
     return this.findById(id);
   }
 
@@ -206,6 +255,7 @@ class EmpresaCatalogoModel {
     const db = await initDatabase();
     await this._removerVeiculos(db, id);
     await this._removerEnderecos(db, id);
+    await this._removerFotos(db, id);
     const r = await db.run('DELETE FROM empresas_cadastro WHERE id = ?', [id]);
     return r.changes > 0;
   }

@@ -2,7 +2,7 @@ const empresasService = require('../services/empresas.service');
 
 async function criar(req, res, next) {
   try {
-    const empresa = await empresasService.criar(req.body);
+    const empresa = await empresasService.criar(req.body, req.files || {});
     return res.status(201).json(empresa);
   } catch (error) { return next(error); }
 }
@@ -23,7 +23,7 @@ async function buscarPorId(req, res, next) {
 
 async function atualizar(req, res, next) {
   try {
-    const emp = await empresasService.atualizar(req.params.id, req.body);
+    const emp = await empresasService.atualizar(req.params.id, req.body, req.files || {});
     return res.json(emp);
   } catch (error) { return next(error); }
 }

@@ -1,5 +1,15 @@
 const EmpresaModel = require('../models/empresas.model');
 const { criarErro } = require('../utils/helpers');
+const path = require('path');
+const { validarFotosUpload, extrairArquivosCampo } = require('../utils/validators');
+
+function mapearFotosEmpresas(arquivos) {
+  const baseDir = path.join(__dirname, '../../public');
+  return validarFotosUpload(arquivos).map((foto) => ({
+    ...foto,
+    caminho: foto.caminho.replace(baseDir.replace(/\\/g, '/'), '').replace(/^\//, ''),
+  }));
+}
 
 function sanitizeEmpresa(payload, options = {}) {
   // Comentário: permite preservar ausência de "veiculos" em payloads de atualização.
@@ -14,15 +24,32 @@ function sanitizeEmpresa(payload, options = {}) {
   const nomeFantasia = payload.nomeFantasia ? String(payload.nomeFantasia).trim() : '';
   const obsBruta = possuiObs ? payload[chaveObsEncontrada] : '';
   const obs = obsBruta ? String(obsBruta).trim() : '';
-  const socios = Array.isArray(payload.socios)
-    ? payload.socios.map((s) => ({
+  // Campos que podem chegar como JSON string quando enviados via FormData
+  const parseListaCampo = (valor) => {
+    if (!valor) return [];
+    if (Array.isArray(valor)) return valor;
+    if (typeof valor === 'string') {
+      try {
+        const parsed = JSON.parse(valor);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (_) {
+        return [];
+      }
+    }
+    return [];
+  };
+
+  const sociosBrutos = parseListaCampo(payload.socios);
+  const socios = Array.isArray(sociosBrutos)
+    ? sociosBrutos.map((s) => ({
         nome: String(s?.nome || '').trim(),
         cpf: String(s?.cpf || '').replace(/\D/g, ''),
       })).filter((s) => s.nome || s.cpf)
     : [];
   const temVeiculos = Object.prototype.hasOwnProperty.call(payload, 'veiculos');
-  const veiculosNormalizados = Array.isArray(payload.veiculos)
-    ? payload.veiculos
+  const veiculosBrutos = parseListaCampo(payload.veiculos);
+  const veiculosNormalizados = Array.isArray(veiculosBrutos)
+    ? veiculosBrutos
         .map((v) => {
           const placa = String(v?.placa || '')
             .toUpperCase()
@@ -41,6 +68,9 @@ function sanitizeEmpresa(payload, options = {}) {
         .filter((v) => (v.placa && v.nomeProprietario))
     : [];
 
+  // Endereços também podem vir como JSON string em requisições multipart
+  const enderecosBrutos = parseListaCampo(payload.enderecos);
+
   const resultado = {
     cnpj: cnpjDigits || null,
     razaoSocial: razaoSocial || null,
@@ -49,7 +79,7 @@ function sanitizeEmpresa(payload, options = {}) {
     dataInicioAtividade: payload.dataInicioAtividade || null,
     situacaoCadastral: payload.situacaoCadastral || null,
     telefone: telefone || null,
-    enderecos: require('../utils/validators').validarEnderecos(payload.enderecos || []),
+    enderecos: require('../utils/validators').validarEnderecos(enderecosBrutos || []),
     socios,
   };
 
@@ -62,11 +92,16 @@ function sanitizeEmpresa(payload, options = {}) {
     resultado.veiculos = veiculosNormalizados;
   }
 
+  // Comentário: fotos de empresas são opcionais e atualizadas fora deste sanitizador quando necessário
   return resultado;
 }
 
-async function criar(payload) {
+async function criar(payload, arquivos = {}) {
   const dados = sanitizeEmpresa(payload || {});
+  const fotosUpload = mapearFotosEmpresas(extrairArquivosCampo(arquivos, 'fotos'));
+  if (fotosUpload.length) {
+    dados.fotos = fotosUpload;
+  }
   // Regras mínimas: aceitar cadastro mesmo sem CNPJ; opcionalmente exigir razaoSocial
   // if (!dados.razaoSocial) throw criarErro('Razão Social é obrigatória.', 400);
   return EmpresaModel.create(dados);
@@ -142,7 +177,7 @@ async function buscarPorId(id) {
   return emp;
 }
 
-async function atualizar(id, payload) {
+async function atualizar(id, payload, arquivos = {}) {
   const existente = await EmpresaModel.findById(id);
   if (!existente) throw criarErro('Empresa não encontrada', 404);
   const payloadNormalizado = payload ? { ...payload } : {};
@@ -154,6 +189,90 @@ async function atualizar(id, payload) {
     payloadNormalizado.cnpj = existente.cnpj;
   }
   const updates = sanitizeEmpresa(payloadNormalizado, { preservarVeiculosAusentes: true });
+
+  const fotosUpload = mapearFotosEmpresas(extrairArquivosCampo(arquivos, 'fotos'));
+
+  // Processa fotos existentes e remoções semelhantes ao fluxo de Pessoas
+  const existentes = Array.isArray(existente.fotos) ? existente.fotos : [];
+
+  // Normaliza lista de IDs a remover
+  let idsRemover = [];
+  if (payload.fotosParaRemover !== undefined) {
+    const bruto = payload.fotosParaRemover;
+    if (Array.isArray(bruto)) {
+      idsRemover = bruto.map((v) => String(v).trim()).filter(Boolean);
+    } else if (typeof bruto === 'string' && bruto.trim()) {
+      try {
+        const parsed = JSON.parse(bruto);
+        if (Array.isArray(parsed)) {
+          idsRemover = parsed.map((v) => String(v).trim()).filter(Boolean);
+        }
+      } catch (_) {
+        idsRemover = bruto.split(',').map((v) => String(v).trim()).filter(Boolean);
+      }
+    }
+  }
+
+  // Normaliza lista de fotos existentes a manter (enviadas pelo frontend)
+  let idsManter = null;
+  if (payload.fotosExistentes !== undefined) {
+    let lista = payload.fotosExistentes;
+    if (typeof lista === 'string') {
+      try {
+        lista = JSON.parse(lista);
+      } catch (_) {
+        lista = [];
+      }
+    }
+    if (Array.isArray(lista)) {
+      idsManter = lista
+        .map((item) => (item && typeof item === 'object' ? (item.referencia || item.id) : item))
+        .map((v) => String(v || '').trim())
+        .filter(Boolean);
+    }
+  }
+
+  const removerSet = new Set(idsRemover);
+  let manterSet;
+  if (idsManter && idsManter.length) {
+    manterSet = new Set(idsManter.filter((id) => !removerSet.has(id)));
+  } else if (payload.fotosParaRemover !== undefined) {
+    // Se apenas fotosParaRemover foi enviado, mantemos todas as outras existentes
+    manterSet = new Set(
+      existentes
+        .map((f) => String(f.id || '').trim())
+        .filter((id) => id && !removerSet.has(id)),
+    );
+  }
+
+  if (manterSet) {
+    const fotosMantidas = existentes
+      .filter((f) => manterSet.has(String(f.id || '').trim()))
+      .map((f) => ({
+        id: f.id,
+        nomeArquivo: f.nomeArquivo || f.nome_arquivo || null,
+        caminho: f.caminho,
+        mimeType: f.mimeType || f.mime_type || null,
+        tamanho: f.tamanho || null,
+      }));
+
+    updates.fotos = [...fotosMantidas, ...fotosUpload];
+  } else if (fotosUpload.length) {
+    // Apenas novas fotos (nenhum controle explícito de existentes)
+    updates.fotos = [...fotosUpload, ...existentes.map((f) => ({
+      id: f.id,
+      nomeArquivo: f.nomeArquivo || f.nome_arquivo || null,
+      caminho: f.caminho,
+      mimeType: f.mimeType || f.mime_type || null,
+      tamanho: f.tamanho || null,
+    }))];
+  } else if (payload.fotosParaRemover !== undefined) {
+    // Remoção total opcional quando lista vazia é enviada
+    if (idsRemover.length && !existentes.some((f) => !removerSet.has(String(f.id || '').trim()))) {
+      updates.fotos = [];
+    }
+  }
+
   return EmpresaModel.update(id, updates);
 }
 

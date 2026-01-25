@@ -6,10 +6,12 @@ const multer = require('multer');
 const uploadDirFotos = path.join(__dirname, '../../public/uploads/pessoas');
 const uploadDirDocumentos = path.join(__dirname, '../../public/uploads/ocorrencias');
 const uploadDirEntidades = path.join(__dirname, '../../public/uploads/entidades');
+const uploadDirEmpresas = path.join(__dirname, '../../public/uploads/empresas');
 // Garante que os diretórios existam antes de receber arquivos
 fs.mkdirSync(uploadDirFotos, { recursive: true });
 fs.mkdirSync(uploadDirDocumentos, { recursive: true });
 fs.mkdirSync(uploadDirEntidades, { recursive: true });
+fs.mkdirSync(uploadDirEmpresas, { recursive: true });
 
 // Configuração do multer com validações de tipo/tamanho no próprio middleware
 const storage = multer.diskStorage({
@@ -81,3 +83,28 @@ const uploadEntidadeFotos = multer({
 });
 
 module.exports = { uploadPessoaArquivos, uploadEntidadeFotos };
+
+// Configuração dedicada para fotos de empresas
+const storageEmpresas = multer.diskStorage({
+  destination: (_req, file, cb) => cb(null, uploadDirEmpresas),
+  filename: (_req, file, cb) => {
+    const extensao = path.extname(file.originalname) || '';
+    const nomeSeguro = `${Date.now()}-${Math.round(Math.random() * 1e9)}${extensao}`;
+    cb(null, nomeSeguro);
+  },
+});
+
+const tiposImagem = ['image/jpeg', 'image/png', 'image/webp'];
+const uploadEmpresaFotos = multer({
+  storage: storageEmpresas,
+  // Aumenta limite para 20MB, alinhado com documentos de ocorrências
+  limits: { fileSize: 20 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (!tiposImagem.includes(file.mimetype)) {
+      return cb(new Error('Tipo de imagem não suportado. Envie PNG, JPG ou WEBP.'));
+    }
+    cb(null, true);
+  },
+});
+
+module.exports.uploadEmpresaFotos = uploadEmpresaFotos;
