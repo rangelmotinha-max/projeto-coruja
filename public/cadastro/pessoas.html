@@ -5604,12 +5604,8 @@
                 if (safeText(v?.marcaModelo)) linha1.push(`Marca/Modelo: ${safeText(v?.marcaModelo)}`);
                 linha1.push(`Cor: ${safeText(v?.cor)}`);
                 linha1.push(`Ano: ${safeText(v?.anoModelo ?? v?.ano)}`);
-                const linha2 = [];
-                if (safeText(v?.nomeProprietario || v?.nome)) linha2.push(`Nome Completo: ${safeText(v?.nomeProprietario || v?.nome)}`);
-                if (safeText(v?.cpf)) linha2.push(`CPF: ${safeText(v?.cpf)}`);
                 html += `<li>` +
                   (linha1.length ? `<div>${linha1.join(', ')}</div>` : '') +
-                  (linha2.length ? `<div>${linha2.join(', ')}</div>` : '') +
                 `</li>`;
               });
             }
@@ -6029,12 +6025,8 @@
                     if (safeText(v?.marcaModelo)) linha1.push(`Marca/Modelo: ${safeText(v?.marcaModelo)}`);
                     linha1.push(`Cor: ${safeText(v?.cor)}`);
                     linha1.push(`Ano: ${safeText(v?.anoModelo ?? v?.ano)}`);
-                    const linha2 = [];
-                    if (safeText(v?.nomeProprietario || v?.nome)) linha2.push(`Nome Completo: ${safeText(v?.nomeProprietario || v?.nome)}`);
-                    if (safeText(v?.cpf)) linha2.push(`CPF: ${safeText(v?.cpf)}`);
                     return `<li>` +
                       (linha1.length ? `<div>${linha1.join(', ')}</div>` : '') +
-                      (linha2.length ? `<div>${linha2.join(', ')}</div>` : '') +
                     `</li>`;
                   }).join('')
                 : '<li>N/I</li>') +
