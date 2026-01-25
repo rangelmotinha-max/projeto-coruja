@@ -1,8 +1,34 @@
 const empresasService = require('../services/empresas.service');
 
+// Normaliza payloads vindos de multipart/form-data convertendo campos JSON.
+function normalizarPayload(req) {
+  const payload = { ...req.body };
+  const camposJson = [
+    'enderecos',
+    'socios',
+    'veiculos',
+    'fotosParaRemover',
+    'fotosExistentes',
+  ];
+
+  camposJson.forEach((campo) => {
+    if (typeof payload[campo] === 'string') {
+      try {
+        // Comentário: converte strings JSON enviadas via multipart para objetos/arrays
+        payload[campo] = JSON.parse(payload[campo]);
+      } catch (_) {
+        // Mantém valor original caso não seja JSON; validação tratará
+      }
+    }
+  });
+
+  return payload;
+}
+
 async function criar(req, res, next) {
   try {
-    const empresa = await empresasService.criar(req.body, req.files || {});
+    const payload = normalizarPayload(req);
+    const empresa = await empresasService.criar(payload, req.files || {});
     return res.status(201).json(empresa);
   } catch (error) { return next(error); }
 }
@@ -23,7 +49,8 @@ async function buscarPorId(req, res, next) {
 
 async function atualizar(req, res, next) {
   try {
-    const emp = await empresasService.atualizar(req.params.id, req.body, req.files || {});
+    const payload = normalizarPayload(req);
+    const emp = await empresasService.atualizar(req.params.id, payload, req.files || {});
     return res.json(emp);
   } catch (error) { return next(error); }
 }

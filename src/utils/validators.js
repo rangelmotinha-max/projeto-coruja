@@ -371,6 +371,11 @@ function validarEnderecos(enderecos) {
     }
   }
 
+  if (typeof lista === 'object' && !Array.isArray(lista)) {
+    // Comentário: permite payload com um único endereço como objeto
+    lista = [lista];
+  }
+
   if (!Array.isArray(lista)) {
     throw criarErro('Endereços deve ser um array', 400);
   }
