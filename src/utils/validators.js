@@ -358,12 +358,24 @@ function validarCadastroPessoa(payload, arquivos = []) {
 // Valida array de endereços
 function validarEnderecos(enderecos) {
   if (!enderecos) return [];
-  
-  if (!Array.isArray(enderecos)) {
+
+  let lista = enderecos;
+  if (typeof enderecos === 'string') {
+    try {
+      lista = JSON.parse(enderecos);
+    } catch (_) {
+      return [];
+    }
+    if (!Array.isArray(lista)) {
+      return [];
+    }
+  }
+
+  if (!Array.isArray(lista)) {
     throw criarErro('Endereços deve ser um array', 400);
   }
 
-  return enderecos.map(endereco => ({
+  return lista.map(endereco => ({
     id: endereco.id || undefined,
     uf: normalizarOpcional(endereco.uf),
     logradouro: normalizarOpcional(endereco.logradouro),
