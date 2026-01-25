@@ -68,9 +68,6 @@ function sanitizeEmpresa(payload, options = {}) {
         .filter((v) => (v.placa && v.nomeProprietario))
     : [];
 
-  // Endereços também podem vir como JSON string em requisições multipart
-  const enderecosBrutos = parseListaCampo(payload.enderecos);
-
   const resultado = {
     cnpj: cnpjDigits || null,
     razaoSocial: razaoSocial || null,
@@ -79,7 +76,8 @@ function sanitizeEmpresa(payload, options = {}) {
     dataInicioAtividade: payload.dataInicioAtividade || null,
     situacaoCadastral: payload.situacaoCadastral || null,
     telefone: telefone || null,
-    enderecos: require('../utils/validators').validarEnderecos(enderecosBrutos || []),
+    // Comentário: valida e normaliza endereços, aceitando JSON string quando necessário.
+    enderecos: require('../utils/validators').validarEnderecos(payload.enderecos),
     socios,
   };
 
