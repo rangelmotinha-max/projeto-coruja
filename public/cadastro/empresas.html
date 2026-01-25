@@ -480,6 +480,10 @@
       const obterDadosFormulario = () => {
         const fd = new FormData(empresaForm);
         const dados = Object.fromEntries(fd.entries());
+        // Comentário: remove o campo de fotos do objeto base para evitar serialização indevida.
+        if (Object.prototype.hasOwnProperty.call(dados, 'fotos')) {
+          delete dados.fotos;
+        }
         dados.cnpj = aplicarMascaraCnpj(dados.cnpj).replace(/\D/g, '');
         dados.telefone = aplicarMascaraTelefone(dados.telefone);
         // Comentário: usa o id explícito do textarea para evitar dependência do atributo name.
@@ -528,6 +532,10 @@
       const montarFormDataEmpresa = (dados) => {
         const formDataEnvio = new FormData();
         const dadosEnvio = { ...dados };
+        // Comentário: garante que o campo de fotos não seja serializado junto ao payload base.
+        if (Object.prototype.hasOwnProperty.call(dadosEnvio, 'fotos')) {
+          delete dadosEnvio.fotos;
+        }
 
         Object.entries(dadosEnvio || {}).forEach(([chave, valor]) => {
           if (valor === undefined || valor === null || chave === 'fotosExistentes') return;
@@ -536,11 +544,8 @@
         });
 
         fotosEmpresaSelecionadas.forEach((foto, index) => {
-          if (foto.file) {
-            formDataEnvio.append('fotos', foto.file, foto.nome || foto.file.name || `foto-${index + 1}.jpg`);
-          } else if (foto.existing && foto.referencia) {
-            formDataEnvio.append('fotosExistentes[]', foto.referencia);
-          }
+          if (!foto?.file) return;
+          formDataEnvio.append('fotos', foto.file, foto.nome || foto.file.name || `foto-${index + 1}.jpg`);
         });
 
         if (Array.isArray(dados?.fotosExistentes)) {
@@ -875,7 +880,11 @@
         document.getElementById('adicionar-socio')?.addEventListener('click', adicionarSocio);
         document.getElementById('adicionar-endereco-empresa')?.addEventListener('click', adicionarEnderecoEmpresa);
         document.getElementById('adicionar-veiculo-empresa')?.addEventListener('click', adicionarVeiculoEmpresa);
-        document.getElementById('empresa-fotos')?.addEventListener('change', (e) => adicionarFotosEmpresa(e.target.files || []));
+        document.getElementById('empresa-fotos')?.addEventListener('change', (e) => {
+          adicionarFotosEmpresa(e.target.files || []);
+          // Comentário: limpa o input para permitir re-seleção do mesmo arquivo.
+          e.target.value = '';
+        });
         empresaForm.addEventListener('submit', salvarEmpresa);
         empresaForm.addEventListener('reset', () => {
           // Comentário: garante que o reset do formulário também limpe os veículos.
