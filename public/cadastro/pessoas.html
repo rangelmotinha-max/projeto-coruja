@@ -1625,10 +1625,14 @@
           img.style.objectFit = 'cover';
           img.style.borderRadius = '0.35rem';
 
+          // Legenda centralizada abaixo da foto
           const legend = document.createElement('div');
           legend.textContent = foto.nome || 'Foto';
           legend.style.fontSize = '0.9rem';
           legend.style.fontWeight = '600';
+          legend.style.textAlign = 'center';
+          legend.style.alignSelf = 'center';
+          legend.style.marginTop = '0.25rem';
 
           const actions = document.createElement('div');
           actions.style.display = 'flex';
