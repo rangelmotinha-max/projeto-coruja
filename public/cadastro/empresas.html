@@ -79,7 +79,7 @@
           <div class="panel__header panel__header--stacked"></div>
           <div id="empresa-form-message" class="message" role="status" aria-live="polite"></div>
           <!-- Ação direta garante envio mesmo sem o manipulador JS -->
-          <form class="form" id="empresa-form" action="/api/empresas" method="post">
+          <form class="form" id="empresa-form" action="/api/empresas" method="post" enctype="multipart/form-data">
             <div class="form__grid form__grid--3">
               <label class="form__field">
                 <span class="form__label">CNPJ</span>
