@@ -122,26 +122,6 @@
               </label>
             </div>
 
-            <div class="form__section" aria-label="Fotos da empresa">
-              <div class="form__section-header">
-                <span class="form__label">Fotos</span>
-              </div>
-              <div class="form__subsection" style="margin-bottom: 1rem;">
-                <div class="form__field">
-                  <input
-                    class="form__input"
-                    type="file"
-                    id="empresa-fotos"
-                    name="fotos"
-                    accept="image/*"
-                    multiple
-                  />
-                </div>
-                <div id="lista-fotos-empresa" style="display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));"></div>
-              </div>
-            </div>
-
-
             <!-- Endereços da empresa -->
             <div class="form__section" aria-label="Endereços da empresa">
               <div class="form__section-header" style="display:flex; justify-content: space-between; align-items: center;">
@@ -175,6 +155,25 @@
                 <span class="form__label">Obs:</span>
                 <textarea id="empresa-obs" name="obs" class="form__input" rows="3" placeholder="Inclua observações relevantes sobre a empresa"></textarea>
               </label>
+            </div>
+
+            <div class="form__section" aria-label="Fotos da empresa">
+              <div class="form__section-header">
+                <span class="form__label">Fotos</span>
+              </div>
+              <div class="form__subsection" style="margin-bottom: 1rem;">
+                <div class="form__field">
+                  <input
+                    class="form__input"
+                    type="file"
+                    id="empresa-fotos"
+                    name="fotos"
+                    accept="image/*"
+                    multiple
+                  />
+                </div>
+                <div id="lista-fotos-empresa" style="display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));"></div>
+              </div>
             </div>
 
             <div class="form__actions">
