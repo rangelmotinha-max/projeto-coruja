@@ -882,6 +882,10 @@
           veiculosEmpresa = [];
           veiculosEditados = false;
           renderizarVeiculosEmpresa();
+          // Comentário: limpa as fotos selecionadas/removidas e zera o preview.
+          fotosEmpresaSelecionadas = [];
+          fotosEmpresaParaRemover = [];
+          renderizarFotosEmpresa();
         });
         listarBtn?.addEventListener('click', listarEmpresas);
         campoConsulta?.addEventListener('input', (e) => { termoBusca = e.target.value || ''; filtrarEmpresas(termoBusca); });
