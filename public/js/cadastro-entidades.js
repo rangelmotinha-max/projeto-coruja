@@ -14,9 +14,8 @@
   const liderancasContainer = document.getElementById('lista-liderancas');
   const telefonesContainer = document.getElementById('lista-telefones');
   const enderecosContainer = document.getElementById('lista-enderecos');
-  const fotosAtuaisContainer = document.getElementById('fotos-atuais');
   const fotosInput = document.getElementById('entidade-fotos');
-  const abrirSeletorFotosBtn = document.getElementById('abrir-seletor-fotos');
+  const fotosContainer = document.getElementById('lista-fotos-entidade');
 
   // Estado local em memória para simplificar renderizações
   const estado = {
@@ -27,9 +26,11 @@
     telefones: [],
     enderecos: [],
     indicadorEnderecoAtual: null,
-    fotosAtuais: [],
+    fotosSelecionadas: [],
     fotosParaRemover: [],
+    preservarFotosNoReset: false,
   };
+  const LIMITE_FOTOS_ENTIDADE = 10;
 
   // Helpers de autenticação reciclados de outras páginas
   const getCookie = (name) => document.cookie.split(';').map((c) => c.trim()).find((c) => c.startsWith(`${name}=`))?.split('=')[1];
@@ -538,31 +539,196 @@
     });
   };
 
-  // Fotos atuais com opção de remoção
-  const renderizarFotosAtuais = () => {
-    fotosAtuaisContainer.innerHTML = '';
-    const emptyMsgEl = document.getElementById('fotos-empty-message');
-    if (!estado.fotosAtuais.length) {
-      if (emptyMsgEl) emptyMsgEl.style.display = 'block';
+  // Fotos do cadastro seguindo o padrão de pessoas/empresas
+  const renderizarFotosEntidade = () => {
+    if (!fotosContainer) return;
+    fotosContainer.innerHTML = '';
+
+    if (!estado.fotosSelecionadas.length) {
+      fotosContainer.innerHTML = '';
       return;
     }
-    if (emptyMsgEl) emptyMsgEl.style.display = 'none';
-    estado.fotosAtuais.forEach((foto) => {
-      const card = document.createElement('div');
-      card.className = 'card card--subtle';
-      card.style.padding = '0.5rem';
-      card.innerHTML = `
-        <div style="display:flex; flex-direction:column; gap:0.35rem; align-items:flex-start;">
-          ${foto.url ? `<img src="${foto.url}" alt="Foto da entidade" style="width:100%; height:120px; object-fit:cover; border-radius:8px;" />` : ''}
-          <span style="font-size: 0.9rem;">${foto.nomeArquivo || 'Foto'}</span>
-          <div style="display:flex; gap:0.5rem; align-self:flex-end;">
-            ${foto.url ? `<button class="button button--ghost" type="button" data-abrir-foto-url="${foto.url}" title="Abrir" aria-label="Abrir foto" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; min-width: fit-content;">Abrir</button>` : ''}
-            <button class="button button--ghost" type="button" data-remover-foto="${foto.id}" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; min-width: fit-content;">Remover</button>
-          </div>
-        </div>
-      `;
-      fotosAtuaisContainer.appendChild(card);
+
+    estado.fotosSelecionadas.forEach((foto, index) => {
+      const wrapper = document.createElement('div');
+      wrapper.style.border = '1px solid var(--border)';
+      wrapper.style.padding = '0.5rem';
+      wrapper.style.borderRadius = '0.5rem';
+      wrapper.style.background = 'var(--surface)';
+      wrapper.style.display = 'flex';
+      wrapper.style.flexDirection = 'column';
+      wrapper.style.gap = '0.5rem';
+      wrapper.style.position = 'relative';
+      wrapper.style.overflow = 'hidden';
+
+      const img = document.createElement('img');
+      img.src = foto.previewUrl;
+      img.alt = foto.nome || 'Foto selecionada';
+      img.style.width = '100%';
+      img.style.height = '140px';
+      img.style.objectFit = 'cover';
+      img.style.borderRadius = '0.35rem';
+
+      const legend = document.createElement('div');
+      legend.textContent = foto.nome || 'Foto';
+      legend.style.fontSize = '0.9rem';
+      legend.style.fontWeight = '600';
+      legend.style.textAlign = 'center';
+      legend.style.alignSelf = 'center';
+      legend.style.marginTop = '0.25rem';
+
+      const actions = document.createElement('div');
+      actions.style.display = 'flex';
+      actions.style.gap = '0.35rem';
+      actions.style.alignItems = 'center';
+      actions.style.alignSelf = 'stretch';
+      actions.style.justifyContent = 'flex-start';
+      actions.style.marginTop = '0.25rem';
+      actions.style.padding = '0';
+      actions.style.width = '100%';
+      actions.style.flexWrap = 'nowrap';
+      actions.style.whiteSpace = 'nowrap';
+
+      const abrirBtn = document.createElement('button');
+      abrirBtn.type = 'button';
+      abrirBtn.className = 'button button--ghost';
+      abrirBtn.textContent = 'Abrir';
+      abrirBtn.style.flex = '0 0 auto';
+      abrirBtn.style.minWidth = 'auto';
+      abrirBtn.style.padding = '0.25rem 0.6rem';
+      abrirBtn.style.fontSize = '0.85rem';
+      abrirBtn.style.lineHeight = '1.2';
+      abrirBtn.addEventListener('click', () => {
+        // Comentário: abre a pré-visualização em nova aba para inspeção rápida.
+        const url = foto?.previewUrl;
+        if (url) window.open(url, '_blank');
+      });
+
+      const removerBtn = document.createElement('button');
+      removerBtn.type = 'button';
+      removerBtn.className = 'button button--ghost';
+      removerBtn.textContent = 'Remover';
+      removerBtn.style.flex = '0 0 auto';
+      removerBtn.style.minWidth = 'auto';
+      removerBtn.style.padding = '0.25rem 0.6rem';
+      removerBtn.style.fontSize = '0.85rem';
+      removerBtn.style.lineHeight = '1.2';
+      removerBtn.addEventListener('click', () => removerFotoEntidade(index));
+
+      wrapper.appendChild(img);
+      wrapper.appendChild(legend);
+      actions.appendChild(abrirBtn);
+      actions.appendChild(removerBtn);
+      wrapper.appendChild(actions);
+      fotosContainer.appendChild(wrapper);
     });
+  };
+
+  const adicionarFotosEntidade = (arquivos = []) => {
+    const arquivosValidos = Array.from(arquivos).filter((arquivo) => arquivo.type?.startsWith('image/'));
+    const espacosDisponiveis = Math.max(LIMITE_FOTOS_ENTIDADE - estado.fotosSelecionadas.length, 0);
+
+    if (!espacosDisponiveis) {
+      // Comentário: comunica ao usuário que o limite já foi alcançado.
+      exibirMensagem(formMsgEl, `Limite máximo de ${LIMITE_FOTOS_ENTIDADE} fotos atingido. Remova alguma para adicionar novas.`, 'warning');
+      return;
+    }
+
+    if (arquivosValidos.length > espacosDisponiveis) {
+      // Comentário: mantém apenas a quantidade permitida e informa o excesso.
+      exibirMensagem(formMsgEl, `Você selecionou mais de ${LIMITE_FOTOS_ENTIDADE} fotos. Apenas ${espacosDisponiveis} serão adicionadas.`, 'warning');
+    }
+
+    arquivosValidos.slice(0, espacosDisponiveis).forEach((arquivo) => {
+      estado.fotosSelecionadas.push({
+        file: arquivo,
+        nome: arquivo.name,
+        previewUrl: URL.createObjectURL(arquivo),
+      });
+    });
+    renderizarFotosEntidade();
+  };
+
+  const removerFotoEntidade = async (index) => {
+    const foto = estado.fotosSelecionadas[index];
+    if (!foto) return;
+    const ok = await confirmarExclusao();
+    if (!ok) return;
+    const [removida] = estado.fotosSelecionadas.splice(index, 1);
+    if (removida?.existing && removida.referencia) {
+      estado.fotosParaRemover.push(removida.referencia);
+    }
+    if (removida?.previewUrl && removida.file) {
+      URL.revokeObjectURL(removida.previewUrl);
+    }
+    renderizarFotosEntidade();
+  };
+
+  const carregarFotosEntidadeExistentes = (fotos = []) => {
+    if (!Array.isArray(fotos)) {
+      estado.fotosSelecionadas = [];
+      estado.fotosParaRemover = [];
+      renderizarFotosEntidade();
+      return;
+    }
+    estado.fotosParaRemover = [];
+    estado.fotosSelecionadas = fotos.map((foto, index) => {
+      const referencia = foto?.id || foto?.url || foto;
+      const nome = foto?.nomeArquivo || foto?.nome_arquivo || foto?.nome || `Foto ${index + 1}`;
+      return {
+        existing: true,
+        referencia,
+        nome,
+        previewUrl: foto?.url || foto?.previewUrl || referencia,
+      };
+    });
+    renderizarFotosEntidade();
+  };
+
+  const validarFotosPersistidas = async (entidadeId, fotosEsperadas = []) => {
+    if (!entidadeId) {
+      return [];
+    }
+
+    try {
+      exibirMensagem(formMsgEl, 'Validando fotos salvas...', 'info');
+
+      const response = await fetchAutenticado(`${API_ENTIDADES}/${entidadeId}`);
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        const erro = data?.mensagem || data?.message || 'Erro ao confirmar fotos salvas.';
+        throw new Error(erro);
+      }
+
+      const fotosServidor = (data?.fotos || data?.imagens || []).filter(Boolean);
+      const existemFotosServidor = Array.isArray(fotosServidor) && fotosServidor.length > 0;
+
+      if (existemFotosServidor) {
+        const resumoFotos = fotosServidor.map((foto, index) => ({
+          id: foto?.id || foto?.url || foto,
+          url: foto?.url || foto?.previewUrl || foto?.id || foto,
+          ordem: index + 1,
+        }));
+        console.info('Resumo das fotos persistidas:', resumoFotos);
+
+        carregarFotosEntidadeExistentes(fotosServidor);
+        exibirMensagem(formMsgEl, '', 'info');
+      } else if (Array.isArray(fotosEsperadas) && fotosEsperadas.length > 0) {
+        exibirMensagem(
+          formMsgEl,
+          'Atenção: as fotos não foram localizadas após salvar. Reenvie as imagens se necessário.',
+          'error'
+        );
+      } else {
+        exibirMensagem(formMsgEl, 'Nenhuma foto foi localizada para este cadastro.', 'warning');
+      }
+
+      return fotosServidor;
+    } catch (error) {
+      exibirMensagem(formMsgEl, error?.message || 'Erro ao validar fotos salvas.', 'error');
+      return [];
+    }
   };
 
   // Adição de novos itens nas listas
@@ -629,25 +795,9 @@
     }
   });
 
-  fotosAtuaisContainer.addEventListener('click', async (e) => {
-    const abrirUrl = e.target.getAttribute('data-abrir-foto-url');
-    if (abrirUrl) {
-      try { window.open(abrirUrl, '_blank', 'noopener'); } catch {}
-      return;
-    }
-    const fotoId = e.target.getAttribute('data-remover-foto');
-    if (fotoId) {
-      const ok = await confirmarExclusao();
-      if (!ok) return;
-      estado.fotosParaRemover.push(fotoId);
-      estado.fotosAtuais = estado.fotosAtuais.filter((f) => f.id !== fotoId);
-      renderizarFotosAtuais();
-    }
-  });
-
-  // Botão customizado para abrir o seletor de arquivos (remove texto nativo "Nenhum arquivo escolhido")
-  abrirSeletorFotosBtn?.addEventListener('click', () => {
-    fotosInput?.click();
+  fotosInput?.addEventListener('change', (event) => {
+    // Comentário: adiciona fotos novas ao estado e mantém as existentes.
+    adicionarFotosEntidade(event.target.files);
   });
 
   // Limita CNPJ a no máximo 14 dígitos e aplica máscara durante a digitação
@@ -674,8 +824,15 @@
     dados.append('endereco_atual_index', estado.indicadorEnderecoAtual === null ? '' : String(estado.indicadorEnderecoAtual));
     dados.append('fotosParaRemover', JSON.stringify(estado.fotosParaRemover));
 
-    const arquivos = fotosInput?.files ? Array.from(fotosInput.files) : [];
-    arquivos.forEach((file) => dados.append('fotos', file));
+    const fotosExistentes = estado.fotosSelecionadas
+      .filter((foto) => foto.existing)
+      .map((foto) => ({ referencia: foto.referencia, nome: foto.nome }));
+    dados.append('fotosExistentes', JSON.stringify(fotosExistentes));
+
+    estado.fotosSelecionadas.forEach((foto, index) => {
+      if (!foto?.file) return;
+      dados.append('fotos', foto.file, foto.nome || foto.file.name || `foto-${index + 1}.jpg`);
+    });
     return dados;
   };
 
@@ -686,14 +843,19 @@
     estado.telefones = [];
     estado.enderecos = [];
     estado.indicadorEnderecoAtual = null;
-    estado.fotosAtuais = [];
+    const devePreservarGaleria = estado.preservarFotosNoReset && estado.fotosSelecionadas.length > 0;
     estado.fotosParaRemover = [];
+    if (!devePreservarGaleria) {
+      estado.fotosSelecionadas = [];
+    }
     submitBtn.textContent = 'Incluir';
     exibirMensagem(formMsgEl, '');
     renderizarLiderancas();
     renderizarTelefones();
     renderizarEnderecos();
-    renderizarFotosAtuais();
+    renderizarFotosEntidade();
+    estado.preservarFotosNoReset = false;
+    if (fotosInput) fotosInput.value = '';
   };
 
   limparBtn?.addEventListener('click', () => limparFormulario());
@@ -717,15 +879,27 @@
       } else {
         alert('Alterações realizadas com sucesso!');
       }
-      // Limpa mensagem do formulário após sucesso
+      // Comentário: limpa mensagem do formulário após sucesso.
       exibirMensagem(formMsgEl, '');
+      const fotosPersistidas = (dados?.fotos || dados?.imagens || []).filter(Boolean);
+      const existeGaleriaPersistida = Array.isArray(fotosPersistidas) && fotosPersistidas.length > 0;
+      const entidadeIdResposta = dados?.id || dados?._id || estado.emEdicao || null;
+      estado.preservarFotosNoReset = existeGaleriaPersistida;
       limparFormulario();
+      if (existeGaleriaPersistida) {
+        carregarFotosEntidadeExistentes(fotosPersistidas);
+      }
+      if (entidadeIdResposta) {
+        await validarFotosPersistidas(entidadeIdResposta, fotosPersistidas);
+      } else if (existeGaleriaPersistida) {
+        exibirMensagem(formMsgEl, 'Não foi possível validar as fotos porque o ID não foi retornado.', 'warning');
+      }
       await carregarEntidades();
     } catch (error) {
       exibirMensagem(formMsgEl, error.message || 'Erro ao salvar entidade', 'error');
     } finally {
       submitBtn.disabled = false;
-      fotosInput.value = '';
+      if (fotosInput) fotosInput.value = '';
     }
   });
 
@@ -841,8 +1015,8 @@
       mostrarLinkLatLong: true,
     }));
     estado.indicadorEnderecoAtual = estado.enderecos.length ? 0 : null;
-    estado.fotosAtuais = [...(entidade.fotos || [])];
     estado.fotosParaRemover = [];
+    estado.preservarFotosNoReset = false;
 
     document.getElementById('entidade-nome').value = entidade.nome || '';
     document.getElementById('entidade-cnpj').value = aplicarMascaraCnpj(entidade.cnpj);
@@ -852,7 +1026,7 @@
     renderizarLiderancas();
     renderizarTelefones();
     renderizarEnderecos();
-    renderizarFotosAtuais();
+    carregarFotosEntidadeExistentes(entidade.fotos || []);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
