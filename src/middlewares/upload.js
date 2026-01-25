@@ -14,6 +14,8 @@ fs.mkdirSync(uploadDirEntidades, { recursive: true });
 fs.mkdirSync(uploadDirEmpresas, { recursive: true });
 
 // Configuração do multer com validações de tipo/tamanho no próprio middleware
+const LIMITE_TAMANHO_ARQUIVO = 20 * 1024 * 1024;
+const TIPOS_IMAGEM_PADRAO = ['image/jpeg', 'image/png', 'image/webp'];
 const storage = multer.diskStorage({
   destination: (_req, file, cb) => {
     // Fotos continuam em "pessoas"; documentos de ocorrência vão para o diretório próprio
@@ -31,7 +33,7 @@ const storage = multer.diskStorage({
 
 const fileFilter = (_req, file, cb) => {
   // Comentário: validação diferenciada por campo para manter segurança e flexibilidade
-  const tiposImagem = ['image/jpeg', 'image/png', 'image/webp'];
+  const tiposImagem = TIPOS_IMAGEM_PADRAO;
   const tiposDocumento = [
     ...tiposImagem,
     'application/pdf',
@@ -55,7 +57,7 @@ const fileFilter = (_req, file, cb) => {
 // Limite de 20MB para contemplar documentos de Ocorrências Policiais
 const uploadPessoaArquivos = multer({
   storage,
-  limits: { fileSize: 20 * 1024 * 1024 },
+  limits: { fileSize: LIMITE_TAMANHO_ARQUIVO },
   fileFilter,
 });
 
@@ -74,7 +76,7 @@ const uploadEntidadeFotos = multer({
   storage: storageEntidades,
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    const tiposImagem = ['image/jpeg', 'image/png', 'image/webp'];
+    const tiposImagem = TIPOS_IMAGEM_PADRAO;
     if (!tiposImagem.includes(file.mimetype)) {
       return cb(new Error('Tipo de imagem não suportado. Envie PNG, JPG ou WEBP.'));
     }
@@ -94,13 +96,12 @@ const storageEmpresas = multer.diskStorage({
   },
 });
 
-const tiposImagem = ['image/jpeg', 'image/png', 'image/webp'];
 const uploadEmpresaFotos = multer({
   storage: storageEmpresas,
-  // Aumenta limite para 20MB, alinhado com documentos de ocorrências
-  limits: { fileSize: 20 * 1024 * 1024 },
+  // Comentário: mantém o mesmo limite de tamanho usado no upload de pessoas.
+  limits: { fileSize: LIMITE_TAMANHO_ARQUIVO },
   fileFilter: (_req, file, cb) => {
-    if (!tiposImagem.includes(file.mimetype)) {
+    if (!TIPOS_IMAGEM_PADRAO.includes(file.mimetype)) {
       return cb(new Error('Tipo de imagem não suportado. Envie PNG, JPG ou WEBP.'));
     }
     cb(null, true);
