@@ -55,6 +55,35 @@ function precisaPersistirLiderancas(liderancasBrutas) {
 }
 
 class EntidadeModel {
+  // Comentário: hidrata relacionamentos para manter retorno consistente nas buscas.
+  static async _hidratarEntidade(entidade, db) {
+    const ent = { ...entidade };
+    if (ent.liderancas_json) {
+      try {
+        ent.liderancas = normalizarLiderancas(JSON.parse(ent.liderancas_json));
+      } catch (_) {
+        ent.liderancas = [];
+      }
+    } else {
+      ent.liderancas = [];
+    }
+    delete ent.liderancas_json;
+    ent.telefones = await db.all(
+      'SELECT id, numero FROM entidades_telefones WHERE entidade_id = ? ORDER BY criadoEm ASC',
+      [ent.id],
+    );
+    ent.enderecos = await db.all(
+      'SELECT id, logradouro, bairro, cidade, uf, cep, complemento FROM entidades_enderecos WHERE entidade_id = ? ORDER BY criadoEm ASC',
+      [ent.id],
+    );
+    ent.veiculos = await this._listarVeiculos(db, ent.id);
+    const fotos = await db.all(
+      'SELECT id, nome_arquivo, caminho, mime_type, tamanho FROM entidades_fotos WHERE entidade_id = ? ORDER BY criadoEm ASC',
+      [ent.id],
+    );
+    ent.fotos = fotos.map((f) => this.mapearFoto(f));
+    return ent;
+  }
   static async _listarVeiculos(db, entidadeId) {
     return db.all(
       'SELECT id, nomeProprietario, cnpj, placa, marcaModelo, cor, anoModelo, obs, criadoEm, atualizadoEm FROM veiculos_entidades WHERE entidade_id = ? ORDER BY atualizadoEm DESC',
@@ -193,35 +222,12 @@ class EntidadeModel {
     const db = await initDatabase();
     const entidades = await db.all('SELECT * FROM entidades ORDER BY atualizadoEm DESC');
 
+    const resultado = [];
     for (const ent of entidades) {
-      // Comentário: mantém o JSON salvo, mas normaliza o formato de retorno.
-      if (ent.liderancas_json) {
-        try {
-          ent.liderancas = normalizarLiderancas(JSON.parse(ent.liderancas_json));
-        } catch (_) {
-          ent.liderancas = [];
-        }
-      } else {
-        ent.liderancas = [];
-      }
-      delete ent.liderancas_json;
-      ent.telefones = await db.all(
-        'SELECT id, numero FROM entidades_telefones WHERE entidade_id = ? ORDER BY criadoEm ASC',
-        [ent.id],
-      );
-      ent.enderecos = await db.all(
-        'SELECT id, logradouro, bairro, cidade, uf, cep, complemento FROM entidades_enderecos WHERE entidade_id = ? ORDER BY criadoEm ASC',
-        [ent.id],
-      );
-      ent.veiculos = await this._listarVeiculos(db, ent.id);
-      const fotos = await db.all(
-        'SELECT id, nome_arquivo, caminho, mime_type, tamanho FROM entidades_fotos WHERE entidade_id = ? ORDER BY criadoEm ASC',
-        [ent.id],
-      );
-      ent.fotos = fotos.map((f) => this.mapearFoto(f));
+      resultado.push(await this._hidratarEntidade(ent, db));
     }
 
-    return entidades;
+    return resultado;
   }
 
   // Busca detalhada pelo id
@@ -230,32 +236,160 @@ class EntidadeModel {
     const ent = await db.get('SELECT * FROM entidades WHERE id = ?', [id]);
     if (!ent) return null;
 
-    // Comentário: garante retorno de lideranças no formato novo.
-    if (ent.liderancas_json) {
-      try {
-        ent.liderancas = normalizarLiderancas(JSON.parse(ent.liderancas_json));
-      } catch (_) {
-        ent.liderancas = [];
-      }
-    } else {
-      ent.liderancas = [];
+    return this._hidratarEntidade(ent, db);
+  }
+
+  // Aplica filtros no banco para consulta avançada de entidades e campos relacionados.
+  static async findByFilters(filtros = {}) {
+    const db = await initDatabase();
+    const where = ['1=1'];
+    const params = [];
+
+    const normalizarTermoLike = (valor) => `%${String(valor).toLowerCase()}%`;
+    const normalizarDigitos = (valor) => String(valor || '').replace(/\D/g, '');
+
+    const termoPesquisa = filtros.pesquisaGeral || filtros.q;
+    if (termoPesquisa) {
+      const termoLike = normalizarTermoLike(termoPesquisa);
+      const termoDigits = normalizarDigitos(termoPesquisa);
+      const termoNumerico = termoDigits ? `%${termoDigits}%` : termoLike;
+
+      const clausulasPrincipais = [
+        'LOWER(ent.nome) LIKE ?',
+        'LOWER(IFNULL(ent.descricao, "")) LIKE ?',
+        'LOWER(IFNULL(ent.obs, "")) LIKE ?',
+        'LOWER(IFNULL(ent.liderancas_json, "")) LIKE ?',
+        'LOWER(IFNULL(ent.cnpj, "")) LIKE ?',
+      ];
+
+      const clausulasEndereco = [
+        'LOWER(en.uf) LIKE ?',
+        'LOWER(en.logradouro) LIKE ?',
+        'LOWER(en.bairro) LIKE ?',
+        'LOWER(en.cidade) LIKE ?',
+        'LOWER(en.complemento) LIKE ?',
+        'LOWER(en.cep) LIKE ?',
+      ];
+
+      const clausulasVeiculos = [
+        'LOWER(ve.placa) LIKE ?',
+        'LOWER(ve.marcaModelo) LIKE ?',
+        'LOWER(ve.cor) LIKE ?',
+        'LOWER(ve.nomeProprietario) LIKE ?',
+        'LOWER(IFNULL(ve.obs, "")) LIKE ?',
+        'LOWER(CAST(ve.anoModelo AS TEXT)) LIKE ?',
+        'LOWER(IFNULL(ve.cnpj, "")) LIKE ?',
+      ];
+
+      const consultasRelacionadas = [
+        {
+          sql: 'EXISTS (SELECT 1 FROM entidades_telefones tel WHERE tel.entidade_id = ent.id AND LOWER(tel.numero) LIKE ?)',
+          count: 1,
+        },
+        {
+          sql: `EXISTS (SELECT 1 FROM entidades_enderecos en WHERE en.entidade_id = ent.id AND (${clausulasEndereco.join(' OR ')}))`,
+          count: clausulasEndereco.length,
+        },
+        {
+          sql: `EXISTS (SELECT 1 FROM veiculos_entidades ve WHERE ve.entidade_id = ent.id AND (${clausulasVeiculos.join(' OR ')}))`,
+          count: clausulasVeiculos.length,
+        },
+      ];
+
+      where.push(`(${[...clausulasPrincipais, ...consultasRelacionadas.map((c) => c.sql)].join(' OR ')})`);
+
+      clausulasPrincipais.forEach((clausula) => {
+        params.push(clausula.includes('cnpj') ? termoNumerico : termoLike);
+      });
+      consultasRelacionadas.forEach(({ count, sql }) => {
+        for (let i = 0; i < count; i += 1) {
+          const usarNumerico = sql.includes('tel.numero');
+          params.push(usarNumerico ? termoNumerico : termoLike);
+        }
+      });
     }
-    delete ent.liderancas_json;
-    ent.telefones = await db.all(
-      'SELECT id, numero FROM entidades_telefones WHERE entidade_id = ? ORDER BY criadoEm ASC',
-      [id],
+
+    if (filtros.nome) {
+      where.push('LOWER(ent.nome) LIKE ?');
+      params.push(normalizarTermoLike(filtros.nome));
+    }
+
+    if (filtros.cnpj) {
+      const cnpj = normalizarDigitos(filtros.cnpj);
+      if (cnpj) {
+        where.push('ent.cnpj LIKE ?');
+        params.push(`%${cnpj}%`);
+      }
+    }
+
+    const termoLideranca = filtros.lider || filtros.lideranca || filtros.liderancas;
+    if (termoLideranca) {
+      where.push('LOWER(IFNULL(ent.liderancas_json, "")) LIKE ?');
+      params.push(normalizarTermoLike(termoLideranca));
+    }
+
+    if (filtros.telefone) {
+      const telefone = normalizarDigitos(filtros.telefone);
+      if (telefone) {
+        where.push(
+          'EXISTS (SELECT 1 FROM entidades_telefones tel WHERE tel.entidade_id = ent.id AND tel.numero LIKE ?)',
+        );
+        params.push(`%${telefone}%`);
+      }
+    }
+
+    if (filtros.endereco) {
+      const termo = normalizarTermoLike(filtros.endereco);
+      const cep = normalizarDigitos(filtros.endereco);
+      const termoCep = cep ? `%${cep}%` : termo;
+      const clausulas = [
+        'LOWER(en.uf) LIKE ?',
+        'LOWER(en.logradouro) LIKE ?',
+        'LOWER(en.bairro) LIKE ?',
+        'LOWER(en.cidade) LIKE ?',
+        'LOWER(en.complemento) LIKE ?',
+        'LOWER(en.cep) LIKE ?',
+      ];
+      where.push(
+        `EXISTS (SELECT 1 FROM entidades_enderecos en WHERE en.entidade_id = ent.id AND (${clausulas.join(' OR ')}))`,
+      );
+      clausulas.forEach((clausula) => {
+        params.push(clausula.includes('cep') ? termoCep : termo);
+      });
+    }
+
+    if (filtros.veiculos) {
+      const termo = normalizarTermoLike(filtros.veiculos);
+      const termoDigits = normalizarDigitos(filtros.veiculos);
+      const termoNumerico = termoDigits ? `%${termoDigits}%` : termo;
+      const clausulas = [
+        'LOWER(ve.placa) LIKE ?',
+        'LOWER(ve.marcaModelo) LIKE ?',
+        'LOWER(ve.cor) LIKE ?',
+        'LOWER(ve.nomeProprietario) LIKE ?',
+        'LOWER(IFNULL(ve.obs, "")) LIKE ?',
+        'LOWER(CAST(ve.anoModelo AS TEXT)) LIKE ?',
+        'LOWER(IFNULL(ve.cnpj, "")) LIKE ?',
+      ];
+      where.push(
+        `EXISTS (SELECT 1 FROM veiculos_entidades ve WHERE ve.entidade_id = ent.id AND (${clausulas.join(' OR ')}))`,
+      );
+      clausulas.forEach((clausula) => {
+        params.push(clausula.includes('anoModelo') || clausula.includes('cnpj') ? termoNumerico : termo);
+      });
+    }
+
+    const entidades = await db.all(
+      `SELECT * FROM entidades ent WHERE ${where.join(' AND ')} ORDER BY ent.atualizadoEm DESC`,
+      params,
     );
-    ent.enderecos = await db.all(
-      'SELECT id, logradouro, bairro, cidade, uf, cep, complemento FROM entidades_enderecos WHERE entidade_id = ? ORDER BY criadoEm ASC',
-      [id],
-    );
-    ent.veiculos = await this._listarVeiculos(db, id);
-    const fotos = await db.all(
-      'SELECT id, nome_arquivo, caminho, mime_type, tamanho FROM entidades_fotos WHERE entidade_id = ? ORDER BY criadoEm ASC',
-      [id],
-    );
-    ent.fotos = fotos.map((f) => this.mapearFoto(f));
-    return ent;
+
+    const resultado = [];
+    for (const ent of entidades) {
+      resultado.push(await this._hidratarEntidade(ent, db));
+    }
+
+    return resultado;
   }
 
   // Atualiza dados principais e substitui coleções opcionais

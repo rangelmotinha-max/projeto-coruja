@@ -163,43 +163,6 @@ function sanitizarEntidade(payload, arquivos = [], options = {}) {
   };
 }
 
-// Aplica filtros simples em memória para facilitar a busca rápida
-function filtrarEntidades(lista, filtros = {}) {
-  const termo = (filtros.q || filtros.nome || '').toString().toLowerCase().trim();
-  const termoLideranca = (filtros.lider || '').toString().toLowerCase().trim();
-  const cnpjFiltro = (filtros.cnpj || '').toString().replace(/\D/g, '');
-  const telefoneFiltro = (filtros.telefone || '').toString().replace(/\D/g, '');
-
-  return lista.filter((entidade) => {
-    const liderancas = Array.isArray(entidade.liderancas) ? entidade.liderancas : [];
-    const liderancaCombina = (valor) => {
-      const valorTexto = valor.toLowerCase();
-      const valorCpf = valor.replace(/\D/g, '');
-      return liderancas.some((l) => {
-        if (typeof l === 'string') {
-          return String(l || '').toLowerCase().includes(valorTexto);
-        }
-        if (l && typeof l === 'object') {
-          const nome = String(l.nome || '').toLowerCase();
-          const cpf = String(l.cpf || '').replace(/\D/g, '');
-          return nome.includes(valorTexto) || (valorCpf && cpf.includes(valorCpf));
-        }
-        return false;
-      });
-    };
-    const nomeOuLiderOk = termo
-      ? entidade.nome.toLowerCase().includes(termo) || liderancaCombina(termo)
-      : true;
-    const liderOk = termoLideranca ? liderancaCombina(termoLideranca) : true; // Comentário: permite filtro dedicado para liderança
-    const cnpjOk = cnpjFiltro
-      ? String(entidade.cnpj || '').replace(/\D/g, '').includes(cnpjFiltro)
-      : true;
-    const telefoneOk = telefoneFiltro
-      ? (entidade.telefones || []).some((t) => String(t.numero || '').includes(telefoneFiltro))
-      : true;
-    return nomeOuLiderOk && liderOk && cnpjOk && telefoneOk;
-  });
-}
 
 async function criar(payload, arquivos = []) {
   const dados = sanitizarEntidade(payload, arquivos);
@@ -208,8 +171,8 @@ async function criar(payload, arquivos = []) {
 }
 
 async function listar(filtros = {}) {
-  const entidades = await EntidadeModel.findAll();
-  return filtrarEntidades(entidades, filtros);
+  // Comentário: delega a filtragem ao modelo para suportar pesquisa geral e campos relacionados.
+  return EntidadeModel.findByFilters(filtros);
 }
 
 async function buscarPorId(id) {
