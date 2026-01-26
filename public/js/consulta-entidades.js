@@ -61,8 +61,8 @@
       const normalized = (value || '').trim();
       if (normalized) {
         if (key === 'pesquisaGeral') {
-          // Comentário: a API utiliza "q" para pesquisa geral, mantendo compatibilidade.
-          params.append('q', normalized);
+          // Comentário: envia o campo de pesquisa geral alinhado com a API atual.
+          params.append('pesquisaGeral', normalized);
           return;
         }
         params.append(key, normalized);
