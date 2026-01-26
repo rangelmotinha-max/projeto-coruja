@@ -152,13 +152,23 @@
     return dig.length > 5 ? `${dig.slice(0, 5)}-${dig.slice(5)}` : dig;
   };
 
+  // Formata liderança para exibição em tabela considerando nome e CPF.
+  const formatarLideranca = (lideranca) => {
+    if (typeof lideranca === 'string') return lideranca;
+    if (!lideranca || typeof lideranca !== 'object') return '';
+    const nome = String(lideranca.nome || '').trim();
+    const cpf = aplicarMascaraCpf(lideranca.cpf || '');
+    if (nome && cpf) return `${nome} (${cpf})`;
+    return nome || cpf || '';
+  };
+
   // Construção de campos dinâmicos -----------------------------
   const renderizarLiderancas = () => {
     liderancasContainer.innerHTML = '';
     estado.liderancas.forEach((lideranca, index) => {
       const liderancaNormalizada = typeof lideranca === 'string'
         ? { nome: lideranca, cpf: '' }
-        : { nome: lideranca?.nome || '', cpf: lideranca?.cpf || '' };
+        : { nome: lideranca?.nome || '', cpf: aplicarMascaraCpf(lideranca?.cpf || '') };
       // Comentário: garante que o estado fique sempre em formato de objeto.
       estado.liderancas[index] = { ...liderancaNormalizada };
       // Container da liderança com barra superior e campos abaixo
@@ -988,7 +998,7 @@
       tdAcoes.style.textAlign = 'center';
       tdNome.textContent = ent.nome || '';
       const nomesLiderancas = (ent.liderancas || [])
-        .map((lideranca) => typeof lideranca === 'string' ? lideranca : lideranca?.nome)
+        .map((lideranca) => formatarLideranca(lideranca))
         .map((nome) => String(nome || '').trim())
         .filter(Boolean);
       tdLideranca.textContent = nomesLiderancas.join(', ') || '—';

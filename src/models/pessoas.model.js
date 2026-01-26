@@ -346,11 +346,16 @@ class PessoaModel {
         const nomeDetalhado = detalhes?.nome || detalhes?.nomeFantasia || detalhes?.razaoSocial;
         const descricaoDetalhada = detalhes?.descricao;
         const liderDetalhado = Array.isArray(detalhes?.liderancas) && detalhes.liderancas.length
-          ? detalhes.liderancas[0]
+          ? (typeof detalhes.liderancas[0] === 'string' ? detalhes.liderancas[0] : detalhes.liderancas[0]?.nome)
           : detalhes?.lider || null;
         const liderNormalizado = (() => {
           if (base.lider) return base.lider;
-          if (Array.isArray(base.liderancas) && base.liderancas.length) return base.liderancas[0];
+          if (Array.isArray(base.liderancas) && base.liderancas.length) {
+            // Comentário: quando liderança vem em objeto, usa o nome.
+            return typeof base.liderancas[0] === 'string'
+              ? base.liderancas[0]
+              : base.liderancas[0]?.nome;
+          }
           return liderDetalhado;
         })();
         const observacaoNormalizada = base.observacoes || base.descricao || descricaoDetalhada || base.lider || null;
