@@ -33,6 +33,33 @@ function normalizarTelefone(valor) {
   return digitos || null;
 }
 
+// Normaliza lideranças para o formato { nome, cpf }
+function normalizarLiderancas(liderancasBrutas) {
+  const lista = Array.isArray(liderancasBrutas)
+    ? liderancasBrutas
+    : liderancasBrutas !== undefined && liderancasBrutas !== null
+      ? [liderancasBrutas]
+      : [];
+
+  return lista
+    .map((item) => {
+      if (typeof item === 'string') {
+        const nome = String(item || '').trim();
+        return nome ? { nome, cpf: null } : null;
+      }
+      if (item && typeof item === 'object') {
+        const nome = item.nome !== undefined ? String(item.nome || '').trim() : '';
+        const cpf = item.cpf !== undefined ? String(item.cpf || '').replace(/\D/g, '') : '';
+        const nomeFinal = nome || null;
+        const cpfFinal = cpf || null;
+        if (!nomeFinal && !cpfFinal) return null;
+        return { nome: nomeFinal, cpf: cpfFinal };
+      }
+      return null;
+    })
+    .filter(Boolean);
+}
+
 // Limpa e valida o payload recebido tanto para criação quanto atualização
 function sanitizarEntidade(payload, arquivos = []) {
   const limparTexto = (v) => (v !== undefined ? String(v || '').trim() : undefined);
@@ -44,9 +71,7 @@ function sanitizarEntidade(payload, arquivos = []) {
   const cnpj = limparTexto(payload.cnpj)?.replace(/\D/g, '') || undefined;
   const descricao = limparTexto(payload.descricao);
 
-  const liderancas = limparLista(payload.liderancas)
-    .map((l) => String(l || '').trim())
-    .filter(Boolean);
+  const liderancas = normalizarLiderancas(payload.liderancas);
 
   const telefones = limparLista(payload.telefones)
     .map(normalizarTelefone)
@@ -89,7 +114,21 @@ function filtrarEntidades(lista, filtros = {}) {
 
   return lista.filter((entidade) => {
     const liderancas = Array.isArray(entidade.liderancas) ? entidade.liderancas : [];
-    const liderancaCombina = (valor) => liderancas.some((l) => String(l || '').toLowerCase().includes(valor));
+    const liderancaCombina = (valor) => {
+      const valorTexto = valor.toLowerCase();
+      const valorCpf = valor.replace(/\D/g, '');
+      return liderancas.some((l) => {
+        if (typeof l === 'string') {
+          return String(l || '').toLowerCase().includes(valorTexto);
+        }
+        if (l && typeof l === 'object') {
+          const nome = String(l.nome || '').toLowerCase();
+          const cpf = String(l.cpf || '').replace(/\D/g, '');
+          return nome.includes(valorTexto) || (valorCpf && cpf.includes(valorCpf));
+        }
+        return false;
+      });
+    };
     const nomeOuLiderOk = termo
       ? entidade.nome.toLowerCase().includes(termo) || liderancaCombina(termo)
       : true;
