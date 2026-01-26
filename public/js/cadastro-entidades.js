@@ -17,6 +17,8 @@
   const enderecosContainer = document.getElementById('lista-enderecos');
   const fotosInput = document.getElementById('entidade-fotos');
   const fotosContainer = document.getElementById('lista-fotos-entidade');
+  const veiculosContainer = document.getElementById('lista-veiculos-entidade');
+  const adicionarVeiculoBtn = document.getElementById('adicionar-veiculo-entidade');
 
   // Estado local em memória para simplificar renderizações
   const estado = {
@@ -26,6 +28,8 @@
     liderancas: [],
     telefones: [],
     enderecos: [],
+    veiculos: [],
+    veiculosEditados: false,
     indicadorEnderecoAtual: null,
     fotosSelecionadas: [],
     fotosParaRemover: [],
@@ -151,6 +155,14 @@
   const aplicarMascaraCep = (valor) => {
     const dig = String(valor || '').replace(/\D/g, '').slice(0, 8);
     return dig.length > 5 ? `${dig.slice(0, 5)}-${dig.slice(5)}` : dig;
+  };
+
+  // Normaliza e mascara placa seguindo padrão usado no cadastro de pessoas/empresas
+  const normalizarPlaca = (valor) => String(valor || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 7);
+  const aplicarMascaraPlaca = (valor) => {
+    const placa = normalizarPlaca(valor);
+    if (placa.length <= 3) return placa;
+    return `${placa.slice(0, 3)}-${placa.slice(3)}`;
   };
 
   // Validação de CPF com mesma lógica utilizada no cadastro de pessoas
@@ -738,6 +750,178 @@
     });
   };
 
+  // Veículos vinculados à entidade (mesmo padrão de pessoas/empresas)
+  const obterNomeProprietarioEntidade = () => {
+    const nome = String(document.getElementById('entidade-nome')?.value || '').trim();
+    return nome || '';
+  };
+  const obterCnpjEntidade = () => String(document.getElementById('entidade-cnpj')?.value || '').replace(/\D/g, '');
+
+  const sincronizarVeiculosEntidade = () => {
+    if (!estado.veiculos.length) return;
+    const nomeAtual = obterNomeProprietarioEntidade();
+    const cnpjAtual = obterCnpjEntidade();
+    estado.veiculos = estado.veiculos.map((v) => ({
+      ...v,
+      nomeProprietario: nomeAtual || v.nomeProprietario || '',
+      cnpj: cnpjAtual || v.cnpj || '',
+    }));
+  };
+
+  const renderizarVeiculosEntidade = () => {
+    if (!veiculosContainer) return;
+    sincronizarVeiculosEntidade();
+    veiculosContainer.innerHTML = '';
+    if (!estado.veiculos.length) return;
+
+    estado.veiculos.forEach((veiculo, indice) => {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'panel';
+      wrapper.style.padding = '0.75rem';
+      wrapper.style.display = 'flex';
+      wrapper.style.flexDirection = 'column';
+      wrapper.style.gap = '0.5rem';
+
+      const titulo = document.createElement('div');
+      titulo.style.display = 'flex';
+      titulo.style.justifyContent = 'space-between';
+      titulo.style.alignItems = 'center';
+      titulo.innerHTML = `<strong style="font-size: 0.95rem;">Veículo ${indice + 1}</strong>`;
+      const btnRemover = document.createElement('button');
+      btnRemover.type = 'button';
+      btnRemover.className = 'button button--danger';
+      btnRemover.textContent = '-';
+      btnRemover.setAttribute('aria-label', 'Remover veículo');
+      btnRemover.title = 'Excluir';
+      btnRemover.style.minWidth = 'fit-content';
+      btnRemover.addEventListener('click', async () => {
+        const v = estado.veiculos[indice] || {};
+        const temDados = [v.placa, v.marcaModelo, v.cor, (v.anoModelo ?? ''), v.obs]
+          .some(val => String(val || '').toString().trim());
+        if (temDados) {
+          const ok = await confirmarExclusao();
+          if (!ok) return;
+        }
+        estado.veiculos.splice(indice, 1);
+        estado.veiculosEditados = true;
+        renderizarVeiculosEntidade();
+      });
+      titulo.appendChild(btnRemover);
+      wrapper.appendChild(titulo);
+
+      const gridPrincipal = document.createElement('div');
+      gridPrincipal.className = 'form__grid form__grid--3';
+
+      const campoPlaca = document.createElement('label');
+      campoPlaca.className = 'form__field';
+      campoPlaca.innerHTML = `<span class="form__label">Placa</span>`;
+      const inputPlaca = document.createElement('input');
+      inputPlaca.className = 'form__input';
+      inputPlaca.type = 'text';
+      inputPlaca.maxLength = 8;
+      inputPlaca.placeholder = 'ABC1D23';
+      inputPlaca.value = veiculo.placa || '';
+      inputPlaca.addEventListener('input', (e) => {
+        estado.veiculos[indice].placa = e.target.value;
+        estado.veiculosEditados = true;
+      });
+      inputPlaca.addEventListener('blur', (e) => {
+        e.target.value = aplicarMascaraPlaca(e.target.value);
+        estado.veiculos[indice].placa = e.target.value;
+      });
+      campoPlaca.appendChild(inputPlaca);
+      gridPrincipal.appendChild(campoPlaca);
+
+      const campoMarca = document.createElement('label');
+      campoMarca.className = 'form__field';
+      campoMarca.innerHTML = `<span class="form__label">Marca/Modelo</span>`;
+      const inputMarca = document.createElement('input');
+      inputMarca.className = 'form__input';
+      inputMarca.type = 'text';
+      inputMarca.value = veiculo.marcaModelo || '';
+      inputMarca.addEventListener('input', (e) => {
+        estado.veiculos[indice].marcaModelo = e.target.value;
+        estado.veiculosEditados = true;
+      });
+      campoMarca.appendChild(inputMarca);
+      gridPrincipal.appendChild(campoMarca);
+
+      const campoCor = document.createElement('label');
+      campoCor.className = 'form__field';
+      campoCor.innerHTML = `<span class="form__label">Cor</span>`;
+      const inputCor = document.createElement('input');
+      inputCor.className = 'form__input';
+      inputCor.type = 'text';
+      inputCor.value = veiculo.cor || '';
+      inputCor.addEventListener('input', (e) => {
+        estado.veiculos[indice].cor = e.target.value;
+        estado.veiculosEditados = true;
+      });
+      campoCor.appendChild(inputCor);
+      gridPrincipal.appendChild(campoCor);
+      wrapper.appendChild(gridPrincipal);
+
+      const gridSecundario = document.createElement('div');
+      gridSecundario.className = 'form__grid form__grid--3';
+      const campoAno = document.createElement('label');
+      campoAno.className = 'form__field';
+      campoAno.innerHTML = `<span class="form__label">Ano/Modelo</span>`;
+      const inputAno = document.createElement('input');
+      inputAno.className = 'form__input';
+      inputAno.type = 'number';
+      inputAno.min = 1900;
+      inputAno.max = 2100;
+      inputAno.placeholder = '2024';
+      inputAno.value = veiculo.anoModelo ?? '';
+      inputAno.addEventListener('input', (e) => {
+        const valor = e.target.value ? Number(e.target.value) : '';
+        estado.veiculos[indice].anoModelo = (valor === '' || Number.isNaN(valor)) ? undefined : valor;
+        estado.veiculosEditados = true;
+      });
+      campoAno.appendChild(inputAno);
+      gridSecundario.appendChild(campoAno);
+
+      // Campos ocultos para sincronizar proprietário e CNPJ automaticamente
+      const inputNomeProprietario = document.createElement('input');
+      inputNomeProprietario.type = 'hidden';
+      inputNomeProprietario.dataset.veiculoNomeProprietario = 'true';
+      inputNomeProprietario.value = veiculo.nomeProprietario || obterNomeProprietarioEntidade() || '';
+      const inputCnpjProprietario = document.createElement('input');
+      inputCnpjProprietario.type = 'hidden';
+      inputCnpjProprietario.dataset.veiculoCnpj = 'true';
+      inputCnpjProprietario.value = veiculo.cnpj || obterCnpjEntidade() || '';
+
+      gridSecundario.appendChild(inputNomeProprietario);
+      gridSecundario.appendChild(inputCnpjProprietario);
+
+      wrapper.appendChild(gridSecundario);
+
+      // Campo de observações logo abaixo da linha "Ano/Modelo"
+      const campoObs = document.createElement('label');
+      campoObs.className = 'form__field';
+      campoObs.innerHTML = `<span class="form__label">Obs:</span>`;
+      const inputObs = document.createElement('textarea');
+      inputObs.className = 'form__input';
+      inputObs.rows = 2;
+      inputObs.placeholder = 'Observações do veículo';
+      inputObs.value = veiculo.obs || '';
+      inputObs.addEventListener('input', (e) => {
+        estado.veiculos[indice].obs = e.target.value;
+        estado.veiculosEditados = true;
+      });
+      campoObs.appendChild(inputObs);
+      wrapper.appendChild(campoObs);
+
+      veiculosContainer.appendChild(wrapper);
+    });
+  };
+
+  const adicionarVeiculoEntidade = () => {
+    estado.veiculos.push({});
+    estado.veiculosEditados = true;
+    renderizarVeiculosEntidade();
+  };
+
   // Fotos do cadastro seguindo o padrão de pessoas/empresas
   const renderizarFotosEntidade = () => {
     if (!fotosContainer) return;
@@ -949,6 +1133,10 @@
     renderizarEnderecos();
   });
 
+  adicionarVeiculoBtn?.addEventListener('click', () => {
+    adicionarVeiculoEntidade();
+  });
+
   // Listeners delegados para remoções
   liderancasContainer.addEventListener('click', async (e) => {
     const idx = e.target.getAttribute('data-remover-lideranca');
@@ -1025,6 +1213,22 @@
     });
   })();
 
+  // Mantém veículos sincronizados com nome e CNPJ da entidade
+  const configurarSyncVeiculosEntidade = () => {
+    const nomeInput = document.getElementById('entidade-nome');
+    const cnpjInput = document.getElementById('entidade-cnpj');
+    const atualizarDados = () => {
+      sincronizarVeiculosEntidade();
+      if (estado.veiculos.length) {
+        // Comentário: marca edição para garantir envio quando nome/CNPJ mudarem.
+        estado.veiculosEditados = true;
+      }
+    };
+    nomeInput?.addEventListener('input', atualizarDados);
+    cnpjInput?.addEventListener('input', atualizarDados);
+  };
+  configurarSyncVeiculosEntidade();
+
   // Coleta de dados do formulário e envio para API
   const coletarDadosFormulario = () => {
     const dados = new FormData();
@@ -1045,6 +1249,25 @@
     dados.append('telefones', JSON.stringify(estado.telefones.map((t) => t || '').filter(Boolean)));
     dados.append('enderecos', JSON.stringify(estado.enderecos));
     dados.append('endereco_atual_index', estado.indicadorEnderecoAtual === null ? '' : String(estado.indicadorEnderecoAtual));
+
+    if (!estado.emEdicao || estado.veiculosEditados) {
+      const nomeProprietarioDefault = obterNomeProprietarioEntidade();
+      const cnpjEntidade = obterCnpjEntidade();
+      const veiculosNormalizados = estado.veiculos
+        .map((v) => {
+          const placa = normalizarPlaca(String(v.placa || ''));
+          const marcaModelo = String(v.marcaModelo || '').trim();
+          const cor = String(v.cor || '').trim();
+          const anoModelo = v.anoModelo ?? null;
+          const obs = String(v.obs || '').trim();
+          const nomeProprietario = String(v.nomeProprietario || nomeProprietarioDefault || '').trim() || null;
+          const cnpj = String(v.cnpj || cnpjEntidade || '').replace(/\D/g, '') || null;
+          return { placa, marcaModelo, cor, anoModelo, obs, nomeProprietario, cnpj };
+        })
+        .filter(v => (v.placa || v.marcaModelo || v.cor || v.anoModelo || v.obs));
+      dados.append('veiculos', JSON.stringify(veiculosNormalizados));
+    }
+
     dados.append('fotosParaRemover', JSON.stringify(estado.fotosParaRemover));
 
     const fotosExistentes = estado.fotosSelecionadas
@@ -1065,6 +1288,8 @@
     estado.liderancas = [];
     estado.telefones = [];
     estado.enderecos = [];
+    estado.veiculos = [];
+    estado.veiculosEditados = false;
     estado.indicadorEnderecoAtual = null;
     const devePreservarGaleria = estado.preservarFotosNoReset && estado.fotosSelecionadas.length > 0;
     estado.fotosParaRemover = [];
@@ -1076,6 +1301,7 @@
     renderizarLiderancas();
     renderizarTelefones();
     renderizarEnderecos();
+    renderizarVeiculosEntidade();
     renderizarFotosEntidade();
     estado.preservarFotosNoReset = false;
     if (fotosInput) fotosInput.value = '';
@@ -1105,6 +1331,20 @@
       }
       if (erroEl) {
         erroEl.style.display = 'none';
+      }
+    }
+
+    if (!estado.emEdicao || estado.veiculosEditados) {
+      const veiculosComDados = estado.veiculos.filter((v) => {
+        const placa = normalizarPlaca(v.placa || '');
+        return [placa, v.marcaModelo, v.cor, (v.anoModelo ?? ''), v.obs]
+          .some((valor) => String(valor || '').trim());
+      });
+      const semPlaca = veiculosComDados.find((v) => !normalizarPlaca(v.placa || '').trim());
+      if (semPlaca) {
+        exibirMensagem(formMsgEl, 'Informe a placa de todos os veículos adicionados.', 'error');
+        submitBtn.disabled = false;
+        return;
       }
     }
 
@@ -1263,6 +1503,18 @@
       mostrarLinkEndereco: true,
       mostrarLinkLatLong: true,
     }));
+    estado.veiculos = Array.isArray(entidade.veiculos)
+      ? entidade.veiculos.map((v) => ({
+          placa: aplicarMascaraPlaca(v.placa || ''),
+          marcaModelo: v.marcaModelo || '',
+          cor: v.cor || '',
+          anoModelo: v.anoModelo ?? '',
+          obs: v.obs || '',
+          nomeProprietario: v.nomeProprietario || '',
+          cnpj: v.cnpj || '',
+        }))
+      : [];
+    estado.veiculosEditados = false;
     estado.indicadorEnderecoAtual = estado.enderecos.length ? 0 : null;
     estado.fotosParaRemover = [];
     estado.preservarFotosNoReset = false;
@@ -1275,6 +1527,7 @@
     renderizarLiderancas();
     renderizarTelefones();
     renderizarEnderecos();
+    renderizarVeiculosEntidade();
     carregarFotosEntidadeExistentes(entidade.fotos || []);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };

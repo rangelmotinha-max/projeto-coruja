@@ -75,12 +75,14 @@ function normalizarLideranca(payload = {}) {
 }
 
 // Limpa e valida o payload recebido tanto para criação quanto atualização
-function sanitizarEntidade(payload, arquivos = []) {
+function sanitizarEntidade(payload, arquivos = [], options = {}) {
   const limparTexto = (v) => (v !== undefined ? String(v || '').trim() : undefined);
   const nome = limparTexto(payload.nome);
   if (payload.nome !== undefined && !nome) {
     throw criarErro('Nome é obrigatório para o cadastro de entidades.', 400);
   }
+
+  const preservarVeiculosAusentes = options.preservarVeiculosAusentes === true;
 
   const cnpj = limparTexto(payload.cnpj)?.replace(/\D/g, '') || undefined;
   const descricao = limparTexto(payload.descricao);
@@ -95,6 +97,40 @@ function sanitizarEntidade(payload, arquivos = []) {
   const enderecos = enderecosBrutos
     .map(normalizarEndereco)
     .filter(Boolean);
+
+  const parseListaCampo = (valor) => {
+    if (!valor) return [];
+    if (Array.isArray(valor)) return valor;
+    if (typeof valor === 'string') {
+      try {
+        const parsed = JSON.parse(valor);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (_) {
+        return [];
+      }
+    }
+    return [];
+  };
+
+  const temVeiculos = Object.prototype.hasOwnProperty.call(payload, 'veiculos');
+  const veiculosBrutos = parseListaCampo(payload.veiculos);
+  const veiculosNormalizados = Array.isArray(veiculosBrutos)
+    ? veiculosBrutos
+        .map((v) => {
+          const placa = String(v?.placa || '')
+            .toUpperCase()
+            .replace(/[^A-Z0-9]/g, '')
+            .trim();
+          const marcaModelo = String(v?.marcaModelo || '').trim();
+          const cor = String(v?.cor || '').trim();
+          const anoModelo = typeof v?.anoModelo === 'number' ? v.anoModelo : (v?.anoModelo ? Number(String(v.anoModelo).replace(/\D/g, '')) || null : null);
+          const obs = String(v?.obs || '').trim();
+          const nomeProprietario = String(v?.nomeProprietario || nome || '').trim();
+          const cnpjVeiculo = String(v?.cnpj || cnpj || '').replace(/\D/g, '');
+          return { placa, marcaModelo, cor, anoModelo, obs, nomeProprietario, cnpj: cnpjVeiculo };
+        })
+        .filter((v) => (v.placa && v.nomeProprietario))
+    : [];
 
   const fotosParaRemover = Array.isArray(payload.fotosParaRemover)
     ? payload.fotosParaRemover
@@ -114,6 +150,7 @@ function sanitizarEntidade(payload, arquivos = []) {
     liderancas,
     telefones,
     enderecos,
+    ...((!preservarVeiculosAusentes || temVeiculos) ? { veiculos: veiculosNormalizados } : {}),
     fotos,
     fotosParaRemover,
   };
@@ -178,7 +215,14 @@ async function atualizar(id, payload, arquivos = []) {
   const existente = await EntidadeModel.findById(id);
   if (!existente) throw criarErro('Entidade não encontrada', 404);
 
-  const dados = sanitizarEntidade(payload, arquivos);
+  const payloadNormalizado = payload ? { ...payload } : {};
+  if (!Object.prototype.hasOwnProperty.call(payloadNormalizado, 'nome')) {
+    payloadNormalizado.nome = existente.nome;
+  }
+  if (!Object.prototype.hasOwnProperty.call(payloadNormalizado, 'cnpj')) {
+    payloadNormalizado.cnpj = existente.cnpj;
+  }
+  const dados = sanitizarEntidade(payloadNormalizado, arquivos, { preservarVeiculosAusentes: true });
   return EntidadeModel.update(id, dados);
 }
 

@@ -55,6 +55,42 @@ function precisaPersistirLiderancas(liderancasBrutas) {
 }
 
 class EntidadeModel {
+  static async _listarVeiculos(db, entidadeId) {
+    return db.all(
+      'SELECT id, nomeProprietario, cnpj, placa, marcaModelo, cor, anoModelo, obs, criadoEm, atualizadoEm FROM veiculos_entidades WHERE entidade_id = ? ORDER BY atualizadoEm DESC',
+      [entidadeId],
+    );
+  }
+
+  static async _salvarVeiculos(db, entidadeId, veiculos) {
+    if (!Array.isArray(veiculos) || veiculos.length === 0) return;
+    const agora = new Date().toISOString();
+    for (const v of veiculos) {
+      const id = v.id || randomUUID();
+      await db.run(
+        `INSERT INTO veiculos_entidades (id, entidade_id, nomeProprietario, cnpj, placa, marcaModelo, cor, anoModelo, obs, criadoEm, atualizadoEm)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          id,
+          entidadeId,
+          v.nomeProprietario || null,
+          v.cnpj || null,
+          v.placa || null,
+          v.marcaModelo || null,
+          v.cor || null,
+          typeof v.anoModelo === 'number' ? v.anoModelo : null,
+          v.obs || null,
+          agora,
+          agora,
+        ],
+      );
+    }
+  }
+
+  static async _removerVeiculos(db, entidadeId) {
+    await db.run('DELETE FROM veiculos_entidades WHERE entidade_id = ?', [entidadeId]);
+  }
+
   // Mapeia metadados da foto incluindo URL pública
   static mapearFoto(foto) {
     if (!foto) return null;
@@ -135,6 +171,10 @@ class EntidadeModel {
         );
       }
 
+      if (Array.isArray(dados.veiculos) && dados.veiculos.length) {
+        await this._salvarVeiculos(db, id, dados.veiculos);
+      }
+
       for (const foto of dados.fotos || []) {
         await this.adicionarFoto(id, foto, db);
       }
@@ -172,6 +212,7 @@ class EntidadeModel {
         'SELECT id, logradouro, bairro, cidade, uf, cep, complemento FROM entidades_enderecos WHERE entidade_id = ? ORDER BY criadoEm ASC',
         [ent.id],
       );
+      ent.veiculos = await this._listarVeiculos(db, ent.id);
       const fotos = await db.all(
         'SELECT id, nome_arquivo, caminho, mime_type, tamanho FROM entidades_fotos WHERE entidade_id = ? ORDER BY criadoEm ASC',
         [ent.id],
@@ -207,6 +248,7 @@ class EntidadeModel {
       'SELECT id, logradouro, bairro, cidade, uf, cep, complemento FROM entidades_enderecos WHERE entidade_id = ? ORDER BY criadoEm ASC',
       [id],
     );
+    ent.veiculos = await this._listarVeiculos(db, id);
     const fotos = await db.all(
       'SELECT id, nome_arquivo, caminho, mime_type, tamanho FROM entidades_fotos WHERE entidade_id = ? ORDER BY criadoEm ASC',
       [id],
@@ -284,6 +326,11 @@ class EntidadeModel {
             ],
           );
         }
+      }
+
+      if (Array.isArray(updates.veiculos)) {
+        await this._removerVeiculos(db, id);
+        await this._salvarVeiculos(db, id, updates.veiculos);
       }
 
       for (const fotoId of updates.fotosParaRemover || []) {
