@@ -58,12 +58,14 @@ function sanitizeEmpresa(payload, options = {}) {
           const marcaModelo = String(v?.marcaModelo || '').trim();
           const cor = String(v?.cor || '').trim();
           const anoModelo = typeof v?.anoModelo === 'number' ? v.anoModelo : (v?.anoModelo ? Number(String(v.anoModelo).replace(/\D/g, '')) || null : null);
+          // Comentário: preserva observações informadas no payload do veículo.
+          const obsVeiculo = v?.obs !== undefined && v?.obs !== null ? String(v.obs).trim() : '';
           // Comentário: força proprietário e documento usando os dados principais da empresa (Razão Social e CNPJ).
           const nomeProprietario = String(razaoSocial || '').trim();
           const cnpj = String(cnpjDigits || '').replace(/\D/g, '');
           // Comentário: inclui CPF derivado do CNPJ para compatibilidade com a API de veículos.
           const cpf = cnpj || null;
-          return { placa, marcaModelo, cor, anoModelo, nomeProprietario, cnpj, cpf };
+          return { placa, marcaModelo, cor, anoModelo, obs: obsVeiculo || null, nomeProprietario, cnpj, cpf };
         })
         .filter((v) => (v.placa && v.nomeProprietario))
     : [];

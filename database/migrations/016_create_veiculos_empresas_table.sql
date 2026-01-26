@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS veiculos_empresas (
   marcaModelo TEXT,
   cor TEXT,
   anoModelo INTEGER,
+  obs TEXT,
   criadoEm TEXT NOT NULL,
   atualizadoEm TEXT NOT NULL,
   FOREIGN KEY (empresa_id) REFERENCES empresas_cadastro(id) ON DELETE CASCADE
