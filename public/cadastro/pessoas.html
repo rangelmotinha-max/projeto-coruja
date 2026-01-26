@@ -16,7 +16,7 @@
   </head>
   <body class="theme-dark">
     <div class="app">
-      <div class="user-menu" id="user-menu" aria-expemoanded="false">
+      <div class="user-menu" id="user-menu" aria-expemovanded="false">
         <button class="user-menu__button" type="button" id="user-menu-button" aria-haspopup="true" aria-expanded="false">
           <span class="user-menu__avatar" id="user-avatar" aria-hidden="true">U</span>
           <span id="user-button-name">Usuário</span>
@@ -5583,6 +5583,7 @@
             { key: 'complemento', label: 'Complemento' },
             { key: 'cep', label: 'CEP' },
             { key: 'latLong', label: 'Lat/Long' },
+            { key: 'obsEndereco', label: 'Obs do endereço' },
           ],
           veiculos: [
             { key: 'placa', label: 'Placa' },
@@ -5591,12 +5592,16 @@
             { key: 'anoModelo', label: 'Ano' },
             { key: 'nomeProprietario', label: 'Nome Completo' },
             { key: 'cpf', label: 'CPF' },
+            { key: 'obs', label: 'Obs do veículo' },
           ],
           vinculos: [
             { key: 'pessoas', label: 'Pessoas' },
             { key: 'empresas', label: 'Empresas' },
+            { key: 'entidades', label: 'Entidades' },
             { key: 'veiculos', label: 'Veículos Vinculados' },
             { key: 'veiculosEmpresas', label: 'Veículos das Empresas vinculadas' },
+            { key: 'obsVeiculosVinculados', label: 'Obs dos veículos vinculados' },
+            { key: 'obsVeiculosEmpresas', label: 'Obs dos veículos das empresas vinculadas' },
             { key: 'empregaticio', label: 'Empregatício' },
           ],
           ocorrencias: [
@@ -5739,7 +5744,14 @@
           telefones,
           enderecos,
           veiculos,
-          vinculos: { pessoas: vinculosPessoas, empresas: empresasVinculadas, veiculos: vinculosVeiculos, veiculosEmpresas: veiculosEmpresasVinculadas, empregaticio: vinculosEmpregaticio },
+          vinculos: {
+            pessoas: vinculosPessoas,
+            empresas: empresasVinculadas,
+            entidades: entidadesVinculadas,
+            veiculos: vinculosVeiculos,
+            veiculosEmpresas: veiculosEmpresasVinculadas,
+            empregaticio: vinculosEmpregaticio,
+          },
           ocorrencias: { policiais: ocorrenciasPoliciais, processos, abordagens, prisoes, monitoramentos },
           fotosCadastro: (fotosSelecionadas || []).map((f) => f?.previewUrl || f?.url || f?.referencia).filter(Boolean),
           imagensMonitoramento: (monitoramentos || []).flatMap((m) => Array.isArray(m?.imagens) ? m.imagens.map((img) => img?.caminho).filter(Boolean) : []),
@@ -5852,6 +5864,10 @@
                 const latLongVal = safeText(end?.latLong);
                 html += `<div>Lat/Long: ${latLongVal}</div>`;
               }
+              if (attrs.includes('obsEndereco')) {
+                const obsVal = safeText(end?.obs);
+                html += `<div>Obs: ${obsVal}</div>`;
+              }
               html += `</div>`;
             });
             } else {
@@ -5883,6 +5899,10 @@
                 html += `<div class=\"section\">`;
                 if (linha1Parts.length) html += `<div>&bull; ${linha1Parts.join(', ')}</div>`;
                 if (linha2Parts.length) html += `<div>${linha2Parts.join(', ')}</div>`;
+                if (attrs.includes('obs')) {
+                  const obsVal = safeText(v?.obs);
+                  html += `<div>Obs: ${obsVal}</div>`;
+                }
                 html += `</div>`;
               }
             });
@@ -5930,6 +5950,27 @@
             }
             html += `</ul></div>`;
           }
+          if (selected.vinculos.includes('entidades')) {
+            html += `<div class="section"><strong>Entidades</strong><ul>`;
+            const arrEnt = Array.isArray(valores.vinculos.entidades) ? valores.vinculos.entidades : [];
+            if (!arrEnt.length) {
+              html += `<li>N/I</li>`;
+            } else {
+              arrEnt.forEach((e) => {
+                const ent = e?.id ? (entidadesOpcoes || []).find((opt) => String(opt.id) === String(e.id)) : null;
+                const cnpj = ent?.cnpj || e?.cnpj || '';
+                const cnpjFmt = cnpj ? aplicarMascaraCnpj(cnpj) : '';
+                const nome = ent?.nome || ent?.razaoSocial || ent?.nomeFantasia || e?.nome || '';
+                const obs = e?.observacoes || '';
+                html += `<li>` +
+                  `<div>Nome da Entidade: ${safeText(nome)}</div>` +
+                  `<div>CNPJ: ${safeText(cnpjFmt)}</div>` +
+                  `<div>Obs: ${safeText(obs)}</div>` +
+                `</li>`;
+              });
+            }
+            html += `</ul></div>`;
+          }
           if (selected.vinculos.includes('veiculosEmpresas')) {
             const arr = Array.isArray(valores.vinculos.veiculosEmpresas) ? valores.vinculos.veiculosEmpresas : [];
             html += `<div class="section"><strong>Veículos das Empresas vinculadas</strong><ul>`;
@@ -5944,6 +5985,9 @@
                 linha1.push(`Ano: ${safeText(v?.anoModelo ?? v?.ano)}`);
                 html += `<li>` +
                   (linha1.length ? `<div>${linha1.join(', ')}</div>` : '') +
+                  (selected.vinculos.includes('obsVeiculosEmpresas')
+                    ? `<div>Obs: ${safeText(v?.obs || v?.observacoes)}</div>`
+                    : '') +
                 `</li>`;
               });
             }
@@ -5976,6 +6020,9 @@
               html += `<li>` +
                 (linha1Parts.length ? `<div>${linha1Parts.join(', ')}</div>` : '') +
                 (linha2Parts.length ? `<div>${linha2Parts.join(', ')}</div>` : '') +
+                (selected.vinculos.includes('obsVeiculosVinculados')
+                  ? `<div>Obs: ${safeText(v?.obs || v?.observacoes)}</div>`
+                  : '') +
               `</li>`;
               });
             }
@@ -6204,6 +6251,7 @@
           vinculos: {
             pessoas: Array.isArray(pessoa?.vinculos?.pessoas) ? pessoa.vinculos.pessoas : [],
             empresas: Array.isArray(pessoa?.vinculos?.empresas) ? pessoa.vinculos.empresas : [],
+            entidades: Array.isArray(pessoa?.vinculos?.entidades) ? pessoa.vinculos.entidades : [],
             veiculos: Array.isArray(pessoa?.vinculos?.veiculos) ? pessoa.vinculos.veiculos : [],
             empregaticio: Array.isArray(pessoa?.vinculos?.empregaticio) ? pessoa.vinculos.empregaticio : []
           },
@@ -6293,6 +6341,10 @@
                 const latLongVal = safeText(end?.latLong);
                 out += `<div>Lat/Long: ${latLongVal}</div>`;
               }
+              if (attrs.includes('obsEndereco')) {
+                const obsVal = safeText(end?.obs);
+                out += `<div>Obs: ${obsVal}</div>`;
+              }
               out += `</div>`;
             });
           } else {
@@ -6320,6 +6372,10 @@
               out += `<div class="section">`;
               if (linha1.length) out += `<div>&bull; ${linha1.join(', ')}</div>`;
               if (linha2.length) out += `<div>${linha2.join(', ')}</div>`;
+              if (attrs.includes('obs')) {
+                const obsVal = safeText(v?.obs);
+                out += `<div>Obs: ${obsVal}</div>`;
+              }
               out += `</div>`;
               printed++;
             }
@@ -6353,6 +6409,10 @@
             const arr = Array.isArray(valores.vinculos.empresas) ? valores.vinculos.empresas : [];
             out += `<div class="section"><strong>Empresas</strong><ul>${arr.length ? arr.map((e) => `<li>${safeText(e?.nome || e?.razaoSocial || '')}</li>`).join('') : '<li>N/I</li>'}</ul></div>`;
           }
+          if (selected.vinculos.includes('entidades')) {
+            const arrEnt = Array.isArray(valores.vinculos.entidades) ? valores.vinculos.entidades : [];
+            out += `<div class="section"><strong>Entidades</strong><ul>${arrEnt.length ? arrEnt.map((e) => `<li>${safeText(e?.nome || e?.razaoSocial || '')}</li>`).join('') : '<li>N/I</li>'}</ul></div>`;
+          }
           if (selected.vinculos.includes('veiculosEmpresas')) {
             const arr = Array.isArray(valores.vinculos.veiculosEmpresas) ? valores.vinculos.veiculosEmpresas : [];
             out += `<div class="section"><strong>Veículos das Empresas vinculadas</strong><ul>` +
@@ -6363,8 +6423,12 @@
                     if (safeText(v?.marcaModelo)) linha1.push(`Marca/Modelo: ${safeText(v?.marcaModelo)}`);
                     linha1.push(`Cor: ${safeText(v?.cor)}`);
                     linha1.push(`Ano: ${safeText(v?.anoModelo ?? v?.ano)}`);
+                    const obsHtml = selected.vinculos.includes('obsVeiculosEmpresas')
+                      ? `<div>Obs: ${safeText(v?.obs || v?.observacoes)}</div>`
+                      : '';
                     return `<li>` +
                       (linha1.length ? `<div>${linha1.join(', ')}</div>` : '') +
+                      obsHtml +
                     `</li>`;
                   }).join('')
                 : '<li>N/I</li>') +
