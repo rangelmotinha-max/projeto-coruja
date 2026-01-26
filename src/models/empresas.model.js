@@ -58,7 +58,7 @@ class EmpresaCatalogoModel {
   }
   static async _listarVeiculos(db, empresaId) {
     return db.all(
-      'SELECT id, nomeProprietario, cnpj, placa, marcaModelo, cor, anoModelo, criadoEm, atualizadoEm FROM veiculos_empresas WHERE empresa_id = ? ORDER BY atualizadoEm DESC',
+      'SELECT id, nomeProprietario, cnpj, placa, marcaModelo, cor, anoModelo, obs, criadoEm, atualizadoEm FROM veiculos_empresas WHERE empresa_id = ? ORDER BY atualizadoEm DESC',
       [empresaId]
     );
   }
@@ -69,8 +69,8 @@ class EmpresaCatalogoModel {
     for (const v of veiculos) {
       const id = v.id || randomUUID();
       await db.run(
-        `INSERT INTO veiculos_empresas (id, empresa_id, nomeProprietario, cnpj, placa, marcaModelo, cor, anoModelo, criadoEm, atualizadoEm)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO veiculos_empresas (id, empresa_id, nomeProprietario, cnpj, placa, marcaModelo, cor, anoModelo, obs, criadoEm, atualizadoEm)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           id,
           empresaId,
@@ -80,6 +80,7 @@ class EmpresaCatalogoModel {
           v.marcaModelo || null,
           v.cor || null,
           typeof v.anoModelo === 'number' ? v.anoModelo : null,
+          v.obs || null,
           agora,
           agora,
         ]

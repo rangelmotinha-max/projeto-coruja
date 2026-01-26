@@ -5,7 +5,9 @@ class VeiculoEmpresaModel {
   // Lista todos os veículos vinculados a empresas
   static async findAll() {
     const db = await initDatabase();
-    return db.all('SELECT * FROM veiculos_empresas ORDER BY atualizadoEm DESC');
+    return db.all(
+      'SELECT id, empresa_id AS empresaId, nomeProprietario, cnpj, placa, marcaModelo, cor, anoModelo, obs, criadoEm, atualizadoEm FROM veiculos_empresas ORDER BY atualizadoEm DESC'
+    );
   }
 
   // Busca veículos de empresas com filtros flexíveis
@@ -35,7 +37,7 @@ class VeiculoEmpresaModel {
     const where = clausulas.length ? `WHERE ${clausulas.join(' AND ')}` : '';
 
     return db.all(
-      `SELECT placa, marcaModelo, nomeProprietario, cnpj, cor, anoModelo FROM veiculos_empresas ${where} ORDER BY atualizadoEm DESC`,
+      `SELECT placa, marcaModelo, nomeProprietario, cnpj, cor, anoModelo, obs FROM veiculos_empresas ${where} ORDER BY atualizadoEm DESC`,
       valores,
     );
   }
