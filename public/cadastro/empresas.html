@@ -581,11 +581,12 @@
               const marcaModelo = String(v.marcaModelo||'').trim();
               const cor = String(v.cor||'').trim();
               const anoModelo = (v.anoModelo ?? null);
+              const obs = String(v.obs || '').trim();
               const nomeProprietario = String(v.nomeProprietario || nomeProprietarioDefault || '').trim() || null;
               const cnpj = String(v.cnpj || cnpjEmpresa || '').replace(/\D/g, '') || null;
-              return { placa, marcaModelo, cor, anoModelo, nomeProprietario, cnpj };
+              return { placa, marcaModelo, cor, anoModelo, obs, nomeProprietario, cnpj };
             })
-            .filter(v => (v.placa || v.marcaModelo || v.cor || v.anoModelo));
+            .filter(v => (v.placa || v.marcaModelo || v.cor || v.anoModelo || v.obs));
         }
 
         dados.fotosExistentes = fotosEmpresaSelecionadas
@@ -908,6 +909,7 @@
               marcaModelo: v.marcaModelo || '',
               cor: v.cor || '',
               anoModelo: v.anoModelo,
+              obs: v.obs || '',
               nomeProprietario: v.nomeProprietario || '',
               cnpj: v.cnpj || '',
             }))
@@ -1324,6 +1326,22 @@
           gridSecundario.appendChild(inputCnpjProprietario);
 
           wrapper.appendChild(gridSecundario);
+
+          // Campo de observações logo abaixo da linha "Ano/Modelo"
+          const campoObs = document.createElement('label');
+          campoObs.className = 'form__field';
+          campoObs.innerHTML = `<span class="form__label">Obs:</span>`;
+          const inputObs = document.createElement('textarea');
+          inputObs.className = 'form__input';
+          inputObs.rows = 2;
+          inputObs.placeholder = 'Observações do veículo';
+          inputObs.value = veiculo.obs || '';
+          inputObs.addEventListener('input', (e) => {
+            veiculosEmpresa[indice].obs = e.target.value;
+            veiculosEditados = true;
+          });
+          campoObs.appendChild(inputObs);
+          wrapper.appendChild(campoObs);
           listaEl.appendChild(wrapper);
         });
       };
