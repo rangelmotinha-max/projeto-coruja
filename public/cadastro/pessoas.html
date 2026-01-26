@@ -1197,7 +1197,8 @@
           return {
             id: idLimpo !== undefined && idLimpo !== null && String(idLimpo).trim() !== '' ? idLimpo : undefined,
             nome: entrada.nome || entrada.razaoSocial || entrada.nomeFantasia || '',
-            observacoes: entrada.observacoes || '',
+            // obs pode vir do cadastro de empresas como "obs" ou "observacoes"
+            observacoes: entrada.obs || entrada.observacoes || '',
           };
         }
         return { id: entrada, nome: '', observacoes: '' };
@@ -1300,7 +1301,8 @@
             empresasVinculadas.push({
               id: empresa.id,
               nome: empresa.razaoSocial || empresa.nomeFantasia || '',
-              observacoes: empresa.observacoes || '',
+              // aproveita o campo de observações do cadastro da empresa, se existir
+              observacoes: (empresa.obs || empresa.observacoes || ''),
             });
             renderizarEmpresasVinculadasLista();
           }
@@ -1375,6 +1377,7 @@
           const normalizado = normalizarVinculoEmpresa(item);
           const emp = normalizado.id ? empresasOpcoes.find((e) => String(e.id) === String(normalizado.id)) : null;
           if (!emp && !normalizado.nome && !normalizado.observacoes) return;
+          // Linha principal com dados da empresa
           const tr = document.createElement('tr');
           tr.style.borderBottom = '1px solid var(--border)';
           const tdCnpj = document.createElement('td'); tdCnpj.style.padding = '0.5rem'; tdCnpj.textContent = emp ? aplicarMascaraCnpj(emp.cnpj) : '—';
@@ -1401,6 +1404,20 @@
           tr.appendChild(tdSituacao);
           tr.appendChild(tdAcoes);
           tbody.appendChild(tr);
+
+          // Linha extra de observações, apenas quando houver texto preenchido
+          const obsTexto = String(normalizado.observacoes || '').trim();
+          if (obsTexto) {
+            const trObs = document.createElement('tr');
+            trObs.style.borderBottom = '1px solid var(--border)';
+            const tdObs = document.createElement('td');
+            tdObs.colSpan = 5; // CNPJ, Razão Social, Nome Fantasia, Situação, Ações
+            tdObs.style.padding = '0.35rem';
+            tdObs.textContent = `Obs: ${obsTexto}`;
+            tdObs.style.color = 'var(--muted)';
+            trObs.appendChild(tdObs);
+            tbody.appendChild(trObs);
+          }
         });
         cont.appendChild(table);
       };
