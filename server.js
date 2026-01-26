@@ -64,6 +64,11 @@ app.get('/consulta/empresas', authMiddleware, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'consulta', 'empresas.html'));
 });
 
+// Rota protegida garantindo acesso autenticado à página de Consulta de Entidades
+app.get('/consulta/entidades', authMiddleware, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'consulta', 'entidades.html'));
+});
+
 // Rota protegida garantindo acesso autenticado à página de Consulta de Veículos
 app.get('/consulta/veiculos', authMiddleware, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'consulta', 'veiculos.html'));
