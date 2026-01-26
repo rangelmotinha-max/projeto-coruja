@@ -457,6 +457,25 @@
                     <div id="empresas-vinculadas-lista" style="margin-top:0.75rem;"></div>
                   </div>
 
+                <!-- Sub-seção: Entidades vinculadas (seleção única de entidades já cadastradas) -->
+                  <div class="form__subsection" aria-label="Entidades vinculadas">
+                    <div style="display:flex; justify-content:space-between; align-items:center; width:100%; margin:0.75rem 0;">
+                      <h4 class="form__section-title" style="font-size:1rem; margin:0;">Entidades</h4>
+                    </div>
+                    <div class="form__grid form__grid--3" style="align-items:end;">
+                      <label class="form__field">
+                        <input class="form__input" type="text" id="entidade-cnpj-input" placeholder="Digite o CNPJ" aria-label="CNPJ da entidade" />
+                      </label>
+                      <div class="form__actions" style="margin:0;">
+                        <button class="button button--secondary" type="button" id="entidade-buscar-cnpj" title="Procurar" aria-label="Buscar entidade por CNPJ" style="min-width:8rem;">Procurar</button>
+                      </div>
+                      <small id="entidade-vinculada-status" style="color: var(--muted);"></small>
+                    </div>
+                    <!-- Comentário: contêineres para retorno da busca e lista de entidades vinculadas -->
+                    <div id="entidade-busca-resultado" style="margin-top:0.75rem;"></div>
+                    <div id="entidades-vinculadas-lista" style="margin-top:0.75rem;"></div>
+                  </div>
+
                 <!-- Sub-seção Empresa removida desta tela -->
                 <!--
                 <div class="form__subsection" hidden>
@@ -1004,6 +1023,18 @@
               : null;
           })
           .filter(Boolean);
+        const entidadesVinc = (entidadesVinculadas || [])
+          .map((entrada) => {
+            // Comentário: mantém somente dados válidos de entidades vinculadas
+            const { id, nome, observacoes } = normalizarVinculoEntidade(entrada);
+            const idLimpo = id !== undefined && id !== null && String(id).trim() !== '' ? id : undefined;
+            const nomeLimpo = String(nome || '').trim();
+            const obsLimpa = String(observacoes || '').trim();
+            return (idLimpo !== undefined || nomeLimpo || obsLimpa)
+              ? { id: idLimpo, nome: nomeLimpo, observacoes: obsLimpa }
+              : null;
+          })
+          .filter(Boolean);
         const empregList = (vinculosEmpregaticio || [])
           .map(e => {
             const info = String(e?.info || '').trim();
@@ -1015,6 +1046,7 @@
         dados.vinculos = {
           pessoas: pessoasVinc,
           empresas: empresasVinc,
+          entidades: entidadesVinc,
           empregaticio: empregList,
           veiculos: veiculosVinc,
         };
@@ -1419,6 +1451,225 @@
             trObs.appendChild(tdObs);
             tbody.appendChild(trObs);
           }
+        });
+        cont.appendChild(table);
+      };
+
+      // Entidades vinculadas (seleção única)
+      const API_ENTIDADES_URL = '/api/entidades';
+      let entidadesOpcoes = [];
+      let entidadesVinculadas = []; // Comentário: array de objetos { id, nome, observacoes }
+
+      const normalizarVinculoEntidade = (entrada) => {
+        // Comentário: normaliza diferentes formatos para objeto consistente
+        if (entrada && typeof entrada === 'object') {
+          const idLimpo = entrada.id ?? entrada.entidadeId ?? null;
+          return {
+            id: idLimpo !== undefined && idLimpo !== null && String(idLimpo).trim() !== '' ? idLimpo : undefined,
+            nome: entrada.nome || entrada.razaoSocial || entrada.nomeFantasia || '',
+            observacoes: entrada.obs || entrada.observacoes || '',
+          };
+        }
+        return { id: entrada, nome: '', observacoes: '' };
+      };
+
+      const buscarEntidadePorCnpj = (cnpj) => {
+        // Comentário: busca local na lista já carregada de entidades usando CNPJ sem máscara
+        const numero = String(cnpj || '').replace(/\D/g, '');
+        if (!numero) return null;
+        return entidadesOpcoes.find((ent) => String(ent?.cnpj || '').replace(/\D/g, '') === numero) || null;
+      };
+
+      const renderizarResultadoBuscaEntidade = (entidade, { limparApenas = false } = {}) => {
+        const cont = document.getElementById('entidade-busca-resultado');
+        if (!cont) return;
+
+        cont.innerHTML = '';
+        if (limparApenas) {
+          // Comentário: permite limpar feedbacks anteriores sem nova renderização
+          return;
+        }
+        if (!entidade) {
+          // Comentário: feedback de não encontrado com atalho de cadastro
+          const bloco = document.createElement('div');
+          bloco.className = 'list__item';
+          bloco.style.display = 'flex';
+          bloco.style.justifyContent = 'space-between';
+          bloco.style.alignItems = 'center';
+
+          const texto = document.createElement('div');
+          texto.innerHTML = '<strong>Entidade não encontrada.</strong><br />Deseja cadastrar a entidade?';
+
+          const acaoCadastrar = document.createElement('a');
+          acaoCadastrar.className = 'button button--primary';
+          acaoCadastrar.href = '/cadastro/entidades';
+          acaoCadastrar.textContent = 'Cadastrar entidade';
+
+          bloco.appendChild(texto);
+          bloco.appendChild(acaoCadastrar);
+          cont.appendChild(bloco);
+          return;
+        }
+
+        const obsTexto = String(entidade.obs || entidade.observacoes || '').trim();
+        const mostrarObs = Boolean(obsTexto);
+        const table = document.createElement('table');
+        table.style.width = '100%';
+        table.style.borderCollapse = 'collapse';
+        table.style.marginTop = '0.5rem';
+        table.innerHTML = `
+          <thead>
+            <tr style="background: var(--surface-muted);">
+              <th style="text-align:left; padding:0.5rem;">Nome da Entidade</th>
+              <th style="text-align:left; padding:0.5rem;">CNPJ</th>
+              ${mostrarObs ? '<th style="text-align:left; padding:0.5rem;">Obs</th>' : ''}
+              <th style="text-align:center; padding:0.5rem;"></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        `;
+
+        const tbody = table.querySelector('tbody');
+        const tr = document.createElement('tr');
+        tr.style.borderBottom = '1px solid var(--border)';
+
+        const tdNome = document.createElement('td'); tdNome.style.padding = '0.5rem'; tdNome.textContent = entidade.nome || entidade.razaoSocial || entidade.nomeFantasia || '—';
+        const tdCnpj = document.createElement('td'); tdCnpj.style.padding = '0.5rem'; tdCnpj.textContent = aplicarMascaraCnpj(entidade.cnpj);
+        tr.appendChild(tdNome);
+        tr.appendChild(tdCnpj);
+        if (mostrarObs) {
+          const tdObs = document.createElement('td'); tdObs.style.padding = '0.5rem'; tdObs.textContent = obsTexto || '—';
+          tr.appendChild(tdObs);
+        }
+
+        const tdConfirm = document.createElement('td');
+        tdConfirm.style.padding = '0.5rem';
+        tdConfirm.style.textAlign = 'center';
+        const msg = document.createElement('div');
+        msg.textContent = 'Deseja vincular a entidade?';
+        msg.style.marginBottom = '0.5rem';
+        const grupo = document.createElement('div');
+        grupo.style.display = 'inline-flex';
+        grupo.style.gap = '0.5rem';
+        const btnSim = document.createElement('button');
+        btnSim.type = 'button';
+        btnSim.className = 'button button--primary';
+        btnSim.textContent = 'Sim';
+        const btnNao = document.createElement('button');
+        btnNao.type = 'button';
+        btnNao.className = 'button button--ghost';
+        btnNao.textContent = 'Não';
+        btnSim.addEventListener('click', () => {
+          const jaVinculada = entidadesVinculadas.some((item) => {
+            const normalizado = normalizarVinculoEntidade(item);
+            return normalizado.id !== undefined && String(normalizado.id) === String(entidade.id);
+          });
+          if (!jaVinculada) {
+            entidadesVinculadas.push({
+              id: entidade.id,
+              nome: entidade.nome || entidade.razaoSocial || entidade.nomeFantasia || '',
+              observacoes: obsTexto,
+            });
+            renderizarEntidadesVinculadasLista();
+          }
+          // Comentário: limpa confirmação após a ação
+          cont.innerHTML = '';
+        });
+        btnNao.addEventListener('click', () => {
+          // Comentário: limpa resultado, campo CNPJ e status ao recusar vinculação
+          const inputCnpj = document.getElementById('entidade-cnpj-input');
+          if (inputCnpj) inputCnpj.value = '';
+          const statusEl = document.getElementById('entidade-vinculada-status');
+          if (statusEl) statusEl.textContent = '';
+          renderizarResultadoBuscaEntidade(null, { limparApenas: true });
+        });
+        grupo.appendChild(btnSim);
+        grupo.appendChild(btnNao);
+        tdConfirm.appendChild(msg);
+        tdConfirm.appendChild(grupo);
+
+        tr.appendChild(tdConfirm);
+        tbody.appendChild(tr);
+        cont.appendChild(table);
+      };
+
+      const carregarEntidadesOpcoes = async () => {
+        // Comentário: preenche o cache local de entidades para buscas e vínculos
+        const statusEl = document.getElementById('entidade-vinculada-status');
+        try {
+          if (statusEl) statusEl.textContent = 'Carregando entidades...';
+          const resp = await fetchAutenticado(API_ENTIDADES_URL);
+          if (!resp.ok) throw new Error('Falha ao buscar entidades cadastradas.');
+          const lista = await resp.json();
+          entidadesOpcoes = Array.isArray(lista) ? lista : [];
+          renderizarEntidadesVinculadasLista();
+          if (statusEl) statusEl.textContent = entidadesOpcoes.length ? '' : 'Nenhuma entidade cadastrada.';
+        } catch (error) {
+          console.error('Erro ao carregar entidades:', error);
+          if (statusEl) statusEl.textContent = 'Não foi possível carregar as entidades.';
+        }
+      };
+
+      const renderizarEntidadesVinculadasLista = () => {
+        const cont = document.getElementById('entidades-vinculadas-lista');
+        if (!cont) return;
+        cont.innerHTML = '';
+        if (!entidadesVinculadas.length) {
+          cont.innerHTML = '';
+          return;
+        }
+
+        const mostrarObs = entidadesVinculadas.some((item) => {
+          const normalizado = normalizarVinculoEntidade(item);
+          return String(normalizado.observacoes || '').trim().length > 0;
+        });
+        const table = document.createElement('table');
+        table.style.width = '100%';
+        table.style.borderCollapse = 'collapse';
+        table.style.marginTop = '0.5rem';
+        table.innerHTML = `
+          <thead>
+            <tr style="background: var(--surface-muted);">
+              <th style="text-align:left; padding:0.5rem;">Nome da Entidade</th>
+              <th style="text-align:left; padding:0.5rem;">CNPJ</th>
+              ${mostrarObs ? '<th style="text-align:left; padding:0.5rem;">Obs</th>' : ''}
+              <th style="text-align:center; padding:0.5rem;">Ações</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        `;
+        const tbody = table.querySelector('tbody');
+        entidadesVinculadas.forEach((item, index) => {
+          const normalizado = normalizarVinculoEntidade(item);
+          const ent = normalizado.id ? entidadesOpcoes.find((e) => String(e.id) === String(normalizado.id)) : null;
+          if (!ent && !normalizado.nome && !normalizado.observacoes) return;
+          const tr = document.createElement('tr');
+          tr.style.borderBottom = '1px solid var(--border)';
+          const tdNome = document.createElement('td'); tdNome.style.padding = '0.5rem'; tdNome.textContent = ent?.nome || ent?.razaoSocial || ent?.nomeFantasia || normalizado.nome || '';
+          const tdCnpj = document.createElement('td'); tdCnpj.style.padding = '0.5rem'; tdCnpj.textContent = ent ? aplicarMascaraCnpj(ent.cnpj) : '—';
+          tr.appendChild(tdNome);
+          tr.appendChild(tdCnpj);
+          if (mostrarObs) {
+            const obsTexto = String(normalizado.observacoes || '').trim();
+            const tdObs = document.createElement('td'); tdObs.style.padding = '0.5rem'; tdObs.textContent = obsTexto || '—';
+            tr.appendChild(tdObs);
+          }
+          const tdAcoes = document.createElement('td'); tdAcoes.style.padding = '0.5rem'; tdAcoes.style.textAlign = 'center';
+          const btnRemover = document.createElement('button');
+          btnRemover.type = 'button';
+          btnRemover.className = 'button button--danger';
+          btnRemover.textContent = '−';
+          btnRemover.title = 'Excluir';
+          btnRemover.setAttribute('aria-label', 'Remover entidade vinculada');
+          btnRemover.addEventListener('click', async () => {
+            const ok = await confirmarExclusao();
+            if (!ok) return;
+            entidadesVinculadas = entidadesVinculadas.filter((_, idx) => idx !== index);
+            renderizarEntidadesVinculadasLista();
+          });
+          tdAcoes.appendChild(btnRemover);
+          tr.appendChild(tdAcoes);
+          tbody.appendChild(tr);
         });
         cont.appendChild(table);
       };
@@ -4387,6 +4638,20 @@
         }
         renderizarEmpresasVinculadasLista();
 
+        // Entidades vinculadas (IDs) se existirem
+        if (pessoa.vinculos && Array.isArray(pessoa.vinculos.entidades)) {
+          entidadesVinculadas = pessoa.vinculos.entidades
+            .map((entrada) => {
+              const normalizado = normalizarVinculoEntidade(entrada);
+              const possuiDados = normalizado.id !== undefined || normalizado.nome || normalizado.observacoes;
+              return possuiDados ? normalizado : null;
+            })
+            .filter(Boolean);
+        } else {
+          entidadesVinculadas = [];
+        }
+        renderizarEntidadesVinculadasLista();
+
         // Vínculos empregatícios
         if (pessoa.vinculos && Array.isArray(pessoa.vinculos.empregaticio)) {
           vinculosEmpregaticio = pessoa.vinculos.empregaticio.map(it => ({
@@ -4911,6 +5176,9 @@
           vinculosVeiculos = [];
           renderizarVinculosVeiculos();
           vinculosEmpresas = [];
+          // Comentário: limpa vínculos de entidades no reset
+          entidadesVinculadas = [];
+          renderizarEntidadesVinculadasLista();
           vinculosEmpregaticio = [];
           renderizarVinculosEmpregaticio();
           ocorrenciasPoliciais = [];
@@ -5042,6 +5310,56 @@
           }
         });
 
+        // Entidades vinculadas: busca por CNPJ e vinculação múltipla
+        const entidadeCnpjInput = document.getElementById('entidade-cnpj-input');
+        entidadeCnpjInput?.addEventListener('input', (e) => {
+          // Comentário: mantém a máscara de CNPJ para facilitar a leitura
+          e.target.value = aplicarMascaraCnpj(e.target.value);
+        });
+        document.getElementById('entidade-buscar-cnpj')?.addEventListener('click', async () => {
+          const statusEl = document.getElementById('entidade-vinculada-status');
+          const cnpjVal = entidadeCnpjInput?.value || '';
+          // Comentário: limpa mensagens ou resultados anteriores antes de iniciar uma nova busca
+          renderizarResultadoBuscaEntidade(null, { limparApenas: true });
+          const valido = validarCnpjBasico(cnpjVal);
+          if (!valido) {
+            if (statusEl) statusEl.textContent = 'Informe um CNPJ completo (14 dígitos).';
+            renderizarResultadoBuscaEntidade(null);
+            return;
+          }
+          try {
+            if (statusEl) statusEl.textContent = 'Buscando entidade...';
+            if (!entidadesOpcoes.length) {
+              // Comentário: recarrega opções apenas quando a lista ainda não está disponível
+              await carregarEntidadesOpcoes();
+            }
+            const entidade = buscarEntidadePorCnpj(cnpjVal);
+            if (!entidade) {
+              renderizarResultadoBuscaEntidade(null);
+              abrirConfirmacao('Entidade não encontrada. Deseja cadastrar?', () => {
+                // Comentário: abre o cadastro de entidades em nova aba para preservar o formulário atual
+                const novaAbaCadastro = window.open('/cadastro/entidades', '_blank');
+                if (novaAbaCadastro) {
+                  novaAbaCadastro.opener = null;
+                } else {
+                  window.location.href = '/cadastro/entidades';
+                }
+              }, () => {
+                // Comentário: em caso de recusa, limpa campo, status e resultado sem exibir mensagens
+                if (entidadeCnpjInput) entidadeCnpjInput.value = '';
+                if (statusEl) statusEl.textContent = '';
+                renderizarResultadoBuscaEntidade(null, { limparApenas: true });
+              });
+              if (statusEl) statusEl.textContent = '';
+            } else {
+              renderizarResultadoBuscaEntidade(entidade);
+              if (statusEl) statusEl.textContent = '';
+            }
+          } catch (err) {
+            if (statusEl) statusEl.textContent = 'Erro ao buscar entidade.';
+          }
+        });
+
         
 
         // Event listener para buscar e vincular pessoa existente usando nome ou CPF
@@ -5106,6 +5424,8 @@
         renderizarFotos();
         // Carrega opções de empresas para vínculo
         carregarEmpresasOpcoes();
+        // Comentário: carrega opções de entidades para vínculo
+        carregarEntidadesOpcoes();
         renderizarVinculosPessoas();
         renderizarVinculosVeiculos();
         // Vínculo de empresas removido: não renderizar
