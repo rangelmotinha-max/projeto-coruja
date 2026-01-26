@@ -77,6 +77,10 @@ function normalizarLideranca(payload = {}) {
 // Limpa e valida o payload recebido tanto para criação quanto atualização
 function sanitizarEntidade(payload, arquivos = [], options = {}) {
   const limparTexto = (v) => (v !== undefined ? String(v || '').trim() : undefined);
+  // Comentário: aceita chaves alternativas para observações e garante inclusão em updates parciais.
+  const chavesObs = ['obs', 'observacoes', 'observacao'];
+  const chaveObsEncontrada = chavesObs.find((chave) => Object.prototype.hasOwnProperty.call(payload, chave));
+  const possuiObs = Boolean(chaveObsEncontrada);
   const nome = limparTexto(payload.nome);
   if (payload.nome !== undefined && !nome) {
     throw criarErro('Nome é obrigatório para o cadastro de entidades.', 400);
@@ -86,6 +90,8 @@ function sanitizarEntidade(payload, arquivos = [], options = {}) {
 
   const cnpj = limparTexto(payload.cnpj)?.replace(/\D/g, '') || undefined;
   const descricao = limparTexto(payload.descricao);
+  const obsBruta = possuiObs ? payload[chaveObsEncontrada] : undefined;
+  const obs = obsBruta !== undefined ? String(obsBruta || '').trim() : undefined;
 
   const liderancas = normalizarLiderancas(payload.liderancas);
 
@@ -147,6 +153,7 @@ function sanitizarEntidade(payload, arquivos = [], options = {}) {
     nome,
     cnpj,
     descricao,
+    ...(possuiObs ? { obs: obs || null } : {}),
     liderancas,
     telefones,
     enderecos,
