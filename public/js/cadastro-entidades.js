@@ -117,6 +117,16 @@
     return `${p1}.${p2}${p3 ? `.${p3}` : ''}${p4 ? `/${p4}` : ''}${p5 ? `-${p5}` : ''}`;
   };
 
+  const aplicarMascaraCpf = (valor) => {
+    const dig = String(valor || '').replace(/\D/g, '').slice(0, 11);
+    if (dig.length <= 3) return dig;
+    const p1 = dig.slice(0, 3);
+    const p2 = dig.slice(3, 6);
+    const p3 = dig.slice(6, 9);
+    const p4 = dig.slice(9);
+    return `${p1}${p2 ? `.${p2}` : ''}${p3 ? `.${p3}` : ''}${p4 ? `-${p4}` : ''}`;
+  };
+
   const aplicarMascaraTelefone = (valor) => {
     const dig = String(valor || '').replace(/\D/g, '').slice(0, 11);
     if (dig.length <= 10) {
@@ -145,7 +155,12 @@
   // Construção de campos dinâmicos -----------------------------
   const renderizarLiderancas = () => {
     liderancasContainer.innerHTML = '';
-    estado.liderancas.forEach((nome, index) => {
+    estado.liderancas.forEach((lideranca, index) => {
+      const liderancaNormalizada = typeof lideranca === 'string'
+        ? { nome: lideranca, cpf: '' }
+        : { nome: lideranca?.nome || '', cpf: lideranca?.cpf || '' };
+      // Comentário: garante que o estado fique sempre em formato de objeto.
+      estado.liderancas[index] = { ...liderancaNormalizada };
       // Container da liderança com barra superior e campos abaixo
       const bloco = document.createElement('div');
       bloco.style.cssText = 'border: 1px solid var(--border); border-radius: 0.5rem; padding: 0.75rem;';
@@ -163,21 +178,33 @@
       topBar.appendChild(btnTopo);
       bloco.appendChild(topBar);
 
-      // Grid com o único campo de nome da liderança
+      // Grid com campos de nome e CPF da liderança
       const grid = document.createElement('div');
-      grid.className = 'form__grid form__grid--1';
+      grid.className = 'form__grid form__grid--2';
       grid.innerHTML = `
         <label class="form__field" style="margin:0;">
           <span class="form__label">Nome da liderança</span>
-          <input class="form__input" type="text" value="${nome || ''}" data-lideranca-index="${index}" />
+          <input class="form__input" type="text" value="${liderancaNormalizada.nome || ''}" data-lideranca-index="${index}" data-lideranca-campo="nome" />
+        </label>
+        <label class="form__field" style="margin:0;">
+          <span class="form__label">CPF da liderança</span>
+          <input class="form__input" type="text" inputmode="numeric" value="${aplicarMascaraCpf(liderancaNormalizada.cpf || '')}" placeholder="000.000.000-00" data-lideranca-index="${index}" data-lideranca-campo="cpf" />
         </label>
       `;
       bloco.appendChild(grid);
 
-      const input = bloco.querySelector('input[data-lideranca-index]');
-      input.addEventListener('input', (e) => {
+      const inputNome = bloco.querySelector('input[data-lideranca-campo="nome"]');
+      const inputCpf = bloco.querySelector('input[data-lideranca-campo="cpf"]');
+      try { inputCpf?.setAttribute('maxlength', '14'); } catch {}
+      inputNome.addEventListener('input', (e) => {
         const idx = Number(e.target.getAttribute('data-lideranca-index'));
-        estado.liderancas[idx] = e.target.value;
+        estado.liderancas[idx].nome = e.target.value;
+      });
+      inputCpf.addEventListener('input', (e) => {
+        const idx = Number(e.target.getAttribute('data-lideranca-index'));
+        const valorMascarado = aplicarMascaraCpf(e.target.value);
+        e.target.value = valorMascarado;
+        estado.liderancas[idx].cpf = valorMascarado;
       });
       liderancasContainer.appendChild(bloco);
     });
@@ -733,7 +760,7 @@
 
   // Adição de novos itens nas listas
   document.getElementById('adicionar-lideranca')?.addEventListener('click', () => {
-    estado.liderancas.push('');
+    estado.liderancas.push({ nome: '', cpf: '' });
     renderizarLiderancas();
   });
 
@@ -755,7 +782,8 @@
     const idx = e.target.getAttribute('data-remover-lideranca');
     if (idx !== null) {
       const i = Number(idx);
-      const temDados = String(estado.liderancas[i] || '').trim();
+      const lideranca = estado.liderancas[i] || {};
+      const temDados = [lideranca.nome, lideranca.cpf].some((valor) => String(valor || '').trim());
       if (temDados) {
         const ok = await confirmarExclusao();
         if (!ok) return;
@@ -818,7 +846,16 @@
     dados.append('nome', document.getElementById('entidade-nome')?.value.trim() || '');
     dados.append('cnpj', aplicarMascaraCnpj(document.getElementById('entidade-cnpj')?.value));
     dados.append('descricao', document.getElementById('entidade-descricao')?.value.trim() || '');
-    dados.append('liderancas', JSON.stringify(estado.liderancas.map((l) => (l || '').trim()).filter(Boolean)));
+    const liderancasNormalizadas = estado.liderancas.map((lideranca) => {
+      if (typeof lideranca === 'string') {
+        return { nome: lideranca.trim(), cpf: '' };
+      }
+      return {
+        nome: String(lideranca?.nome || '').trim(),
+        cpf: String(aplicarMascaraCpf(lideranca?.cpf || '') || '').trim(),
+      };
+    }).filter((lideranca) => lideranca.nome || lideranca.cpf);
+    dados.append('liderancas', JSON.stringify(liderancasNormalizadas));
     dados.append('telefones', JSON.stringify(estado.telefones.map((t) => t || '').filter(Boolean)));
     dados.append('enderecos', JSON.stringify(estado.enderecos));
     dados.append('endereco_atual_index', estado.indicadorEnderecoAtual === null ? '' : String(estado.indicadorEnderecoAtual));
@@ -950,7 +987,11 @@
       tdAcoes.style.padding = '0.5rem';
       tdAcoes.style.textAlign = 'center';
       tdNome.textContent = ent.nome || '';
-      tdLideranca.textContent = (ent.liderancas || []).join(', ') || '—';
+      const nomesLiderancas = (ent.liderancas || [])
+        .map((lideranca) => typeof lideranca === 'string' ? lideranca : lideranca?.nome)
+        .map((nome) => String(nome || '').trim())
+        .filter(Boolean);
+      tdLideranca.textContent = nomesLiderancas.join(', ') || '—';
       tdCnpj.textContent = ent.cnpj ? aplicarMascaraCnpj(ent.cnpj) : '—';
       // Botões de ação
       const btnEditar = document.createElement('button');
@@ -1002,7 +1043,15 @@
   // Preenche formulário para edição baseada nos dados retornados da API
   const preencherFormulario = (entidade) => {
     estado.emEdicao = entidade.id;
-    estado.liderancas = [...(entidade.liderancas || [])];
+    estado.liderancas = (entidade.liderancas || []).map((lideranca) => {
+      if (typeof lideranca === 'string') {
+        return { nome: lideranca, cpf: '' };
+      }
+      return {
+        nome: lideranca?.nome || '',
+        cpf: aplicarMascaraCpf(lideranca?.cpf || ''),
+      };
+    });
     estado.telefones = (entidade.telefones || []).map((t) => t.numero || t);
     estado.enderecos = (entidade.enderecos || []).map((e) => ({
       uf: e.uf || '',
