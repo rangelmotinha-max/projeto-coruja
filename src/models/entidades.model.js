@@ -111,14 +111,15 @@ class EntidadeModel {
     await db.beginTransaction();
     try {
       await db.run(
-        `INSERT INTO entidades (id, nome, cnpj, liderancas_json, descricao, criadoEm, atualizadoEm)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO entidades (id, nome, cnpj, liderancas_json, descricao, obs, criadoEm, atualizadoEm)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           id,
           dados.nome,
           dados.cnpj || null,
           dados.liderancas?.length ? JSON.stringify(dados.liderancas) : null,
           dados.descricao || null,
+          dados.obs || null,
           agora,
           agora,
         ],
@@ -266,7 +267,7 @@ class EntidadeModel {
     try {
       const campos = [];
       const valores = [];
-      const permitidas = ['nome', 'cnpj', 'descricao'];
+      const permitidas = ['nome', 'cnpj', 'descricao', 'obs'];
 
       permitidas.forEach((campo) => {
         if (updates[campo] !== undefined) {
