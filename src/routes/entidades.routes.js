@@ -22,6 +22,26 @@ router.get('/', authorize(['admin', 'editor', 'viewer', 'user', 'leitor']), enti
 router.get('/:id', authorize(['admin', 'editor', 'viewer', 'user', 'leitor']), entidadesController.buscarPorId);
 router.put('/:id', authorize(['admin', 'editor']), conditionalUploadEntidadeFotos, entidadesController.atualizar);
 router.delete('/:id', authorize(['admin']), entidadesController.remover);
+router.get(
+  '/:id/liderancas',
+  authorize(['admin', 'editor', 'viewer', 'user', 'leitor']),
+  entidadesController.listarLiderancas,
+);
+router.post(
+  '/:id/liderancas',
+  authorize(['admin', 'editor']),
+  entidadesController.adicionarLideranca,
+);
+router.put(
+  '/:id/liderancas/:liderancaId',
+  authorize(['admin', 'editor']),
+  entidadesController.atualizarLideranca,
+);
+router.delete(
+  '/:id/liderancas/:liderancaId',
+  authorize(['admin', 'editor']),
+  entidadesController.removerLideranca,
+);
 
 // Exporta middleware para reutilização em testes, se necessário
 router.conditionalUploadEntidadeFotos = conditionalUploadEntidadeFotos;

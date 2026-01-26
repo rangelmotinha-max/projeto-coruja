@@ -1,5 +1,6 @@
 (function () {
   const API_ENTIDADES = '/api/entidades';
+  const API_LIDERANCAS = (entidadeId) => `${API_ENTIDADES}/${entidadeId}/liderancas`;
 
   // Referências do formulário
   const form = document.getElementById('entidade-form');
@@ -162,13 +163,85 @@
     return nome || cpf || '';
   };
 
+  // Normaliza liderança para o estado local garantindo id quando disponível.
+  const normalizarLiderancaLocal = (lideranca) => {
+    if (typeof lideranca === 'string') {
+      return { id: null, nome: lideranca, cpf: '' };
+    }
+    if (!lideranca || typeof lideranca !== 'object') {
+      return { id: null, nome: '', cpf: '' };
+    }
+    return {
+      id: lideranca.id || null,
+      nome: lideranca.nome || '',
+      cpf: aplicarMascaraCpf(lideranca.cpf || ''),
+    };
+  };
+
+  // Remove caracteres não numéricos do CPF para envio à API.
+  const limparCpfParaApi = (valor) => String(valor || '').replace(/\D/g, '');
+
+  // Sincroniza liderança com a API quando estiver editando entidade existente.
+  const salvarLiderancaNoServidor = async (index) => {
+    if (!estado.emEdicao) return;
+    const lideranca = estado.liderancas[index];
+    if (!lideranca) return;
+
+    const payload = {
+      nome: String(lideranca.nome || '').trim(),
+      cpf: limparCpfParaApi(lideranca.cpf || ''),
+    };
+    const temDados = payload.nome || payload.cpf;
+    if (!temDados) return;
+
+    try {
+      if (lideranca.id) {
+        const resposta = await fetchAutenticado(
+          `${API_LIDERANCAS(estado.emEdicao)}/${lideranca.id}`,
+          {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          },
+        );
+        const dados = await resposta.json().catch(() => ({}));
+        if (!resposta.ok) throw new Error(dados?.message || 'Erro ao atualizar liderança.');
+        estado.liderancas[index] = normalizarLiderancaLocal(dados);
+      } else {
+        const resposta = await fetchAutenticado(API_LIDERANCAS(estado.emEdicao), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const dados = await resposta.json().catch(() => ({}));
+        if (!resposta.ok) throw new Error(dados?.message || 'Erro ao adicionar liderança.');
+        estado.liderancas[index] = normalizarLiderancaLocal(dados);
+      }
+      renderizarLiderancas();
+    } catch (error) {
+      exibirMensagem(formMsgEl, error?.message || 'Falha ao sincronizar liderança.', 'error');
+    }
+  };
+
+  // Carrega lideranças da entidade garantindo ids persistentes.
+  const carregarLiderancasEntidade = async (entidadeId) => {
+    if (!entidadeId) return [];
+    try {
+      const resposta = await fetchAutenticado(API_LIDERANCAS(entidadeId));
+      const dados = await resposta.json().catch(() => []);
+      if (!resposta.ok) throw new Error(dados?.message || 'Erro ao carregar lideranças.');
+      return Array.isArray(dados) ? dados : [];
+    } catch (error) {
+      exibirMensagem(formMsgEl, error?.message || 'Falha ao carregar lideranças.', 'error');
+      return [];
+    }
+  };
+
   // Construção de campos dinâmicos -----------------------------
   const renderizarLiderancas = () => {
     liderancasContainer.innerHTML = '';
     estado.liderancas.forEach((lideranca, index) => {
-      const liderancaNormalizada = typeof lideranca === 'string'
-        ? { nome: lideranca, cpf: '' }
-        : { nome: lideranca?.nome || '', cpf: aplicarMascaraCpf(lideranca?.cpf || '') };
+      const liderancaNormalizada = normalizarLiderancaLocal(lideranca);
       // Comentário: garante que o estado fique sempre em formato de objeto.
       estado.liderancas[index] = { ...liderancaNormalizada };
       // Container da liderança com barra superior e campos abaixo
@@ -185,6 +258,9 @@
       btnTopo.title = 'Excluir';
       btnTopo.setAttribute('aria-label', 'Remover liderança');
       btnTopo.setAttribute('data-remover-lideranca', String(index));
+      if (liderancaNormalizada.id) {
+        btnTopo.setAttribute('data-lideranca-id', liderancaNormalizada.id);
+      }
       topBar.appendChild(btnTopo);
       bloco.appendChild(topBar);
 
@@ -194,11 +270,11 @@
       grid.innerHTML = `
         <label class="form__field" style="margin:0;">
           <span class="form__label">Nome da liderança</span>
-          <input class="form__input" type="text" value="${liderancaNormalizada.nome || ''}" data-lideranca-index="${index}" data-lideranca-campo="nome" />
+          <input class="form__input" type="text" value="${liderancaNormalizada.nome || ''}" data-lideranca-index="${index}" data-lideranca-campo="nome" ${liderancaNormalizada.id ? `data-lideranca-id="${liderancaNormalizada.id}"` : ''} />
         </label>
         <label class="form__field" style="margin:0;">
           <span class="form__label">CPF da liderança</span>
-          <input class="form__input" type="text" inputmode="numeric" value="${aplicarMascaraCpf(liderancaNormalizada.cpf || '')}" placeholder="000.000.000-00" data-lideranca-index="${index}" data-lideranca-campo="cpf" />
+          <input class="form__input" type="text" inputmode="numeric" value="${aplicarMascaraCpf(liderancaNormalizada.cpf || '')}" placeholder="000.000.000-00" data-lideranca-index="${index}" data-lideranca-campo="cpf" ${liderancaNormalizada.id ? `data-lideranca-id="${liderancaNormalizada.id}"` : ''} />
         </label>
       `;
       bloco.appendChild(grid);
@@ -210,11 +286,19 @@
         const idx = Number(e.target.getAttribute('data-lideranca-index'));
         estado.liderancas[idx].nome = e.target.value;
       });
+      inputNome.addEventListener('blur', (e) => {
+        const idx = Number(e.target.getAttribute('data-lideranca-index'));
+        salvarLiderancaNoServidor(idx);
+      });
       inputCpf.addEventListener('input', (e) => {
         const idx = Number(e.target.getAttribute('data-lideranca-index'));
         const valorMascarado = aplicarMascaraCpf(e.target.value);
         e.target.value = valorMascarado;
         estado.liderancas[idx].cpf = valorMascarado;
+      });
+      inputCpf.addEventListener('blur', (e) => {
+        const idx = Number(e.target.getAttribute('data-lideranca-index'));
+        salvarLiderancaNoServidor(idx);
       });
       liderancasContainer.appendChild(bloco);
     });
@@ -770,7 +854,7 @@
 
   // Adição de novos itens nas listas
   document.getElementById('adicionar-lideranca')?.addEventListener('click', () => {
-    estado.liderancas.push({ nome: '', cpf: '' });
+    estado.liderancas.push({ id: null, nome: '', cpf: '' });
     renderizarLiderancas();
   });
 
@@ -793,10 +877,23 @@
     if (idx !== null) {
       const i = Number(idx);
       const lideranca = estado.liderancas[i] || {};
+      const liderancaId = lideranca.id || e.target.getAttribute('data-lideranca-id');
       const temDados = [lideranca.nome, lideranca.cpf].some((valor) => String(valor || '').trim());
       if (temDados) {
         const ok = await confirmarExclusao();
         if (!ok) return;
+      }
+      if (estado.emEdicao && liderancaId) {
+        try {
+          const resposta = await fetchAutenticado(
+            `${API_LIDERANCAS(estado.emEdicao)}/${liderancaId}`,
+            { method: 'DELETE' },
+          );
+          if (!resposta.ok) throw new Error('Erro ao remover liderança.');
+        } catch (error) {
+          exibirMensagem(formMsgEl, error?.message || 'Falha ao remover liderança.', 'error');
+          return;
+        }
       }
       estado.liderancas.splice(i, 1);
       renderizarLiderancas();
@@ -858,9 +955,10 @@
     dados.append('descricao', document.getElementById('entidade-descricao')?.value.trim() || '');
     const liderancasNormalizadas = estado.liderancas.map((lideranca) => {
       if (typeof lideranca === 'string') {
-        return { nome: lideranca.trim(), cpf: '' };
+        return { id: null, nome: lideranca.trim(), cpf: '' };
       }
       return {
+        id: lideranca?.id || null,
         nome: String(lideranca?.nome || '').trim(),
         cpf: String(aplicarMascaraCpf(lideranca?.cpf || '') || '').trim(),
       };
@@ -1033,7 +1131,7 @@
 
     if (editarId) {
       const alvo = estado.entidades.find((ent) => ent.id === editarId);
-      if (alvo) preencherFormulario(alvo);
+      if (alvo) await preencherFormulario(alvo);
     }
 
     if (excluirId) {
@@ -1051,17 +1149,11 @@
   });
 
   // Preenche formulário para edição baseada nos dados retornados da API
-  const preencherFormulario = (entidade) => {
+  const preencherFormulario = async (entidade) => {
     estado.emEdicao = entidade.id;
-    estado.liderancas = (entidade.liderancas || []).map((lideranca) => {
-      if (typeof lideranca === 'string') {
-        return { nome: lideranca, cpf: '' };
-      }
-      return {
-        nome: lideranca?.nome || '',
-        cpf: aplicarMascaraCpf(lideranca?.cpf || ''),
-      };
-    });
+    const liderancasApi = await carregarLiderancasEntidade(entidade.id);
+    const liderancasFonte = liderancasApi.length ? liderancasApi : (entidade.liderancas || []);
+    estado.liderancas = liderancasFonte.map((lideranca) => normalizarLiderancaLocal(lideranca));
     estado.telefones = (entidade.telefones || []).map((t) => t.numero || t);
     estado.enderecos = (entidade.enderecos || []).map((e) => ({
       uf: e.uf || '',
