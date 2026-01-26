@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Consulta de Entidades | Projeto Coruja</title>
+    <link rel="stylesheet" href="/css/main.css" />
+  </head>
+  <body class="theme-dark">
+    <div class="app">
+      <div class="user-menu" id="user-menu" aria-expanded="false">
+        <button class="user-menu__button" type="button" id="user-menu-button" aria-haspopup="true" aria-expanded="false">
+          <span class="user-menu__avatar" id="user-avatar" aria-hidden="true">U</span>
+          <span id="user-button-name">Usuário</span>
+        </button>
+        <div class="user-menu__dropdown" id="user-menu-dropdown" role="menu" aria-label="Menu do usuário">
+          <div class="user-menu__item"><span class="user-menu__label">Nome Completo:</span><span class="user-menu__value" id="um-nome">—</span></div>
+          <div class="user-menu__item"><span class="user-menu__label">Email:</span><span class="user-menu__value" id="um-email">—</span></div>
+          <div class="user-menu__item"><span class="user-menu__label">Perfil:</span><span class="user-menu__value" id="um-perfil">—</span></div>
+          <div class="user-menu__separator"></div>
+          <div class="user-menu__item"><span class="user-menu__label">Senha:</span><span class="user-menu__link" id="um-alterar-senha">Alterar senha</span></div>
+          <div class="user-menu__separator"></div>
+          <div class="user-menu__item"><span class="user-menu__link" id="um-sair">Sair</span></div>
+        </div>
+      </div>
+      <aside class="sidebar">
+        <div class="sidebar__header">
+          <div class="sidebar__brand">Projeto Coruja</div>
+          <!-- Botão dedicado para alternar entre tema claro e escuro -->
+          <button
+            class="theme-toggle"
+            type="button"
+            data-theme-toggle
+            aria-pressed="false"
+            aria-label="Alternar tema visual"
+          >
+            <span class="theme-toggle__icon" aria-hidden="true" data-theme-icon>🌙</span>
+            <span class="theme-toggle__label" data-theme-label>Modo escuro</span>
+          </button>
+        </div>
+        <nav class="sidebar__nav" aria-label="Menu principal">
+          <a class="sidebar__link" href="/home">Home</a>
+          <a class="sidebar__link" href="/usuarios">Usuários</a>
+          <!-- Início do menu de nível superior: Cadastro -->
+          <details class="sidebar__section">
+            <summary class="sidebar__link sidebar__link--parent" aria-label="Abrir menu Cadastro">Cadastro</summary>
+            <div class="sidebar__subnav">
+              <a class="sidebar__link sidebar__link--child" href="/cadastro/pessoas">Pessoas</a>
+              <a class="sidebar__link sidebar__link--child" href="/cadastro/empresas">Empresas</a>
+              <a class="sidebar__link sidebar__link--child" href="/cadastro/entidades">Entidades</a>
+              
+            </div>
+          </details>
+          <!-- Início do menu de nível superior: Consulta -->
+          <details class="sidebar__section">
+            <summary class="sidebar__link sidebar__link--parent" aria-label="Abrir menu Consulta">Consulta</summary>
+            <div class="sidebar__subnav">
+              <a class="sidebar__link sidebar__link--child" href="/consulta/pessoas">Pessoas</a>
+              <a class="sidebar__link sidebar__link--child" href="/consulta/empresas">Empresas</a>
+              <a class="sidebar__link sidebar__link--child" href="/consulta/veiculos">Veículos</a>
+              <a class="sidebar__link sidebar__link--child" href="/consulta/entidades">Entidades</a>
+            </div>
+          </details>
+          <!-- Fim do menu de nível superior: Consulta -->
+          <a class="sidebar__link" href="/rede">Rede</a>
+        </nav>
+
+      </aside>
+
+      <main class="content" data-page="consulta-entidades">
+        <header class="content__header">
+          <p class="content__eyebrow">Consulta</p>
+          <h1 class="content__title">Entidades</h1>
+          
+        </header>
+
+        <section class="panel" aria-label="Consulta de entidades">
+          <div class="panel__header">
+            <div>
+              
+            </div>
+          </div>
+          <form class="form" aria-label="Filtros de consulta de entidades" data-entidades-form>
+            <div class="form__grid form__grid--3">
+              <label class="form__field">
+                <span class="form__label">Nome da Entidade</span>
+                <!-- Campo de texto para filtrar pelo nome principal da entidade -->
+                <input class="form__input" type="text" name="nome" placeholder="Digite o nome da entidade" />
+              </label>
+              <label class="form__field">
+                <span class="form__label">CNPJ</span>
+                <!-- Campo dedicado ao CNPJ da entidade, mantendo a busca por dígitos -->
+                <input class="form__input" type="text" name="cnpj" placeholder="00.000.000/0000-00" maxlength="14" inputmode="numeric" />
+              </label>
+              <label class="form__field">
+                <span class="form__label">Lideranças</span>
+                <!-- Campo livre para buscar lideranças por nome ou CPF -->
+                <input class="form__input" type="text" name="lider" placeholder="Nome ou CPF da liderança" />
+              </label>
+            </div>
+            <div class="form__grid form__grid--3">
+              <label class="form__field">
+                <span class="form__label">Telefones</span>
+                <!-- Campo de telefone para filtrar contatos da entidade -->
+                <input class="form__input" type="text" name="telefone" placeholder="(DD) número para contato" />
+              </label>
+              <label class="form__field">
+                <span class="form__label">Endereços</span>
+                <!-- Campo livre para endereços (logradouro, bairro, cidade ou UF) -->
+                <input class="form__input" type="text" name="endereco" placeholder="Informe logradouro, bairro, cidade ou UF" />
+              </label>
+              <label class="form__field">
+                <span class="form__label">Veículos</span>
+                <!-- Campo livre para placas ou informações de veículos vinculados -->
+                <input class="form__input" type="text" name="veiculos" placeholder="Placa, modelo ou cor do veículo" />
+              </label>
+            </div>
+            <div class="form__grid form__grid--1">
+              <label class="form__field">
+                <span class="form__label">Pesquisa Geral</span>
+                <!-- Campo abrangente: busca em todos os campos do cadastro de entidades -->
+                <input class="form__input" type="text" name="pesquisaGeral" placeholder="Buscar em todos os campos do cadastro" />
+              </label>
+            </div>
+            <div class="form__actions">
+              <button type="submit" class="button button--primary">Consultar</button>
+              <button type="reset" class="button button--ghost">Limpar filtros</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="panel" aria-label="Resultados da consulta">
+          <div class="panel__header panel__header--stacked">
+            <h2 class="panel__title">Resultados</h2>
+            <!-- Comentário indicando que os resultados serão carregados pela API -->
+          </div>
+          <div class="message" role="status" aria-live="polite" data-results-message>Aguardando consulta...</div>
+          <div class="results" data-results-container aria-live="polite"></div>
+        </section>
+      </main>
+    </div>
+
+    <script src="/js/main.js"></script>
+    <script src="/js/consulta-entidades.js"></script>
+  </body>
+</html>
