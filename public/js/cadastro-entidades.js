@@ -153,6 +153,43 @@
     return dig.length > 5 ? `${dig.slice(0, 5)}-${dig.slice(5)}` : dig;
   };
 
+  // Validação de CPF com mesma lógica utilizada no cadastro de pessoas
+  const validarCpf = (cpf) => {
+    const somenteNumeros = String(cpf || '').replace(/\D/g, '');
+
+    if (somenteNumeros.length !== 11) {
+      return { valido: false, mensagem: 'CPF deve ter 11 dígitos.' };
+    }
+
+    if (/^(\d)\1{10}$/.test(somenteNumeros)) {
+      return { valido: false, mensagem: 'CPF inválido: todos os dígitos são iguais.' };
+    }
+
+    let soma = 0;
+    for (let i = 0; i < 9; i += 1) {
+      soma += parseInt(somenteNumeros[i], 10) * (10 - i);
+    }
+    let primeiroDigito = 11 - (soma % 11);
+    if (primeiroDigito > 9) primeiroDigito = 0;
+
+    if (parseInt(somenteNumeros[9], 10) !== primeiroDigito) {
+      return { valido: false, mensagem: 'CPF inválido: primeiro dígito verificador incorreto.' };
+    }
+
+    soma = 0;
+    for (let i = 0; i < 10; i += 1) {
+      soma += parseInt(somenteNumeros[i], 10) * (11 - i);
+    }
+    let segundoDigito = 11 - (soma % 11);
+    if (segundoDigito > 9) segundoDigito = 0;
+
+    if (parseInt(somenteNumeros[10], 10) !== segundoDigito) {
+      return { valido: false, mensagem: 'CPF inválido' };
+    }
+
+    return { valido: true, mensagem: 'CPF válido.' };
+  };
+
   // Formata liderança para exibição em tabela considerando nome e CPF.
   const formatarLideranca = (lideranca) => {
     if (typeof lideranca === 'string') return lideranca;
@@ -193,6 +230,19 @@
     };
     const temDados = payload.nome || payload.cpf;
     if (!temDados) return;
+
+    if (payload.cpf) {
+      const resultado = validarCpf(lideranca.cpf || payload.cpf);
+      if (!resultado.valido) {
+        const erroEl = document.querySelector(`[data-lideranca-cpf-erro="${index}"]`);
+        if (erroEl) {
+          erroEl.style.display = 'block';
+          erroEl.textContent = resultado.mensagem || 'CPF inválido!';
+        }
+        exibirMensagem(formMsgEl, resultado.mensagem || 'CPF da liderança inválido.', 'error');
+        return;
+      }
+    }
 
     try {
       if (lideranca.id) {
@@ -273,14 +323,16 @@
           <input class="form__input" type="text" value="${liderancaNormalizada.nome || ''}" data-lideranca-index="${index}" data-lideranca-campo="nome" ${liderancaNormalizada.id ? `data-lideranca-id="${liderancaNormalizada.id}"` : ''} />
         </label>
         <label class="form__field" style="margin:0;">
-          <span class="form__label">CPF da liderança</span>
+          <span class="form__label">CPF</span>
           <input class="form__input" type="text" inputmode="numeric" value="${aplicarMascaraCpf(liderancaNormalizada.cpf || '')}" placeholder="000.000.000-00" data-lideranca-index="${index}" data-lideranca-campo="cpf" ${liderancaNormalizada.id ? `data-lideranca-id="${liderancaNormalizada.id}"` : ''} />
+          <span class="form__error" data-lideranca-cpf-erro="${index}" style="display:none;">CPF inválido!</span>
         </label>
       `;
       bloco.appendChild(grid);
 
       const inputNome = bloco.querySelector('input[data-lideranca-campo="nome"]');
       const inputCpf = bloco.querySelector('input[data-lideranca-campo="cpf"]');
+      const erroCpfEl = bloco.querySelector(`[data-lideranca-cpf-erro="${index}"]`);
       try { inputCpf?.setAttribute('maxlength', '14'); } catch {}
       inputNome.addEventListener('input', (e) => {
         const idx = Number(e.target.getAttribute('data-lideranca-index'));
@@ -295,9 +347,35 @@
         const valorMascarado = aplicarMascaraCpf(e.target.value);
         e.target.value = valorMascarado;
         estado.liderancas[idx].cpf = valorMascarado;
+        if (erroCpfEl) {
+          const somenteNumeros = String(valorMascarado || '').replace(/\D/g, '');
+          if (somenteNumeros.length === 11) {
+            const validacao = validarCpf(valorMascarado);
+            if (!validacao.valido) {
+              erroCpfEl.style.display = 'block';
+              erroCpfEl.textContent = validacao.mensagem || 'CPF inválido!';
+            } else {
+              erroCpfEl.style.display = 'none';
+            }
+          } else {
+            erroCpfEl.style.display = 'none';
+          }
+        }
       });
       inputCpf.addEventListener('blur', (e) => {
         const idx = Number(e.target.getAttribute('data-lideranca-index'));
+        const valor = e.target.value || '';
+        if (erroCpfEl) {
+          const somenteNumeros = String(valor || '').replace(/\D/g, '');
+          if (somenteNumeros.length) {
+            const validacao = validarCpf(valor);
+            if (!validacao.valido) {
+              erroCpfEl.style.display = 'block';
+              erroCpfEl.textContent = validacao.mensagem || 'CPF inválido!';
+              return;
+            }
+          }
+        }
         salvarLiderancaNoServidor(idx);
       });
       liderancasContainer.appendChild(bloco);
@@ -1009,6 +1087,26 @@
     event.preventDefault();
     exibirMensagem(formMsgEl, 'Salvando entidade...', 'info');
     submitBtn.disabled = true;
+
+    // Valida CPFs das lideranças antes de montar os dados
+    for (let i = 0; i < estado.liderancas.length; i += 1) {
+      const cpfValor = String(estado.liderancas[i]?.cpf || '').trim();
+      if (!cpfValor) continue;
+      const resultado = validarCpf(cpfValor);
+      const erroEl = document.querySelector(`[data-lideranca-cpf-erro="${i}"]`);
+      if (!resultado.valido) {
+        if (erroEl) {
+          erroEl.style.display = 'block';
+          erroEl.textContent = resultado.mensagem || 'CPF inválido!';
+        }
+        exibirMensagem(formMsgEl, resultado.mensagem || 'CPF de liderança inválido.', 'error');
+        submitBtn.disabled = false;
+        return;
+      }
+      if (erroEl) {
+        erroEl.style.display = 'none';
+      }
+    }
 
     const corpo = coletarDadosFormulario();
     const url = estado.emEdicao ? `${API_ENTIDADES}/${estado.emEdicao}` : API_ENTIDADES;
