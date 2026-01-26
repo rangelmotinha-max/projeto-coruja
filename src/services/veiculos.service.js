@@ -1,6 +1,7 @@
 const VeiculoModel = require('../models/veiculos.model');
 const VeiculoPessoaModel = require('../models/veiculos-pessoas.model');
 const VeiculoEmpresaModel = require('../models/veiculos-empresas.model');
+const VeiculoEntidadeModel = require('../models/veiculos-entidades.model');
 const { criarErro } = require('../utils/helpers');
 const { validarCadastroVeiculo, validarAtualizacaoVeiculo, validarPlaca, validarCpfOpcional } = require('../utils/validators');
 
@@ -84,10 +85,11 @@ async function buscar(filtros = {}) {
 
   const criterios = { placa, cpf, nomeProprietario, marcaModelo };
 
-  const [veiculosLivres, veiculosPessoas, veiculosEmpresas] = await Promise.all([
+  const [veiculosLivres, veiculosPessoas, veiculosEmpresas, veiculosEntidades] = await Promise.all([
     VeiculoModel.search(criterios),
     VeiculoPessoaModel.search(criterios),
     VeiculoEmpresaModel.search(criterios),
+    VeiculoEntidadeModel.search(criterios),
   ]);
 
   const veiculosEmpresasNormalizados = veiculosEmpresas.map((item) => ({
@@ -98,7 +100,20 @@ async function buscar(filtros = {}) {
     nomeProprietario: item.nomeProprietario || null,
   }));
 
-  const combinados = [...veiculosLivres, ...veiculosPessoas, ...veiculosEmpresasNormalizados]
+  const veiculosEntidadesNormalizados = veiculosEntidades.map((item) => ({
+    ...item,
+    // Comentário: garante compatibilidade de documento usando CNPJ como CPF na resposta.
+    cpf: item.cnpj || item.cpf || null,
+    // Comentário: mantém nome do proprietário com base no nome da entidade.
+    nomeProprietario: item.nomeProprietario || null,
+  }));
+
+  const combinados = [
+    ...veiculosLivres,
+    ...veiculosPessoas,
+    ...veiculosEmpresasNormalizados,
+    ...veiculosEntidadesNormalizados,
+  ]
     .map((item) => normalizarRetornoVeiculo(item));
 
   return mesclarResultados(combinados);
