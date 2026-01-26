@@ -20,6 +20,33 @@ function removerArquivoFisico(caminhoRelativo) {
   fs.promises.unlink(absoluto).catch(() => {});
 }
 
+// Normaliza lideranças para o formato { nome, cpf } ao carregar do JSON
+function normalizarLiderancas(liderancasBrutas) {
+  const lista = Array.isArray(liderancasBrutas)
+    ? liderancasBrutas
+    : liderancasBrutas !== undefined && liderancasBrutas !== null
+      ? [liderancasBrutas]
+      : [];
+
+  return lista
+    .map((item) => {
+      if (typeof item === 'string') {
+        const nome = String(item || '').trim();
+        return nome ? { nome, cpf: null } : null;
+      }
+      if (item && typeof item === 'object') {
+        const nome = item.nome !== undefined ? String(item.nome || '').trim() : '';
+        const cpf = item.cpf !== undefined ? String(item.cpf || '').replace(/\D/g, '') : '';
+        const nomeFinal = nome || null;
+        const cpfFinal = cpf || null;
+        if (!nomeFinal && !cpfFinal) return null;
+        return { nome: nomeFinal, cpf: cpfFinal };
+      }
+      return null;
+    })
+    .filter(Boolean);
+}
+
 class EntidadeModel {
   // Mapeia metadados da foto incluindo URL pública
   static mapearFoto(foto) {
@@ -119,7 +146,16 @@ class EntidadeModel {
     const entidades = await db.all('SELECT * FROM entidades ORDER BY atualizadoEm DESC');
 
     for (const ent of entidades) {
-      ent.liderancas = ent.liderancas_json ? JSON.parse(ent.liderancas_json) : [];
+      // Comentário: mantém o JSON salvo, mas normaliza o formato de retorno.
+      if (ent.liderancas_json) {
+        try {
+          ent.liderancas = normalizarLiderancas(JSON.parse(ent.liderancas_json));
+        } catch (_) {
+          ent.liderancas = [];
+        }
+      } else {
+        ent.liderancas = [];
+      }
       delete ent.liderancas_json;
       ent.telefones = await db.all(
         'SELECT id, numero FROM entidades_telefones WHERE entidade_id = ? ORDER BY criadoEm ASC',
@@ -145,7 +181,16 @@ class EntidadeModel {
     const ent = await db.get('SELECT * FROM entidades WHERE id = ?', [id]);
     if (!ent) return null;
 
-    ent.liderancas = ent.liderancas_json ? JSON.parse(ent.liderancas_json) : [];
+    // Comentário: garante retorno de lideranças no formato novo.
+    if (ent.liderancas_json) {
+      try {
+        ent.liderancas = normalizarLiderancas(JSON.parse(ent.liderancas_json));
+      } catch (_) {
+        ent.liderancas = [];
+      }
+    } else {
+      ent.liderancas = [];
+    }
     delete ent.liderancas_json;
     ent.telefones = await db.all(
       'SELECT id, numero FROM entidades_telefones WHERE entidade_id = ? ORDER BY criadoEm ASC',
