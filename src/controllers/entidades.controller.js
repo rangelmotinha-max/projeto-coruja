@@ -69,10 +69,54 @@ async function remover(req, res, next) {
   }
 }
 
+async function listarLiderancas(req, res, next) {
+  try {
+    const liderancas = await entidadesService.listarLiderancas(req.params.id);
+    return res.json(liderancas);
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function adicionarLideranca(req, res, next) {
+  try {
+    const lideranca = await entidadesService.adicionarLideranca(req.params.id, req.body || {});
+    return res.status(201).json(lideranca);
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function atualizarLideranca(req, res, next) {
+  try {
+    const lideranca = await entidadesService.atualizarLideranca(
+      req.params.id,
+      req.params.liderancaId,
+      req.body || {},
+    );
+    return res.json(lideranca);
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function removerLideranca(req, res, next) {
+  try {
+    await entidadesService.removerLideranca(req.params.id, req.params.liderancaId);
+    return res.status(204).send();
+  } catch (error) {
+    return next(error);
+  }
+}
+
 module.exports = {
   criar,
   listar,
   buscarPorId,
   atualizar,
   remover,
+  listarLiderancas,
+  adicionarLideranca,
+  atualizarLideranca,
+  removerLideranca,
 };

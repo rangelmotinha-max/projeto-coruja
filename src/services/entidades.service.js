@@ -1,3 +1,4 @@
+const { randomUUID } = require('crypto');
 const EntidadeModel = require('../models/entidades.model');
 const { criarErro } = require('../utils/helpers');
 
@@ -45,19 +46,32 @@ function normalizarLiderancas(liderancasBrutas) {
     .map((item) => {
       if (typeof item === 'string') {
         const nome = String(item || '').trim();
-        return nome ? { nome, cpf: null } : null;
+        return nome ? { id: randomUUID(), nome, cpf: null } : null;
       }
       if (item && typeof item === 'object') {
         const nome = item.nome !== undefined ? String(item.nome || '').trim() : '';
         const cpf = item.cpf !== undefined ? String(item.cpf || '').replace(/\D/g, '') : '';
+        const id = item.id !== undefined ? String(item.id || '').trim() : '';
         const nomeFinal = nome || null;
         const cpfFinal = cpf || null;
         if (!nomeFinal && !cpfFinal) return null;
-        return { nome: nomeFinal, cpf: cpfFinal };
+        return { id: id || randomUUID(), nome: nomeFinal, cpf: cpfFinal };
       }
       return null;
     })
     .filter(Boolean);
+}
+
+// Normaliza payload de liderança individual com id persistente
+function normalizarLideranca(payload = {}) {
+  if (!payload || typeof payload !== 'object') return null;
+  const nome = payload.nome !== undefined ? String(payload.nome || '').trim() : '';
+  const cpf = payload.cpf !== undefined ? String(payload.cpf || '').replace(/\D/g, '') : '';
+  const id = payload.id !== undefined ? String(payload.id || '').trim() : '';
+  const nomeFinal = nome || null;
+  const cpfFinal = cpf || null;
+  if (!nomeFinal && !cpfFinal) return null;
+  return { id: id || randomUUID(), nome: nomeFinal, cpf: cpfFinal };
 }
 
 // Limpa e valida o payload recebido tanto para criação quanto atualização
@@ -175,10 +189,44 @@ async function remover(id) {
   return true;
 }
 
+async function listarLiderancas(entidadeId) {
+  const liderancas = await EntidadeModel.getLiderancas(entidadeId);
+  if (!liderancas) throw criarErro('Entidade não encontrada', 404);
+  return liderancas;
+}
+
+async function adicionarLideranca(entidadeId, payload) {
+  const lideranca = normalizarLideranca(payload);
+  if (!lideranca) throw criarErro('Informe ao menos nome ou CPF da liderança.', 400);
+  const criada = await EntidadeModel.addLideranca(entidadeId, lideranca);
+  if (!criada) throw criarErro('Entidade não encontrada', 404);
+  return criada;
+}
+
+async function atualizarLideranca(entidadeId, liderancaId, payload) {
+  const lideranca = normalizarLideranca({ ...payload, id: liderancaId });
+  if (!lideranca) throw criarErro('Informe ao menos nome ou CPF da liderança.', 400);
+  const atualizada = await EntidadeModel.updateLideranca(entidadeId, liderancaId, lideranca);
+  if (atualizada === null) throw criarErro('Entidade não encontrada', 404);
+  if (!atualizada) throw criarErro('Liderança não encontrada', 404);
+  return atualizada;
+}
+
+async function removerLideranca(entidadeId, liderancaId) {
+  const removida = await EntidadeModel.removeLideranca(entidadeId, liderancaId);
+  if (removida === null) throw criarErro('Entidade não encontrada', 404);
+  if (!removida) throw criarErro('Liderança não encontrada', 404);
+  return true;
+}
+
 module.exports = {
   criar,
   listar,
   buscarPorId,
   atualizar,
   remover,
+  listarLiderancas,
+  adicionarLideranca,
+  atualizarLideranca,
+  removerLideranca,
 };

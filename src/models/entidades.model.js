@@ -32,19 +32,26 @@ function normalizarLiderancas(liderancasBrutas) {
     .map((item) => {
       if (typeof item === 'string') {
         const nome = String(item || '').trim();
-        return nome ? { nome, cpf: null } : null;
+        return nome ? { id: randomUUID(), nome, cpf: null } : null;
       }
       if (item && typeof item === 'object') {
         const nome = item.nome !== undefined ? String(item.nome || '').trim() : '';
         const cpf = item.cpf !== undefined ? String(item.cpf || '').replace(/\D/g, '') : '';
+        const id = item.id !== undefined ? String(item.id || '').trim() : '';
         const nomeFinal = nome || null;
         const cpfFinal = cpf || null;
         if (!nomeFinal && !cpfFinal) return null;
-        return { nome: nomeFinal, cpf: cpfFinal };
+        return { id: id || randomUUID(), nome: nomeFinal, cpf: cpfFinal };
       }
       return null;
     })
     .filter(Boolean);
+}
+
+// Comentário: normaliza e detecta se precisa persistir ids ausentes.
+function precisaPersistirLiderancas(liderancasBrutas) {
+  const lista = Array.isArray(liderancasBrutas) ? liderancasBrutas : [];
+  return lista.some((item) => typeof item === 'string' || (item && typeof item === 'object' && !item.id));
 }
 
 class EntidadeModel {
@@ -360,6 +367,122 @@ class EntidadeModel {
       removerArquivoFisico(foto.caminho);
     }
     return resultado.changes > 0;
+  }
+
+  // Retorna e normaliza lideranças garantindo id persistente quando necessário
+  static async getLiderancas(entidadeId, dbArg) {
+    const db = dbArg || await initDatabase();
+    const ent = await db.get('SELECT liderancas_json FROM entidades WHERE id = ?', [entidadeId]);
+    if (!ent) return null;
+
+    let brutas = [];
+    if (ent.liderancas_json) {
+      try {
+        brutas = JSON.parse(ent.liderancas_json) || [];
+      } catch (_) {
+        brutas = [];
+      }
+    }
+
+    const precisaPersistir = precisaPersistirLiderancas(brutas);
+    const liderancas = normalizarLiderancas(brutas);
+
+    if (precisaPersistir) {
+      await db.run(
+        'UPDATE entidades SET liderancas_json = ?, atualizadoEm = ? WHERE id = ?',
+        [liderancas.length ? JSON.stringify(liderancas) : null, new Date().toISOString(), entidadeId],
+      );
+    }
+
+    return liderancas;
+  }
+
+  // Atualiza o JSON de lideranças dentro da entidade
+  static async setLiderancas(entidadeId, liderancas, dbArg) {
+    const db = dbArg || await initDatabase();
+    const agora = new Date().toISOString();
+    await db.run(
+      'UPDATE entidades SET liderancas_json = ?, atualizadoEm = ? WHERE id = ?',
+      [liderancas?.length ? JSON.stringify(liderancas) : null, agora, entidadeId],
+    );
+  }
+
+  // Adiciona liderança ao JSON de forma parcial
+  static async addLideranca(entidadeId, lideranca, dbArg) {
+    const db = dbArg || await initDatabase();
+    await db.beginTransaction();
+    try {
+      const liderancas = await this.getLiderancas(entidadeId, db);
+      if (!liderancas) {
+        await db.rollback();
+        return null;
+      }
+      const nova = {
+        id: lideranca.id || randomUUID(),
+        nome: lideranca.nome || null,
+        cpf: lideranca.cpf || null,
+      };
+      liderancas.push(nova);
+      await this.setLiderancas(entidadeId, liderancas, db);
+      await db.commit();
+      return nova;
+    } catch (error) {
+      await db.rollback();
+      throw error;
+    }
+  }
+
+  // Atualiza liderança específica pelo id
+  static async updateLideranca(entidadeId, liderancaId, atualizacoes, dbArg) {
+    const db = dbArg || await initDatabase();
+    await db.beginTransaction();
+    try {
+      const liderancas = await this.getLiderancas(entidadeId, db);
+      if (!liderancas) {
+        await db.rollback();
+        return null;
+      }
+      const index = liderancas.findIndex((item) => item.id === liderancaId);
+      if (index < 0) {
+        await db.rollback();
+        return false;
+      }
+      liderancas[index] = {
+        ...liderancas[index],
+        ...atualizacoes,
+        id: liderancaId,
+      };
+      await this.setLiderancas(entidadeId, liderancas, db);
+      await db.commit();
+      return liderancas[index];
+    } catch (error) {
+      await db.rollback();
+      throw error;
+    }
+  }
+
+  // Remove liderança específica pelo id
+  static async removeLideranca(entidadeId, liderancaId, dbArg) {
+    const db = dbArg || await initDatabase();
+    await db.beginTransaction();
+    try {
+      const liderancas = await this.getLiderancas(entidadeId, db);
+      if (!liderancas) {
+        await db.rollback();
+        return null;
+      }
+      const atualizadas = liderancas.filter((item) => item.id !== liderancaId);
+      if (atualizadas.length === liderancas.length) {
+        await db.rollback();
+        return false;
+      }
+      await this.setLiderancas(entidadeId, atualizadas, db);
+      await db.commit();
+      return true;
+    } catch (error) {
+      await db.rollback();
+      throw error;
+    }
   }
 }
 
