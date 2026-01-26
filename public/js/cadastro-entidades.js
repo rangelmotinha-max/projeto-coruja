@@ -1235,6 +1235,8 @@
     dados.append('nome', document.getElementById('entidade-nome')?.value.trim() || '');
     dados.append('cnpj', aplicarMascaraCnpj(document.getElementById('entidade-cnpj')?.value));
     dados.append('descricao', document.getElementById('entidade-descricao')?.value.trim() || '');
+    // Comentário: coleta observações com a mesma configuração do cadastro de empresas.
+    dados.append('obs', document.getElementById('entidade-obs')?.value.trim() || '');
     const liderancasNormalizadas = estado.liderancas.map((lideranca) => {
       if (typeof lideranca === 'string') {
         return { id: null, nome: lideranca.trim(), cpf: '' };
@@ -1305,6 +1307,9 @@
     renderizarFotosEntidade();
     estado.preservarFotosNoReset = false;
     if (fotosInput) fotosInput.value = '';
+    // Comentário: garante reset do campo de observações.
+    const obsInput = document.getElementById('entidade-obs');
+    if (obsInput) obsInput.value = '';
   };
 
   limparBtn?.addEventListener('click', () => limparFormulario());
@@ -1522,6 +1527,8 @@
     document.getElementById('entidade-nome').value = entidade.nome || '';
     document.getElementById('entidade-cnpj').value = aplicarMascaraCnpj(entidade.cnpj);
     document.getElementById('entidade-descricao').value = entidade.descricao || '';
+    // Comentário: preenche observações conforme retorno da API.
+    document.getElementById('entidade-obs').value = entidade.obs || '';
     submitBtn.textContent = 'Salvar';
 
     renderizarLiderancas();
