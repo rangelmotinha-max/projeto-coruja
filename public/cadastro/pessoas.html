@@ -1511,8 +1511,9 @@
           return;
         }
 
+        // Observações da entidade são mantidas apenas para o vínculo, não mais exibidas na tabela de busca
         const obsTexto = String(entidade.obs || entidade.observacoes || '').trim();
-        const mostrarObs = Boolean(obsTexto);
+
         const table = document.createElement('table');
         table.style.width = '100%';
         table.style.borderCollapse = 'collapse';
@@ -1522,7 +1523,6 @@
             <tr style="background: var(--surface-muted);">
               <th style="text-align:left; padding:0.5rem;">Nome da Entidade</th>
               <th style="text-align:left; padding:0.5rem;">CNPJ</th>
-              ${mostrarObs ? '<th style="text-align:left; padding:0.5rem;">Obs</th>' : ''}
               <th style="text-align:center; padding:0.5rem;"></th>
             </tr>
           </thead>
@@ -1537,10 +1537,6 @@
         const tdCnpj = document.createElement('td'); tdCnpj.style.padding = '0.5rem'; tdCnpj.textContent = aplicarMascaraCnpj(entidade.cnpj);
         tr.appendChild(tdNome);
         tr.appendChild(tdCnpj);
-        if (mostrarObs) {
-          const tdObs = document.createElement('td'); tdObs.style.padding = '0.5rem'; tdObs.textContent = obsTexto || '—';
-          tr.appendChild(tdObs);
-        }
 
         const tdConfirm = document.createElement('td');
         tdConfirm.style.padding = '0.5rem';
@@ -1619,10 +1615,6 @@
           return;
         }
 
-        const mostrarObs = entidadesVinculadas.some((item) => {
-          const normalizado = normalizarVinculoEntidade(item);
-          return String(normalizado.observacoes || '').trim().length > 0;
-        });
         const table = document.createElement('table');
         table.style.width = '100%';
         table.style.borderCollapse = 'collapse';
@@ -1632,7 +1624,6 @@
             <tr style="background: var(--surface-muted);">
               <th style="text-align:left; padding:0.5rem;">Nome da Entidade</th>
               <th style="text-align:left; padding:0.5rem;">CNPJ</th>
-              ${mostrarObs ? '<th style="text-align:left; padding:0.5rem;">Obs</th>' : ''}
               <th style="text-align:center; padding:0.5rem;">Ações</th>
             </tr>
           </thead>
@@ -1649,11 +1640,6 @@
           const tdCnpj = document.createElement('td'); tdCnpj.style.padding = '0.5rem'; tdCnpj.textContent = ent ? aplicarMascaraCnpj(ent.cnpj) : '—';
           tr.appendChild(tdNome);
           tr.appendChild(tdCnpj);
-          if (mostrarObs) {
-            const obsTexto = String(normalizado.observacoes || '').trim();
-            const tdObs = document.createElement('td'); tdObs.style.padding = '0.5rem'; tdObs.textContent = obsTexto || '—';
-            tr.appendChild(tdObs);
-          }
           const tdAcoes = document.createElement('td'); tdAcoes.style.padding = '0.5rem'; tdAcoes.style.textAlign = 'center';
           const btnRemover = document.createElement('button');
           btnRemover.type = 'button';
@@ -1670,6 +1656,20 @@
           tdAcoes.appendChild(btnRemover);
           tr.appendChild(tdAcoes);
           tbody.appendChild(tr);
+
+          // Linha extra de observações, apenas quando houver texto preenchido
+          const obsTexto = String(normalizado.observacoes || '').trim();
+          if (obsTexto) {
+            const trObs = document.createElement('tr');
+            trObs.style.borderBottom = '1px solid var(--border)';
+            const tdObs = document.createElement('td');
+            tdObs.colSpan = 3; // Nome da Entidade, CNPJ, Ações
+            tdObs.style.padding = '0.35rem';
+            tdObs.textContent = `Obs: ${obsTexto}`;
+            tdObs.style.color = 'var(--muted)';
+            trObs.appendChild(tdObs);
+            tbody.appendChild(trObs);
+          }
         });
         cont.appendChild(table);
       };
