@@ -64,6 +64,14 @@
   cursor: not-allowed;
 }
 
+.password-rules-hint {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+  cursor: help;
+  text-align: left;
+}
+
 /* Centraliza o texto de "Projeto Coruja" no formulário de login */
 #login-form .card__eyebrow {
   text-align: center;

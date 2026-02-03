@@ -79,12 +79,7 @@
           <h1 class="content__title">Pessoas</h1>
         </header>
 
-        <section class="panel" aria-label="Formulário de dados de pessoas">
-          <div class="panel__header panel__header--stacked">
-          </div>
-
-          <div id="pessoa-form-message" class="message" role="status" aria-live="polite"></div>
-
+        <section class="panel panel--compact" aria-label="Formulário de dados de pessoas">
           <!-- Navegação em abas para organizar as seções do formulário -->
           <div class="tabs" role="tablist" aria-label="Navegação por seções do cadastro">
             <!-- Aba de Identificação: foco inicial da tela -->
@@ -627,6 +622,8 @@
               <button class="button button--secondary" type="reset">Limpar</button>
             </div>
           </form>
+
+          <div id="pessoa-form-message" class="message" role="status" aria-live="polite"></div>
         </section>
 
         <section class="panel" aria-label="" id="pessoas-panel" hidden>

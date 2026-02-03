@@ -401,6 +401,11 @@ summary.sidebar__link--parent:active {
   box-shadow: var(--shadow);
 }
 
+/* Variante de painel com menor espaçamento interno (usado em cadastro de pessoas) */
+.panel--compact {
+  padding-top: 0.5rem;
+}
+
 .panel__header {
   margin-bottom: 1rem;
   display: flex;

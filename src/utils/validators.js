@@ -15,11 +15,45 @@ function validarEmail(email) {
   return normalizado;
 }
 
+// Validação de senha forte para cadastro/alteração de usuários
+// Regras:
+// - mínimo: 8 caracteres
+// - pelo menos 1 letra maiúscula
+// - pelo menos 1 letra minúscula
+// - pelo menos 1 número
+// - pelo menos 1 caractere especial
 function validarSenha(senha) {
-  if (!senha || senha.length < 6) {
-    throw criarErro('A senha deve ter pelo menos 6 caracteres', 400);
+  const texto = String(senha || '');
+
+  if (texto.length < 8) {
+    throw criarErro(
+      'A senha deve ter no mínimo 8 caracteres e conter pelo menos 1 letra maiúscula, 1 letra minúscula, 1 número e 1 caractere especial.',
+      400,
+    );
   }
-  return senha;
+
+  const temMinuscula = /[a-z]/.test(texto);
+  const temMaiuscula = /[A-Z]/.test(texto);
+  const temNumero = /\d/.test(texto);
+  const temEspecial = /[^A-Za-z0-9]/.test(texto);
+
+  if (!temMinuscula || !temMaiuscula || !temNumero || !temEspecial) {
+    throw criarErro(
+      'A senha deve ter no mínimo 8 caracteres e conter pelo menos 1 letra maiúscula, 1 letra minúscula, 1 número e 1 caractere especial.',
+      400,
+    );
+  }
+
+  return texto;
+}
+
+// Validação mais simples apenas para login (aceita senhas antigas)
+function validarSenhaParaLogin(senha) {
+  const texto = String(senha || '');
+  if (!texto) {
+    throw criarErro('Senha é obrigatória', 400);
+  }
+  return texto;
 }
 
 function validarNome(nome) {
@@ -740,7 +774,7 @@ function validarCadastro(payload) {
 function validarLogin(payload) {
   return {
     email: validarEmail(payload.email),
-    senha: validarSenha(payload.senha),
+    senha: validarSenhaParaLogin(payload.senha),
   };
 }
 
