@@ -81,9 +81,7 @@
           
         </header>
 
-        <section class="panel" aria-label="Formulário de empresas">
-          <div class="panel__header panel__header--stacked"></div>
-          <div id="empresa-form-message" class="message" role="status" aria-live="polite"></div>
+        <section class="panel panel--compact" aria-label="Formulário de empresas">
           <!-- Ação direta garante envio mesmo sem o manipulador JS -->
           <form class="form" id="empresa-form" action="/api/empresas" method="post" enctype="multipart/form-data">
             <div class="form__grid form__grid--3">
@@ -186,6 +184,7 @@
               <button class="button button--ghost" type="reset">Limpar</button>
             </div>
           </form>
+          <div id="empresa-form-message" class="message" role="status" aria-live="polite"></div>
         </section>
 
         <section class="panel" aria-label="Listagem de empresas">

@@ -74,9 +74,7 @@
           <h1 class="content__title">Entidades</h1>
         </header>
 
-        <section class="panel" aria-label="Formulário de entidades">
-          <div class="panel__header panel__header--stacked"></div>
-          <div id="entidade-form-message" class="message" role="status" aria-live="polite"></div>
+        <section class="panel panel--compact" aria-label="Formulário de entidades">
           <form class="form" id="entidade-form" action="/api/entidades" method="post" enctype="multipart/form-data">
             <div class="form__grid form__grid--2">
               <label class="form__field">
@@ -159,6 +157,7 @@
               <button class="button button--ghost" type="reset" id="limpar-form">Limpar</button>
             </div>
           </form>
+          <div id="entidade-form-message" class="message" role="status" aria-live="polite"></div>
         </section>
 
         <section class="panel" aria-label="Listagem de entidades">
