@@ -15,10 +15,8 @@
   const detectPreferredTheme = () => {
     const stored = localStorage.getItem(THEME_KEY);
     if (stored === Theme.LIGHT || stored === Theme.DARK) return stored;
-
-    return window.matchMedia('(prefers-color-scheme: dark)').matches
-      ? Theme.DARK
-      : Theme.LIGHT;
+    // Padrão do sistema: sempre iniciar em tema claro para usar a nova paleta
+    return Theme.LIGHT;
   };
 
   // Aplica classes, cor de esquema e atualiza o rótulo do botão
