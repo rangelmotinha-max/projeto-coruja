@@ -34,8 +34,6 @@ npm run db:seed
 O seed é idempotente: se já houver um administrador, nada é alterado. O valor padrão de `role` para novos usuários continua sendo `user`.
 
 ### Normalização de telefones
-
-- A coluna legado `pessoas.telefone` foi removida do schema. A fonte oficial é a tabela `telefones`, associada por `pessoa_id`.
 - Para migrar dados existentes e remover duplicidades, execute:
 
 ```bash
@@ -60,25 +58,10 @@ A aplicação inicializa a conexão SQLite automaticamente ao utilizar os modelo
 - O backend injeta essa chave no frontend via `/js/maps-config.js`, consumido em `public/rede.html`.
 
 Opção A: arquivo `.env` (recomendado)
+  ## Módulo Rede e Google Maps
 
-1. Copie o arquivo `.env.example` para `.env` na raiz do projeto.
-2. Preencha `GOOGLE_MAPS_API_KEY` com sua chave do Google Cloud.
-3. Reinicie o servidor (`npm start`).
+  O módulo de visualização de rede geográfica (página `public/rede.html`, script `public/js/rede.js` e Google Maps) foi desativado.
 
-Opção B: variável de ambiente temporária
-
-Exemplo (Linux/macOS):
-
-```bash
-# Comentário: substitua pelo valor fornecido no Google Cloud Console
-export GOOGLE_MAPS_API_KEY="sua-chave-aqui"
-```
-
-Exemplo (Windows PowerShell):
-
-```powershell
-$env:GOOGLE_MAPS_API_KEY = "sua-chave-aqui"
-npm start
-```
-
-Observação: se o mapa exibir a mensagem "Informe a chave do Google Maps na variável GOOGLE_MAPS_API_KEY", verifique se a chave está presente no `.env` ou no ambiente antes de iniciar o servidor. O endpoint `/js/maps-config.js` deve retornar `window.APP_CONFIG.googleMapsApiKey` com um valor não vazio.
+  - A rota `/rede` agora retorna 404.
+  - O arquivo `public/js/rede.js` foi removido.
+  - A página `public/rede.html` apenas informa que a funcionalidade foi desativada.

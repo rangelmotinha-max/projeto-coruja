@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Rede | Projeto Coruja</title>
+    <title>Rede desativada | Projeto Coruja</title>
     <link rel="stylesheet" href="/css/main.css" />
   </head>
   <body class="theme-dark">
@@ -60,79 +60,19 @@
               <a class="sidebar__link sidebar__link--child" href="/consulta/entidades">Entidades</a>
             </div>
           </details>
-          <a class="sidebar__link sidebar__link--active" href="/rede">Rede</a>
         </nav>
       </aside>
 
-      <main class="content" data-page="rede">
+      <main class="content" data-page="rede-desativada">
         <header class="content__header">
-          <p class="content__eyebrow">Rede</p>
+          <p class="content__eyebrow">Funcionalidade desativada</p>
+          <h1 class="content__title">Rede desativada</h1>
+          <p class="content__subtitle">O módulo de Rede foi desativado. Utilize os menus de Cadastro e Consulta para as demais funcionalidades.</p>
         </header>
-
-        
-
-        <section class="panel" aria-label="Mapa da rede">
-          <div class="panel__header panel__header--stacked">
-            <h2 class="panel__title">Mapa de Pessoas</h2>
-            <p class="panel__meta">Geocodificação dos endereços cadastrados e distribuição geográfica.</p>
-            <!-- Comentário: filtro para região administrativa do DF -->
-            <div class="form__actions" style="justify-content: flex-start; gap: 0.75rem;">
-              <label class="form__field" for="rede-regiao-select" style="max-width: 280px;">
-                <span class="form__label">Região administrativa</span>
-                <select class="form__input" id="rede-regiao-select">
-                  <option value="">Todas as regiões</option>
-                  <option value="Águas Claras">Águas Claras</option>
-                  <option value="Arniqueira">Arniqueira</option>
-                  <option value="Brazlândia">Brazlândia</option>
-                  <option value="Candangolândia">Candangolândia</option>
-                  <option value="Ceilândia">Ceilândia</option>
-                  <option value="Cruzeiro">Cruzeiro</option>
-                  <option value="Fercal">Fercal</option>
-                  <option value="Gama">Gama</option>
-                  <option value="Guará">Guará</option>
-                  <option value="Itapoã">Itapoã</option>
-                  <option value="Jardim Botânico">Jardim Botânico</option>
-                  <option value="Lago Norte">Lago Norte</option>
-                  <option value="Lago Sul">Lago Sul</option>
-                  <option value="Núcleo Bandeirante">Núcleo Bandeirante</option>
-                  <option value="Paranoá">Paranoá</option>
-                  <option value="Park Way">Park Way</option>
-                  <option value="Planaltina">Planaltina</option>
-                  <option value="Plano Piloto">Plano Piloto</option>
-                  <option value="Recanto das Emas">Recanto das Emas</option>
-                  <option value="Riacho Fundo">Riacho Fundo</option>
-                  <option value="Riacho Fundo II">Riacho Fundo II</option>
-                  <option value="Samambaia">Samambaia</option>
-                  <option value="Santa Maria">Santa Maria</option>
-                  <option value="São Sebastião">São Sebastião</option>
-                  <option value="SCIA/Estrutural">SCIA/Estrutural</option>
-                  <option value="SIA">SIA</option>
-                  <option value="Sobradinho">Sobradinho</option>
-                  <option value="Sobradinho II">Sobradinho II</option>
-                  <option value="Sudoeste/Octogonal">Sudoeste/Octogonal</option>
-                  <option value="Taguatinga">Taguatinga</option>
-                  <option value="Varjão">Varjão</option>
-                  <option value="Vicente Pires">Vicente Pires</option>
-                </select>
-              </label>
-              <button class="button button--primary" type="button" id="rede-aplicar-filtro">Aplicar filtro</button>
-            </div>
-          </div>
-          <div class="stack">
-            <p id="rede-status" class="panel__meta" role="status" aria-live="polite">
-              Carregando mapa e endereços...
-            </p>
-            <!-- Comentário: o mapa é renderizado via Google Maps JavaScript API -->
-            <div id="rede-map" class="rede-map" aria-label="Mapa com marcadores da rede"></div>
-          </div>
-        </section>
       </main>
     </div>
 
     <script src="/js/main.js"></script>
-    <!-- Comentário: config expõe a key do Google Maps via variável de ambiente -->
-    <script src="/js/maps-config.js"></script>
-    <script src="/js/rede.js"></script>
     <div id="alterar-senha-modal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="alterar-senha-title">
       <div class="modal__overlay" data-modal-close></div>
       <div class="modal__panel modal__panel--sm" role="document">

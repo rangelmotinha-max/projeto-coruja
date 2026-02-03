@@ -1261,11 +1261,4 @@ body.theme-dark select.form__input optgroup {
   }
 }
 
-/* Mapa da rede */
-.rede-map {
-  min-height: 420px;
-  width: 100%;
-  border-radius: 16px;
-  background: color-mix(in srgb, var(--surface) 70%, transparent);
-  border: 1px solid var(--border);
-}
+/* Mapa da rede (removido: módulo Rede desativado) */

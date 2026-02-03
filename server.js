@@ -30,9 +30,9 @@ app.get('/usuarios', authMiddleware, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'usuarios.html'));
 });
 
-// Rota protegida garantindo acesso autenticado à página de Rede
+// Rota de Rede desativada
 app.get('/rede', authMiddleware, (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'rede.html'));
+  return res.status(404).send('Funcionalidade de Rede desativada.');
 });
 
 // Rota protegida garantindo acesso autenticado à página de Pessoas
