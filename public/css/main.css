@@ -425,11 +425,11 @@ summary.sidebar__link--parent:active {
 }
 
 .info-item {
-  display: grid;
-  grid-template-columns: 1fr auto;
+  display: flex;
+  align-items: center;
   gap: 0.35rem;
-  padding: 0.75rem 0.85rem;
-  border-radius: 12px;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
   background: var(--surface-raised);
   border: 1px solid var(--border);
 }
@@ -443,7 +443,7 @@ summary.sidebar__link--parent:active {
 .info-value {
   margin: 0;
   font-weight: 700;
-  text-align: right;
+  text-align: left;
 }
 
 .list {
@@ -597,6 +597,16 @@ summary.sidebar__link--parent:active {
 .dashboard-section--veiculos {
   background: var(--error-surface);
   border-color: var(--error-border);
+}
+
+/* Dashboard: cada card de informação em uma linha completa */
+#dash-usuarios-cards,
+#dash-pessoas-cards,
+#dash-empresas-cards,
+#dash-entidades-cards,
+#dash-veiculos-cards {
+  display: grid;
+  grid-template-columns: 1fr;
 }
 
 .form__section-header {
